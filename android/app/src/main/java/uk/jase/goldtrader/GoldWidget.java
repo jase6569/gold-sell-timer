@@ -131,8 +131,19 @@ public class GoldWidget extends AppWidgetProvider {
                     ? "Strong zone from " + gbp(w.getDouble("zone_strong_g")) + "/g"
                     : "Sell zone from " + gbp(w.getDouble("zone_sell_g")) + "/g";
             v.setTextViewText(R.id.zone, zone);
-            v.setTextViewText(R.id.updated, (live ? "Live " : "Last close · ") + time
-                    + String.format(Locale.UK, " · %+.1f%% vs avg", ext));
+            String upd = (live ? "Live " : "Last close · ") + time + String.format(Locale.UK, " · %+.1f%% vs avg", ext);
+            v.setTextColor(R.id.updated, Color.parseColor("#7D776B"));
+            try {
+                SimpleDateFormat iso = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.UK);
+                iso.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+                long hours = (System.currentTimeMillis() - iso.parse(w.getString("updated")).getTime()) / 3600000L;
+                if (hours > 12) {
+                    upd = "⚠ Data " + hours + "h old, alerts may be paused";
+                    v.setTextColor(R.id.updated, Color.parseColor("#E05D4F"));
+                }
+            } catch (Exception ignored) {
+            }
+            v.setTextViewText(R.id.updated, upd);
         } catch (Exception e) {
             v.setTextViewText(R.id.call, "Offline");
             v.setTextViewText(R.id.updated, "Couldn't update at " + time + ". Tap ↻ to retry");

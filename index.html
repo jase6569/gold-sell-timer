@@ -110,6 +110,10 @@
 
 <!-- ========== ADVICE ========== -->
 <section class="page on" id="p-home">
+  <div class="card" id="stale" style="display:none;border-color:var(--down);background:rgba(224,93,79,.08)">
+    <h2 style="color:var(--down)">Prices haven't updated</h2>
+    <p style="margin:0" id="staleMsg"></p>
+  </div>
 
   <div class="card" id="welcome" style="display:none;border-color:var(--gold)">
     <h2>New here?</h2>
@@ -299,7 +303,7 @@
     <h2>5. The other pages</h2>
     <p style="margin-top:0"><b>Alerts.</b> Phone alert setup, plus your own target price. Enter the price per gram you'd be happy with, and the app lights up when gold reaches it. This only works while the app is open. The phone alerts work all the time.</p>
     <p><b>Chart.</b> A weekly chart of gold in pounds with the 10-week and 40-week averages. The sell signal measures how far the price has stretched above the 40-week line.</p>
-    <p><b>Value.</b> Enter the weight and carat of the gold you want to sell, and what percentage of the price your buyer pays (often 90 to 97%). It shows what it's worth today and roughly what you'd receive.</p>
+    <p><b>My gold.</b> Add the gold you're holding (weight, carat, and what you paid if you like). It shows what it's all worth today and your profit. When a sell alert comes, it works out exactly how many grams of each carat to sell. It's saved on your phone only. Below that, a <b>quick check</b> works out the value of any single piece.</p>
   </div>
 
   <div class="card">
@@ -321,7 +325,36 @@
 <!-- ========== VALUE ========== -->
 <section class="page" id="p-calc">
   <div class="card">
-    <h2>What's my gold worth now?</h2>
+    <h2>My gold</h2>
+    <p class="muted" style="margin-top:0">Add the gold you're holding to see what it's worth today and exactly how much to sell when the time comes. It's saved on this phone only and never sent anywhere.</p>
+    <div class="grid2">
+      <div><label>Weight (grams)</label><input id="sG" type="number" inputmode="decimal" placeholder="e.g. 120"></div>
+      <div><label>Carat</label>
+        <select id="sK">
+          <option value="0.375">9ct</option>
+          <option value="0.585">14ct</option>
+          <option value="0.75">18ct</option>
+          <option value="0.916">22ct</option>
+          <option value="0.999">24ct</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid2">
+      <div><label>What is it? (optional)</label><input id="sN" type="text" placeholder="e.g. broken chains"></div>
+      <div><label>What you paid, £ (optional)</label><input id="sP" type="number" inputmode="decimal" placeholder="e.g. 2500"></div>
+    </div>
+    <button class="btn" id="sAdd">Add to my gold</button>
+    <div id="stockList" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card" id="stockSum" style="display:none">
+    <h2>My gold today</h2>
+    <div id="stockTotals"></div>
+    <div id="stockPlan"></div>
+  </div>
+
+  <div class="card">
+    <h2>Quick check: what's this worth?</h2>
     <div class="grid2">
       <div><label>Weight (grams)</label><input id="cG" type="number" inputmode="decimal" placeholder="e.g. 250"></div>
       <div><label>Carat</label>
@@ -334,7 +367,7 @@
         </select>
       </div>
     </div>
-    <label>Buyer pays (% of spot)</label>
+    <label>Buyer pays (% of spot). Also used for "My gold"</label>
     <input id="cP" type="number" inputmode="decimal" value="95">
     <div class="result">
       <div class="muted">Melt value at today's price</div>
@@ -353,7 +386,7 @@
   <button class="on" data-p="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>Advice</button>
   <button data-p="alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 21h4"/></svg>Alerts</button>
   <button data-p="chart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M6 16l4-5 3 3 5-7"/></svg>Chart</button>
-  <button data-p="calc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/></svg>Value</button>
+  <button data-p="calc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/></svg>My gold</button>
   <button data-p="help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.7-2.5 2-2.5 4M12 17h.01"/></svg>Guide</button>
 </nav>
 
@@ -654,13 +687,13 @@ function showPrice(oz, label){
   $("pOz").textContent = fmt(oz, 0) + " per troy ounce";
   $("carats").innerHTML = CARATS.map(([k, f]) => `<div><b>${fmt(gbpPerGram * f)}</b><span>${k}/g</span></div>`).join("");
   $("pTime").textContent = label;
-  calc(); checkAlert();
+  calc(); checkAlert(); renderStock();
 }
 function analyse(){
   if (!daily.length) return;
   try { sig = compute(); renderCall(); renderExplain(); renderHistory(); renderOutlook(); renderTrack(); }
   catch(e){ console.log(e); $("call").innerHTML = '<p class="muted">Couldn\'t run the analysis just now.</p>'; }
-  renderNews();
+  renderNews(); renderStock(); checkHealth();
 }
 async function refresh(){
   try {
@@ -685,6 +718,62 @@ function calc(){
   store.set("calc", JSON.stringify({g: $("cG").value, k: $("cK").value, p: $("cP").value}));
 }
 ["cG","cK","cP"].forEach(id => $(id).addEventListener("input", calc));
+
+/* =============== my gold (stock tracker) =============== */
+const CT = {"0.375": "9ct", "0.585": "14ct", "0.75": "18ct", "0.916": "22ct", "0.999": "24ct"};
+function stock(){ try { return JSON.parse(store.get("stock") || "[]"); } catch(e){ return []; } }
+function saveStock(a){ store.set("stock", JSON.stringify(a)); renderStock(); }
+$("sAdd").onclick = () => {
+  const w = parseFloat($("sG").value);
+  if (!(w > 0)) { $("sG").focus(); return; }
+  const a = stock();
+  a.push({w, k: $("sK").value, n: $("sN").value.trim(), paid: parseFloat($("sP").value) || 0});
+  $("sG").value = ""; $("sN").value = ""; $("sP").value = "";
+  saveStock(a);
+};
+function delStock(i){ const a = stock(); a.splice(i, 1); saveStock(a); }
+function renderStock(){
+  const a = stock(), pay = (parseFloat($("cP").value) || 95) / 100;
+  $("stockList").innerHTML = a.length ? `<table>${a.map((x, i) => {
+    const pure = x.w * parseFloat(x.k);
+    const val = gbpPerGram ? fmt(pure * gbpPerGram * pay, 0) : "";
+    return `<tr><td>${x.w}g ${CT[x.k]}${x.n ? " · " + esc(x.n) : ""}<div class="muted">${pure.toFixed(1)}g pure gold${x.paid ? " · paid " + fmt(x.paid, 0) : ""}</div></td><td>${val} <a href="#" onclick="delStock(${i});return false" style="color:var(--muted);margin-left:8px;text-decoration:none">✕</a></td></tr>`;
+  }).join("")}</table>` : '<p class="muted" style="margin:0">Nothing added yet.</p>';
+  if (!a.length || !gbpPerGram){ $("stockSum").style.display = "none"; return; }
+  $("stockSum").style.display = "block";
+  const pure = a.reduce((s, x) => s + x.w * parseFloat(x.k), 0);
+  const paid = a.reduce((s, x) => s + (x.paid || 0), 0), allPaid = a.every(x => x.paid > 0);
+  const spot = pure * gbpPerGram, net = spot * pay;
+  $("stockTotals").innerHTML = `<table>
+    <tr><td>Pure gold you hold</td><td>${pure.toFixed(1)} g</td></tr>
+    <tr><td>Worth at today's price</td><td>${fmt(spot, 0)}</td></tr>
+    <tr><td>You'd receive at ${Math.round(pay * 100)}%</td><td>${fmt(net, 0)}</td></tr>
+    ${paid ? `<tr><td>${allPaid ? "Profit or loss" : "Profit or loss (on items with a price)"}</td><td style="color:${(allPaid ? net : a.filter(x => x.paid).reduce((s, x) => s + x.w * parseFloat(x.k) * gbpPerGram * pay, 0)) - paid >= 0 ? "var(--up)" : "var(--down)"}">${(() => { const base = allPaid ? net : a.filter(x => x.paid).reduce((s, x) => s + x.w * parseFloat(x.k) * gbpPerGram * pay, 0); const d = base - paid; return (d >= 0 ? "+" : "−") + fmt(Math.abs(d), 0) + " (" + pc(d / paid * 100) + ")"; })()}</td></tr>` : ""}
+  </table>`;
+  if (!sig){ $("stockPlan").innerHTML = ""; return; }
+  const t = sig.cur.tier, zSell = g(sig.cur.s40 * 1.18), zStrong = g(sig.cur.s40 * 1.25);
+  const share = t === 3 ? 0.3 : t === 2 ? 0.25 : 0;
+  const byCarat = {};
+  a.forEach(x => { byCarat[x.k] = (byCarat[x.k] || 0) + x.w; });
+  const split = Object.entries(byCarat).map(([k, w]) => `${Math.round(w * share)}g of your ${CT[k]}`).join(", ");
+  $("stockPlan").innerHTML = share
+    ? `<div class="verdict ${TIERS[t].cls}" style="margin:12px 0 0"><div class="call" style="font-size:19px">${TIERS[t].call}</div>
+        <div>For you that's about <b>${Math.round(share * 100)}%</b> of your gold: <b>${split}</b>. That's around <b>${(pure * share).toFixed(1)}g of pure gold, roughly ${fmt(net * share, 0)}</b> at ${Math.round(pay * 100)}%.</div></div>`
+    : `<div class="verdict t0" style="margin:12px 0 0"><div class="call" style="font-size:19px">${TIERS[t].call}</div>
+        <div>No need to sell any yet. For reference, if gold reaches the <b>sell zone (${fmt(zSell)}/g)</b>, your gold would be worth about <b>${fmt(pure * zSell * pay, 0)}</b>, which is ${fmt(pure * (zSell - gbpPerGram) * pay, 0)} more than today. At that point, selling a quarter would mean about ${Object.entries(byCarat).map(([k, w]) => `${Math.round(w * 0.25)}g of your ${CT[k]}`).join(", ")}.</div></div>`;
+}
+$("cP").addEventListener("input", renderStock);
+
+/* =============== health check =============== */
+let dataUpdated = null;
+function checkHealth(){
+  if (!dataUpdated){ return; }
+  const h = (Date.now() - new Date(dataUpdated)) / 36e5;
+  if (h > 12){
+    $("stale").style.display = "block";
+    $("staleMsg").innerHTML = `The background price check last ran ${Math.round(h)} hours ago (${new Date(dataUpdated).toLocaleString("en-GB", {weekday: "short", hour: "2-digit", minute: "2-digit"})}). It normally runs every 3 hours, so <b>phone alerts may be paused</b>. The live price above still works, but the sell call may be out of date. Check the "Update gold data" job on GitHub, or ask for it to be looked at.`;
+  } else $("stale").style.display = "none";
+}
 
 /* =============== own target =============== */
 function checkAlert(){
@@ -727,12 +816,13 @@ try { const c = JSON.parse(store.get("calc") || "null"); if (c){ $("cG").value =
 if (store.get("target")) $("aT").value = store.get("target");
 if (!store.get("seenGuide")) $("welcome").style.display = "block";
 (async () => {
-  try { daily = (await fetchJSON("data.json?t=" + Date.now())).daily; } catch(e){}
+  try { const dj = await fetchJSON("data.json?t=" + Date.now()); daily = dj.daily; dataUpdated = dj.updated; } catch(e){}
   try { news = await fetchJSON("news.json?t=" + Date.now()); } catch(e){}
+  renderStock();
   await refresh();
   setInterval(refresh, 60000);
   setInterval(async () => {
-    try { daily = (await fetchJSON("data.json?t=" + Date.now())).daily; } catch(e){}
+    try { const dj = await fetchJSON("data.json?t=" + Date.now()); daily = dj.daily; dataUpdated = dj.updated; } catch(e){}
     try { news = await fetchJSON("news.json?t=" + Date.now()); } catch(e){}
     analyse();
   }, 30 * 60000);

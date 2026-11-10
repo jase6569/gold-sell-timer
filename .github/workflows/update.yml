@@ -36,3 +36,13 @@ jobs:
           git diff --cached --quiet || git commit -m "Update gold data"
           git pull --rebase -q || true
           git push
+      - name: Alert if the update failed
+        if: failure()
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: |
+          if [ -n "$NTFY_TOPIC" ]; then
+            curl -s -H "Title: Gold Trader update failed" -H "Priority: high" -H "Tags: warning" \
+              -d "The 3-hourly gold price check failed, so sell alerts may be paused until it's fixed. The app still shows the live price." \
+              "https://ntfy.sh/$NTFY_TOPIC"
+          fi

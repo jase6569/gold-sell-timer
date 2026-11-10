@@ -55,7 +55,10 @@ async function run(){
   const c = document.getElementById("c"); c.textContent = CALLS[t]; c.className = "call c" + t;
   document.getElementById("m").style.left = Math.max(0, Math.min(100, (ext + 35) / 70 * 100)) + "%";
   document.getElementById("z").innerHTML = t >= 2 ? `Strong zone from <b>${f(w.zone_strong_g)}</b>` : `Sell zone from <b>${f(w.zone_sell_g)}</b>`;
-  document.getElementById("u").textContent = (live ? "Live " : "Last close ") + new Date().toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"});
+  const age = (Date.now() - new Date(w.updated)) / 36e5;
+  const u = document.getElementById("u");
+  if (age > 12){ u.textContent = "⚠ Data " + Math.round(age) + "h old, alerts may be paused"; u.style.color = "#e05d4f"; }
+  else u.textContent = (live ? "Live " : "Last close ") + new Date().toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"});
 }
 run(); setInterval(run, 10 * 60 * 1000);
 </script>
