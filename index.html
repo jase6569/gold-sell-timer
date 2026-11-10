@@ -102,6 +102,13 @@
 <!-- ========== ADVICE ========== -->
 <section class="page on" id="p-home">
 
+  <div class="card" id="welcome" style="display:none;border-color:var(--gold)">
+    <h2>New here?</h2>
+    <p style="margin:0 0 10px">Two minutes of setup gets you sell alerts on your phone. The Guide explains everything.</p>
+    <button class="btn" style="margin-top:0" onclick="go('help')">Read the guide</button>
+    <button class="btn ghost" onclick="document.getElementById('welcome').style.display='none';store.set('seenGuide','1')">Got it, hide this</button>
+  </div>
+
   <div class="card">
     <h2>Gold today · 24ct</h2>
     <div class="price" id="pGram">£—<small> /gram</small></div>
@@ -188,6 +195,95 @@
   </div>
 </section>
 
+<!-- ========== GUIDE ========== -->
+<section class="page" id="p-help">
+  <div class="card">
+    <h2>How to use Gold Trader</h2>
+    <p style="margin-top:0">Gold Trader tells you when it's a good time to sell your gold, using live UK prices. It answers one question: <b>sell now, or hold?</b> When the time comes, it alerts your phone.</p>
+    <div class="sub">The short version</div>
+    <ol>
+      <li>Set up the phone alerts once (Alerts tab).</li>
+      <li>When an alert arrives, or you're curious, open the app and read <b>Should I sell?</b> on the Advice page.</li>
+      <li>Follow what it says. Sell in stages, never everything at once.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>1. Put it on your phone</h2>
+    <ol>
+      <li><b>iPhone:</b> open the app in Safari, tap the Share button (square with an arrow), then <b>Add to Home Screen</b>.</li>
+      <li><b>Android:</b> open the app in Chrome, tap <b>⋮</b> at the top right, then <b>Add to Home screen</b>.</li>
+    </ol>
+    <p class="muted">It then opens like a normal app, with the Dorset Jewellers icon.</p>
+  </div>
+
+  <div class="card">
+    <h2>2. Turn on the alerts</h2>
+    <ol>
+      <li>Install the free <b>ntfy</b> app from the App Store or Google Play.</li>
+      <li>Open it, tap <b>+</b>, and type the topic <code>gold-trader-jase-2b05ab99</code></li>
+      <li>Tap <b>Subscribe</b>. You'll get a "Gold Trader alerts are on" message.</li>
+    </ol>
+    <p>The app checks gold every 3 hours, day and night, even when your phone is off. You'll get a message when:</p>
+    <table>
+      <tr><td>🟢 Gold getting close to the sell zone</td><td>Get ready</td></tr>
+      <tr><td>🟡 Sell zone</td><td>Sell about a quarter</td></tr>
+      <tr><td>🟠 Strong sell zone</td><td>Sell more</td></tr>
+      <tr><td>✅ Sell zone over</td><td>Hold the rest</td></tr>
+      <tr><td>📅 Every Friday evening</td><td>Weekly summary</td></tr>
+    </table>
+    <p class="muted">Sell alerts are rare, around once every year or two, because they only fire when gold is genuinely expensive. Silence means hold.</p>
+  </div>
+
+  <div class="card">
+    <h2>3. Reading the Advice page</h2>
+    <p style="margin-top:0"><b>Gold today.</b> The live price of pure 24ct gold per gram, plus 9ct, 14ct, 18ct and 22ct. It refreshes every minute.</p>
+    <p><b>Should I sell?</b> This is the main answer. The coloured box gives the call and what to do. Under it:</p>
+    <ol>
+      <li><b>The bar</b> shows where gold is now, from cheap on the left to strong sell on the right. The white marker is today.</li>
+      <li><b>Sell zone prices</b> are the 24ct prices per gram where each zone starts. These are the numbers to watch.</li>
+      <li><b>Why</b> explains the call in plain numbers.</li>
+    </ol>
+    <p><b>6-month outlook.</b> What gold did in the past after weeks like this one: the typical result, a realistic range, and how often it was higher. If history is unclear, it says so.</p>
+    <p><b>Big announcements coming up.</b> US and UK news, such as inflation figures and interest rate decisions, that often makes gold jump or drop. Try not to sell just before one.</p>
+    <p><b>Proof: past sell signals.</b> Every sell alert since 2005 and what gold did 6 months later, so you can judge how reliable the app is.</p>
+    <p><b>What's in the news.</b> The latest gold headlines, for background only. They don't change the call.</p>
+  </div>
+
+  <div class="card">
+    <h2>4. What to do in each zone</h2>
+    <table>
+      <tr><td><b>Hold: not in the sell zone</b><div class="muted">Gold isn't expensive. Selling now usually means selling too cheap.</div></td><td>Hold</td></tr>
+      <tr><td><b>Hold: sell zone getting close</b><div class="muted">Gold is rising well. In the past it usually kept rising from here.</div></td><td>Hold, get ready</td></tr>
+      <tr><td><b>Sell zone</b><div class="muted">Gold is stretched well above normal.</div></td><td>Sell about ¼</td></tr>
+      <tr><td><b>Strong sell zone</b><div class="muted">Gold was lower 6 months later 87% of the time from here.</div></td><td>Sell another ¼ to ⅓</td></tr>
+    </table>
+    <p><b>Why sell in stages?</b> Gold often climbs further after first entering the sell zone. In October 2025 it entered at £93/g, ran up to £125/g in January, then dropped back. Selling a part at each stage means you never sell everything too early, and you never hold everything through a fall.</p>
+    <p class="muted">Keep a little back after the strong zone. Gold has risen a lot over the long run, and the next rise will come round.</p>
+  </div>
+
+  <div class="card">
+    <h2>5. The other pages</h2>
+    <p style="margin-top:0"><b>Alerts.</b> Phone alert setup, plus your own target price. Enter the price per gram you'd be happy with, and the app lights up when gold reaches it. This only works while the app is open. The phone alerts work all the time.</p>
+    <p><b>Chart.</b> A weekly chart of gold in pounds with the 10-week and 40-week averages. The sell signal measures how far the price has stretched above the 40-week line.</p>
+    <p><b>Value.</b> Enter the weight and carat of the gold you want to sell, and what percentage of the price your buyer pays (often 90 to 97%). It shows what it's worth today and roughly what you'd receive.</p>
+  </div>
+
+  <div class="card">
+    <h2>6. How the advice works</h2>
+    <p style="margin-top:0">The app looks at one thing: <b>how far gold has stretched above its 40-week average</b>, and whether it has started to turn down. That was the only measure that worked reliably when tested on 22 years of UK gold prices (2004 to today), and it held up in both 2005–2015 and 2016–2026. Popular rules like "RSI over 70" or "near its high" didn't hold up for gold, so they're not used.</p>
+    <p>The sell zone prices move slowly as the 40-week average changes, so check them now and then rather than writing them down once.</p>
+  </div>
+
+  <div class="card">
+    <h2>Questions</h2>
+    <p style="margin-top:0"><b>The price looks a little different from my buyer's.</b> The app shows the market (spot) price. Buyers pay a percentage of it and some quote differently, so use the Value page with your buyer's percentage.</p>
+    <p><b>It says "Live feed unavailable".</b> The app is showing the last saved price and will keep retrying every minute. The advice still works.</p>
+    <p><b>I haven't had an alert for ages.</b> That's normal. Alerts only come when gold nears or enters the sell zone, plus the Friday summary. If even the Friday summary stops, check you're still subscribed in ntfy.</p>
+    <p><b>Is it always right?</b> No. It's based on what has happened before, and big world events can change things fast. It's a strong guide, not a guarantee, and it isn't regulated financial advice. The decision is always yours.</p>
+  </div>
+</section>
+
 <!-- ========== VALUE ========== -->
 <section class="page" id="p-calc">
   <div class="card">
@@ -224,6 +320,7 @@
   <button data-p="alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 21h4"/></svg>Alerts</button>
   <button data-p="chart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M6 16l4-5 3 3 5-7"/></svg>Chart</button>
   <button data-p="calc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/></svg>Value</button>
+  <button data-p="help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.7-2.5 2-2.5 4M12 17h.01"/></svg>Guide</button>
 </nav>
 
 <script>
@@ -501,6 +598,7 @@ function loadChart(){
 }
 
 /* =============== navigation =============== */
+function go(page){ const b = document.querySelector('nav button[data-p="' + page + '"]'); if (b) b.click(); if (page === "help") store.set("seenGuide", "1"); }
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
   document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x === b));
   document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "p-" + b.dataset.p));
@@ -511,6 +609,7 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
 /* =============== start =============== */
 try { const c = JSON.parse(store.get("calc") || "null"); if (c){ $("cG").value = c.g; $("cK").value = c.k; $("cP").value = c.p; } } catch(e){}
 if (store.get("target")) $("aT").value = store.get("target");
+if (!store.get("seenGuide")) $("welcome").style.display = "block";
 (async () => {
   try { daily = (await fetchJSON("data.json?t=" + Date.now())).daily; } catch(e){}
   try { news = await fetchJSON("news.json?t=" + Date.now()); } catch(e){}
