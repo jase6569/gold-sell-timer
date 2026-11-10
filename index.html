@@ -432,7 +432,7 @@ function renderCall(){
     <div class="sub">Why</div>
     <ul class="reasons">${reasons.map(r => `<li>${r}</li>`).join("")}</ul>
     ${eventWarning()}`;
-  const zEl = $("cZone"); if (zEl) zEl.innerHTML = `Today's signal: <b>${TIERS[t].call}</b>`;
+  const zEl = $("cZone"); if (zEl) zEl.innerHTML = `Today's signal: <span style="color:var(--gold2);font-weight:700">${TIERS[t].call}</span>`;
 }
 
 /* =============== render: 6-month outlook =============== */
