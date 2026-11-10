@@ -33,31 +33,23 @@
   .carats div{background:#12110f;border:1px solid var(--line);border-radius:10px;padding:8px 4px;text-align:center}
   .carats b{display:block;font-size:15px}
   .carats span{font-size:11px;color:var(--muted)}
-  .verdict{border-radius:14px;padding:16px;margin-bottom:12px}
-  .verdict .lbl{font-size:12px;text-transform:uppercase;letter-spacing:.7px;opacity:.85}
-  .verdict .call{font-size:24px;font-weight:800;margin:2px 0 6px;line-height:1.2}
-  .v-sell{background:linear-gradient(135deg,#3a2c0c,#5a4310);border:1px solid var(--gold)}
-  .v-open{background:linear-gradient(135deg,#2a2412,#3a3014);border:1px solid #8a7330}
-  .v-hold{background:#1f1d19;border:1px solid var(--line)}
-  .v-wait{background:linear-gradient(135deg,#1c1615,#2a1a17);border:1px solid #5c2e27}
-  .v-protect{background:linear-gradient(135deg,#2c1512,#3d1a15);border:1px solid var(--down)}
-  .meter{height:10px;border-radius:999px;background:#2a2722;overflow:hidden;margin:8px 0 4px}
-  .meter i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#6b5a2a,var(--gold2))}
-  .scale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
-  .tabs{display:flex;background:#12110f;border-radius:12px;padding:4px;margin-bottom:12px}
-  .tabs button{flex:1;border:0;background:none;color:var(--muted);padding:10px;border-radius:9px;font-size:15px;font-weight:600}
-  .tabs button.on{background:var(--gold);color:#1a1408}
-  .view{display:none}.view.on{display:block}
+  .verdict{border-radius:14px;padding:16px;margin-bottom:14px}
+  .verdict .call{font-size:25px;font-weight:800;margin:0 0 6px;line-height:1.2}
+  .t3{background:linear-gradient(135deg,#3d2d08,#6a4d0e);border:1px solid var(--gold2)}
+  .t2{background:linear-gradient(135deg,#2e250e,#463712);border:1px solid var(--gold)}
+  .t1{background:linear-gradient(135deg,#14211a,#1b2e23);border:1px solid #3d6b4f}
+  .t0{background:#1f1d19;border:1px solid var(--line)}
+  .zone{position:relative;height:14px;border-radius:999px;margin:18px 0 6px;
+        background:linear-gradient(90deg,#3a3630 0%,#3a3630 50%,#2d5a44 50%,#2d5a44 71.4%,#8a7330 71.4%,#8a7330 85.7%,#d4a843 85.7%,#d4a843 100%)}
+  .zone i{position:absolute;top:-6px;width:4px;height:26px;border-radius:3px;background:#fff;box-shadow:0 0 0 2px #0f0e0c;transform:translateX(-2px)}
+  .zl{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  td{padding:9px 0;border-top:1px solid var(--line);vertical-align:top}
+  td:last-child{text-align:right;font-weight:600}
   ul.reasons{list-style:none;padding:0;margin:8px 0 0}
-  ul.reasons li{padding:10px 0 10px 28px;border-top:1px solid var(--line);position:relative;font-size:15px}
-  ul.reasons li:before{content:"";position:absolute;left:4px;top:16px;width:12px;height:12px;border-radius:50%}
-  ul.reasons li.s:before{background:var(--gold2)}
-  ul.reasons li.h:before{background:#7d776b}
-  ul.reasons li.r:before{background:var(--down)}
-  .ncheck{border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid var(--line);background:#12110f}
-  .ncheck .call{font-size:19px;font-weight:800;margin:2px 0 4px}
-  .n-ok{border-color:#3d6b4f;background:rgba(63,178,127,.08)}
-  .n-warn{border-color:#8a5a20;background:rgba(227,163,59,.08)}
+  ul.reasons li{padding:10px 0 10px 26px;border-top:1px solid var(--line);position:relative;font-size:15px}
+  ul.reasons li:before{content:"";position:absolute;left:4px;top:17px;width:11px;height:11px;border-radius:50%;background:var(--gold2)}
+  .sub{text-transform:uppercase;letter-spacing:.7px;font-size:12px;color:var(--muted);margin-top:14px}
   .drivers{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
   .drivers span{font-size:12px;padding:4px 9px;border-radius:999px;border:1px solid var(--line)}
   .drivers .up{color:var(--up);border-color:#2d5a44}
@@ -68,18 +60,21 @@
   .hl i.up{background:var(--up)} .hl i.dn{background:var(--down)}
   .ev{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:15px}
   .ev .when{color:var(--gold2);font-weight:600;white-space:nowrap}
-  table{width:100%;border-collapse:collapse;font-size:15px}
-  td{padding:9px 0;border-top:1px solid var(--line)}
-  td:last-child{text-align:right;font-weight:600}
+  .warn{border:1px solid #8a5a20;background:rgba(227,163,59,.08);border-radius:12px;padding:12px;margin-top:12px}
   .tv{border-radius:12px;overflow:hidden}
+  .tabs{display:flex;background:#12110f;border-radius:12px;padding:4px;margin-bottom:12px}
+  .tabs button{flex:1;border:0;background:none;color:var(--muted);padding:10px;border-radius:9px;font-size:15px;font-weight:600}
+  .tabs button.on{background:var(--gold);color:#1a1408}
+  .view{display:none}.view.on{display:block}
   label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
   input,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#12110f;color:var(--text);font-size:17px}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .result{margin-top:14px;padding:14px;border-radius:12px;background:#12110f;border:1px solid var(--line)}
   .result b{font-size:28px;color:var(--gold2)}
-  .btn{display:block;width:100%;margin-top:12px;padding:13px;border:0;border-radius:12px;background:var(--gold);color:#1a1408;font-weight:700;font-size:16px}
+  .btn{display:block;width:100%;margin-top:12px;padding:13px;border:0;border-radius:12px;background:var(--gold);color:#1a1408;font-weight:700;font-size:16px;text-align:center;text-decoration:none}
   .btn.ghost{background:none;border:1px solid var(--line);color:var(--text)}
-  ol{margin:6px 0 0;padding-left:20px} ol li{margin:6px 0}
+  code{background:#12110f;border:1px solid var(--line);border-radius:6px;padding:2px 6px;font-size:15px;color:var(--gold2)}
+  ol{margin:6px 0 0;padding-left:20px} ol li{margin:7px 0}
   nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:rgba(15,14,12,.97);border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
   nav button{flex:1;border:0;background:none;color:var(--muted);font-size:12px;padding:6px 2px}
   nav button svg{display:block;margin:0 auto 3px;width:22px;height:22px}
@@ -88,13 +83,12 @@
   .alertbox{margin-top:10px;padding:12px;border-radius:12px;border:1px solid var(--gold);background:rgba(212,168,67,.12);display:none}
   .live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--up);margin-right:6px;animation:p 1.6s infinite}
   @keyframes p{50%{opacity:.25}}
-  .summary{font-size:16px;margin:0}
 </style>
 </head>
 <body>
 <header>
   <h1>Gold <span>Trader</span></h1>
-  <p><i class="live"></i>Your selling adviser · UK gold, live</p>
+  <p><i class="live"></i>When to sell your gold · UK, live</p>
 </header>
 
 <main>
@@ -111,23 +105,8 @@
   </div>
 
   <div class="card">
-    <h2>Trader's call</h2>
-    <p class="summary" id="overall">Analysing the market…</p>
-  </div>
-
-  <div class="card">
-    <h2>News check</h2>
-    <div id="newsCheck"><p class="muted" style="margin:0">Reading the latest gold news…</p></div>
-  </div>
-
-  <div class="card">
-    <h2>Selling timing</h2>
-    <div class="tabs" data-group="tf">
-      <button class="on" data-v="w">This week</button>
-      <button data-v="m">This month</button>
-    </div>
-    <div class="view on" id="tf-w"></div>
-    <div class="view" id="tf-m"></div>
+    <h2>Should I sell?</h2>
+    <div id="call"><p class="muted" style="margin:0">Analysing 22 years of UK gold prices…</p></div>
   </div>
 
   <div class="card">
@@ -136,40 +115,69 @@
   </div>
 
   <div class="card">
-    <h2>Track record</h2>
-    <div id="track"><p class="muted" style="margin:0">Checking…</p></div>
-  </div>
-
-  <div class="card">
-    <h2>Big events coming up</h2>
-    <p class="muted" style="margin-top:0">US and UK announcements that often move the gold price sharply.</p>
+    <h2>Big announcements coming up</h2>
+    <p class="muted" style="margin-top:0">US and UK news that often makes gold jump or drop. Avoid selling just before one; decide once the result is out.</p>
     <div id="events"><p class="muted">Loading…</p></div>
   </div>
 
   <div class="card">
-    <h2>Latest gold headlines</h2>
-    <p class="muted" style="margin-top:0"><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--up)"></i> points to gold rising &nbsp; <i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--down)"></i> points to gold falling</p>
-    <div id="headlines"><p class="muted">Loading…</p></div>
+    <h2>Proof: past sell signals</h2>
+    <div id="track"><p class="muted" style="margin:0">Checking…</p></div>
   </div>
 
-  <p class="muted" style="padding:0 4px">These calls come from fixed trading rules (trend, momentum and how stretched the price is) applied to live UK gold prices. They're general information, not regulated financial advice, and the final decision is yours.</p>
+  <div class="card">
+    <h2>What's in the news</h2>
+    <div id="newsBox"><p class="muted" style="margin:0">Loading…</p></div>
+  </div>
+
+  <p class="muted" style="padding:0 4px">How it works: the sell signal is based on one measure that held up when tested on 22 years of UK gold prices (2004 to today): how far gold has stretched above its 40-week average, and whether it has started to turn down. It's general information, not regulated financial advice.</p>
+</section>
+
+<!-- ========== ALERTS ========== -->
+<section class="page" id="p-alerts">
+  <div class="card">
+    <h2>Get sell alerts on your phone</h2>
+    <p style="margin-top:0">The app checks gold every 3 hours, even when your phone is off. It sends you a notification when:</p>
+    <ol>
+      <li>gold moves into the <b>sell zone</b> (sell a portion), or the <b>strong sell zone</b></li>
+      <li>gold is getting <b>close to the sell zone</b>, so you can get ready</li>
+      <li>the sell zone ends</li>
+    </ol>
+    <p>You also get a short summary every <b>Friday evening</b> after the market closes.</p>
+    <div class="sub">One-time setup (2 minutes)</div>
+    <ol>
+      <li>Install the free <b>ntfy</b> app: <a style="color:var(--gold2)" href="https://apps.apple.com/app/ntfy/id1625396347">iPhone</a> or <a style="color:var(--gold2)" href="https://play.google.com/store/apps/details?id=io.heckel.ntfy">Android</a>.</li>
+      <li>Open it, tap <b>+</b> (Subscribe to topic), and type exactly:<br><code id="topic">gold-trader-jase-2b05ab99</code></li>
+      <li>Tap <b>Subscribe</b>. That's it.</li>
+    </ol>
+    <p class="muted">No account or sign-up needed. Keep the topic name to yourself, because anyone with it could read your alerts.</p>
+  </div>
+
+  <div class="card">
+    <h2>My own target price</h2>
+    <p class="muted" style="margin-top:0">An extra on-screen check. It lights up when gold reaches your price while the app is open.</p>
+    <label>Sell when 24ct reaches (£ per gram)</label>
+    <input id="aT" type="number" inputmode="decimal" placeholder="e.g. 115">
+    <button class="btn" id="aSave">Save target</button>
+    <button class="btn ghost" id="aClear">Clear</button>
+    <div class="result">
+      <div class="muted">Distance to target</div>
+      <b id="aDist">No target set</b>
+    </div>
+    <div class="alertbox" id="aHit"><b>Target reached.</b> Gold is at or above your price. Consider selling a portion.</div>
+  </div>
 </section>
 
 <!-- ========== CHART ========== -->
 <section class="page" id="p-chart">
   <div class="card" style="padding:10px">
-    <div class="tabs" data-group="ch">
-      <button class="on" data-v="w">Weekly</button>
-      <button data-v="m">Monthly</button>
-    </div>
-    <div class="view on" id="ch-w"><div class="tv" id="chW" style="height:560px"></div></div>
-    <div class="view" id="ch-m"><div class="tv" id="chM" style="height:560px"></div></div>
+    <div class="tv" id="chW" style="height:560px"></div>
   </div>
   <div class="card">
-    <h2>What's on the chart</h2>
+    <h2>Reading the chart</h2>
     <ol>
-      <li>Gold in <b>pounds</b>, with two moving averages: 10 and 40 weeks on the weekly chart, and 6 and 12 months on the monthly one.</li>
-      <li><b>RSI</b> (momentum) is shown in the reasons on the Advice page. Above 70 means stretched, which is a good moment to sell some. Below 30 means oversold, so avoid selling.</li>
+      <li>Weekly gold in <b>pounds</b>. Each candle is one week.</li>
+      <li>The two lines are the <b>10-week</b> and <b>40-week averages</b>. The sell signal measures how far the price has stretched above the 40-week line, the slower of the two.</li>
     </ol>
   </div>
 </section>
@@ -197,33 +205,9 @@
       <b id="cSpot">£0</b>
       <div class="muted" style="margin-top:8px">You'd receive at <span id="cPct">95</span>%</div>
       <b id="cNet">£0</b>
+      <div class="muted" style="margin-top:8px" id="cZone"></div>
     </div>
-    <p class="muted">Pure gold content: <span id="cPure">0</span> g. Get quotes from two or three buyers: the payout percentage can be worth as much as good timing.</p>
-  </div>
-</section>
-
-<!-- ========== TARGET ========== -->
-<section class="page" id="p-alert">
-  <div class="card">
-    <h2>My sell target</h2>
-    <p class="muted" style="margin-top:0">Set the 24ct price per gram you'd be happy selling at. While the app is open it checks every minute and lights up when the price gets there.</p>
-    <label>Sell when 24ct reaches (£ per gram)</label>
-    <input id="aT" type="number" inputmode="decimal" placeholder="e.g. 105">
-    <button class="btn" id="aSave">Save target</button>
-    <button class="btn ghost" id="aClear">Clear</button>
-    <div class="result">
-      <div class="muted">Distance to target</div>
-      <b id="aDist">No target set</b>
-    </div>
-    <div class="alertbox" id="aHit"><b>Target reached.</b> Gold is at or above your sell price. Think about selling a portion now and holding the rest.</div>
-  </div>
-  <div class="card">
-    <h2>Selling in portions</h2>
-    <ol>
-      <li>Sell about a <b>third</b> when the call says <b>Sell a portion</b> or your target is hit.</li>
-      <li>Sell another third if gold keeps climbing and the weekly score goes over 80.</li>
-      <li>Keep the last third, unless the monthly call turns to <b>Protect your value</b>.</li>
-    </ol>
+    <p class="muted">Pure gold content: <span id="cPure">0</span> g. Get quotes from two or three buyers, because the payout percentage matters as much as the timing.</p>
   </div>
 </section>
 
@@ -231,376 +215,213 @@
 
 <nav>
   <button class="on" data-p="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>Advice</button>
+  <button data-p="alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 21h4"/></svg>Alerts</button>
   <button data-p="chart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M6 16l4-5 3 3 5-7"/></svg>Chart</button>
   <button data-p="calc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/></svg>Value</button>
-  <button data-p="alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 21h4"/></svg>Target</button>
 </nav>
 
 <script>
 const OZ = 31.1034768;
 const CARATS = [["9ct",0.375],["14ct",0.585],["18ct",0.75],["22ct",0.916],["24ct",0.999]];
-let daily = [];          // [[date, £/oz]]
-let liveOz = null;       // live £/oz
-let gbpPerGram = null;
+let daily = [], liveOz = null, gbpPerGram = null, news = null, sig = null;
 
 const $ = id => document.getElementById(id);
 const g = oz => oz / OZ;
 const fmt = (n, d = 2) => "£" + n.toLocaleString("en-GB", {minimumFractionDigits: d, maximumFractionDigits: d});
-const pct = n => (n >= 0 ? "+" : "") + n.toFixed(1) + "%";
+const pc = (x, d = 0) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(d) + "%";
+const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const store = {
   get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
   set(k,v){ try { localStorage.setItem(k,v); } catch(e){} },
   del(k){ try { localStorage.removeItem(k); } catch(e){} }
 };
+const median = a => { const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m-1] + s[m]) / 2; };
+const quant = (a, q) => { const s = [...a].sort((x, y) => x - y), i = (s.length - 1) * q, lo = Math.floor(i); return s[lo] + (s[Math.ceil(i)] - s[lo]) * (i - lo); };
 
-/* ================= indicators ================= */
-const sma = (a, n, end = a.length) => end < n ? null : a.slice(end - n, end).reduce((s, x) => s + x, 0) / n;
-function rsi(a, n = 14){
-  if (a.length < n + 1) return null;
-  let gain = 0, loss = 0;
-  for (let i = 1; i <= n; i++){ const d = a[i] - a[i-1]; d > 0 ? gain += d : loss -= d; }
-  gain /= n; loss /= n;
-  for (let i = n + 1; i < a.length; i++){
-    const d = a[i] - a[i-1];
-    gain = (gain * (n - 1) + Math.max(d, 0)) / n;
-    loss = (loss * (n - 1) + Math.max(-d, 0)) / n;
-  }
-  return loss === 0 ? 100 : 100 - 100 / (1 + gain / loss);
-}
-
-/* group daily closes into weekly (ISO week) or monthly closes */
-function periods(kind){
+/* =============== weekly series (Friday closes) =============== */
+function weekly(){
   const map = new Map();
-  for (const [d, v] of daily){
-    const dt = new Date(d + "T12:00:00Z");
-    let key;
-    if (kind === "m") key = d.slice(0, 7);
-    else {
-      const t = new Date(dt); const day = (t.getUTCDay() + 6) % 7;
-      t.setUTCDate(t.getUTCDate() - day); key = t.toISOString().slice(0, 10);
-    }
-    map.set(key, v);
+  const fri = d => { const t = new Date(d + "T12:00:00Z"); t.setUTCDate(t.getUTCDate() + ((5 - t.getUTCDay() + 7) % 7)); return t.toISOString().slice(0, 10); };
+  for (const [d, v] of daily) map.set(fri(d), v);
+  if (liveOz){ map.set(fri(new Date().toISOString().slice(0, 10)), liveOz); }
+  return {dates: [...map.keys()], c: [...map.values()]};
+}
+
+/* =============== the tested signal ===============
+   ext  = % above the 40-week average
+   mom4 = % change over the last 4 weeks
+   Tier 3 strong sell zone : ext >= 20 and turning down, or ext >= 25
+   Tier 2 sell zone        : ext >= 15 and turning down, or ext >= 18
+   Tier 1 getting close    : ext >= 10
+   Tier 0 hold
+*/
+function tierOf(ext, mom4){
+  if ((ext >= 20 && mom4 < 0) || ext >= 25) return 3;
+  if ((ext >= 15 && mom4 < 0) || ext >= 18) return 2;
+  if (ext >= 10) return 1;
+  return 0;
+}
+function compute(){
+  const {dates, c} = weekly(), n = c.length, H = 26;
+  const ext = new Array(n).fill(null), mom = new Array(n).fill(null), tier = new Array(n).fill(null), s40 = new Array(n).fill(null);
+  let sum = 0;
+  for (let i = 0; i < n; i++){
+    sum += c[i]; if (i >= 40) sum -= c[i-40];
+    if (i >= 39){ s40[i] = sum / 40; ext[i] = (c[i] / s40[i] - 1) * 100; }
+    if (i >= 4) mom[i] = (c[i] / c[i-4] - 1) * 100;
+    if (ext[i] != null && mom[i] != null) tier[i] = tierOf(ext[i], mom[i]);
   }
-  const keys = [...map.keys()];
-  const closes = [...map.values()];
-  // put the live price in as this period's latest close
-  if (liveOz){
-    const now = new Date();
-    let cur;
-    if (kind === "m") cur = now.toISOString().slice(0, 7);
-    else { const t = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12)); t.setUTCDate(t.getUTCDate() - (t.getUTCDay() + 6) % 7); cur = t.toISOString().slice(0, 10); }
-    if (keys[keys.length - 1] === cur) closes[closes.length - 1] = liveOz;
-    else { keys.push(cur); closes.push(liveOz); }
-  }
-  return closes;
-}
-
-/* ================= the trader ================= */
-function analyse(kind){
-  const P = kind === "w"
-    ? {fast: 10, slow: 40, look: 52, mom: 4, unit: "week", fastName: "10-week average", slowName: "40-week average", hiName: "52-week high", loName: "52-week low", momName: "the last 4 weeks"}
-    : {fast: 6, slow: 12, look: 12, mom: 3, unit: "month", fastName: "6-month average", slowName: "12-month average", hiName: "12-month high", loName: "12-month low", momName: "the last 3 months"};
-  const c = periods(kind);
-  const n = c.length;
-  if (n < P.slow + 5) return null;
-  const p = c[n-1];
-  const f = sma(c, P.fast), s = sma(c, P.slow);
-  const fPrev = sma(c, P.fast, n - 3), sPrev = sma(c, P.slow, n - 3);
-  const r = rsi(c);
-  const win = c.slice(n - P.look);
-  const hi = Math.max(...win), lo = Math.min(...win);
-  const prevLo = Math.min(...c.slice(n - P.look - 1, n - 1));
-  const ath = Math.max(...c);
-  const ext = (p - s) / s * 100;
-  const fromHi = (hi - p) / hi * 100;
-  const chg = (p - c[n - 1 - P.mom]) / c[n - 1 - P.mom] * 100;
-  const upTrend = p > f && f > s;
-  const downTrend = p < s && f < s && f < fPrev;
-  const brokeLow = p < prevLo;
-
-  let score = 0;
-  const why = [];
-
-  // momentum
-  if (r >= 75){ score += 30; why.push(["s", `Momentum is very stretched (RSI ${r.toFixed(0)}). Rallies this hot usually cool off, so this is a strong moment to sell some.`]); }
-  else if (r >= 70){ score += 25; why.push(["s", `Momentum is overheated (RSI ${r.toFixed(0)}, above 70). Prices often pull back from here, so selling into it makes sense.`]); }
-  else if (r >= 60){ score += 15; why.push(["s", `Momentum is strong (RSI ${r.toFixed(0)}) but not yet overheated. There may be more upside before the best selling point.`]); }
-  else if (r >= 45){ score += 6; why.push(["h", `Momentum is middling (RSI ${r.toFixed(0)}). No pressure to sell on this alone.`]); }
-  else if (r >= 30){ why.push(["h", `Momentum is weak (RSI ${r.toFixed(0)}). Selling now means selling while buyers are scarce, so you'd likely get a poorer price.`]); }
-  else { why.push(["h", `Gold is oversold (RSI ${r.toFixed(0)}, below 30). This is usually close to a short-term low, about the worst time to sell.`]); }
-
-  // stretch above the long average
-  if (ext >= 20){ score += 25; why.push(["s", `The price is ${ext.toFixed(0)}% above its ${P.slowName} (${fmt(g(s))}/g). That's a big gap, and gaps like this tend to close.`]); }
-  else if (ext >= 12){ score += 18; why.push(["s", `The price is ${ext.toFixed(0)}% above its ${P.slowName} (${fmt(g(s))}/g), which is well extended.`]); }
-  else if (ext >= 5){ score += 10; why.push(["s", `The price is ${ext.toFixed(0)}% above its ${P.slowName} (${fmt(g(s))}/g), comfortably in profit territory.`]); }
-  else if (ext >= 0){ score += 4; why.push(["h", `The price is only just above its ${P.slowName} (${fmt(g(s))}/g).`]); }
-  else { why.push(["h", `The price is ${Math.abs(ext).toFixed(0)}% below its ${P.slowName} (${fmt(g(s))}/g), so gold is cheap against its recent trend.`]); }
-
-  // nearness to the high
-  if (fromHi <= 2){ score += 20; why.push(["s", `Gold is at or near its ${P.hiName} (${fmt(g(hi))}/g). Selling near the top of the range is what you want.`]); }
-  else if (fromHi <= 6){ score += 12; why.push(["s", `Gold is within ${fromHi.toFixed(0)}% of its ${P.hiName} (${fmt(g(hi))}/g).`]); }
-  else if (fromHi <= 12){ score += 5; why.push(["h", `Gold is ${fromHi.toFixed(0)}% below its ${P.hiName} (${fmt(g(hi))}/g).`]); }
-  else { why.push(["h", `Gold is ${fromHi.toFixed(0)}% below its ${P.hiName} (${fmt(g(hi))}/g), so there's a lot of room to recover before it's back at the top.`]); }
-
-  // recent burst
-  if (chg >= 8){ score += 15; why.push(["s", `Gold is up ${chg.toFixed(1)}% over ${P.momName}. Sharp runs like this are good to sell into.`]); }
-  else if (chg >= 4){ score += 8; why.push(["s", `Gold is up ${chg.toFixed(1)}% over ${P.momName}.`]); }
-  else if (chg <= -4){ why.push(["h", `Gold is down ${Math.abs(chg).toFixed(1)}% over ${P.momName}. Selling after a drop locks in the lower price.`]); }
-
-  // trend
-  if (upTrend){ score += 10; why.push(["s", `The trend is up: the price is above the ${P.fastName} (${fmt(g(f))}/g), which is above the ${P.slowName}.`]); }
-  else if (downTrend){ why.push(["r", `The trend is down: the ${P.fastName} (${fmt(g(f))}/g) is below the ${P.slowName} and still falling.`]); }
-  else { why.push(["h", `The trend is mixed. The ${P.fastName} is ${fmt(g(f))}/g and the ${P.slowName} is ${fmt(g(s))}/g.`]); }
-
-  if (brokeLow) why.push(["r", `The price has broken below its previous ${P.loName} (${fmt(g(prevLo))}/g). That's a warning sign that the fall may continue.`]);
-
-  score = Math.min(100, score);
-
-  let call, cls, line;
-  if (brokeLow && downTrend){
-    call = "Protect your value"; cls = "v-protect";
-    line = `Gold is in a downtrend and has broken to a new ${P.unit === "week" ? "52-week" : "12-month"} low. If you can't afford to see the value fall further, selling a portion now limits the damage. Otherwise hold, and don't add to your stock.`;
-  } else if (score >= 65){
-    call = "Sell a portion now"; cls = "v-sell";
-    line = `This is a good selling window. Gold is strong and stretched, so sell around a third and keep the rest in case it runs further.`;
-  } else if (score >= 45){
-    call = "Selling window opening"; cls = "v-open";
-    line = `Conditions are turning in a seller's favour. If gold is at your target price, sell a small portion. Otherwise get ready, because a stronger signal may follow.`;
-  } else if (score >= 25){
-    call = "Hold and watch"; cls = "v-hold";
-    line = `No strong reason to sell yet. Hold your gold and check again next ${P.unit}.`;
-  } else {
-    call = "Hold, don't sell into weakness"; cls = "v-wait";
-    line = `Gold is weak right now, so selling would mean accepting a poor price. Wait for a recovery unless you need the cash.`;
-  }
-
-  const better = Math.max(f, s) * 1.0;
-  const levels = [
-    [`Where it gets better for selling`, `${fmt(g(Math.max(p, s) * 1.08))}/g and above`],
-    [P.hiName, `${fmt(g(hi))}/g`],
-    [P.fastName, `${fmt(g(f))}/g`],
-    [P.slowName, `${fmt(g(s))}/g`],
-    [P.loName, `${fmt(g(lo))}/g`],
-    [`All-time high (10 yrs)`, `${fmt(g(ath))}/g`]
-  ];
-  return {kind, P, score, call, cls, line, why, levels, r, p, f, s, upTrend, downTrend, brokeLow};
-}
-
-function renderTF(a, el){
-  if (!a){ el.innerHTML = '<p class="muted">Not enough price history yet.</p>'; return; }
-  el.innerHTML = `
-    <div class="verdict ${a.cls}">
-      <div class="lbl">${a.kind === "w" ? "Weekly" : "Monthly"} call</div>
-      <div class="call">${a.call}</div>
-      <div>${a.line}</div>
-      <div class="meter"><i style="width:${Math.max(4, a.score)}%"></i></div>
-      <div class="scale"><span>Hold</span><span>Selling score ${a.score}/100</span><span>Sell</span></div>
-    </div>
-    <div class="muted" style="text-transform:uppercase;letter-spacing:.7px;font-size:12px">Why</div>
-    <ul class="reasons">${a.why.map(([t, x]) => `<li class="${t}">${x}</li>`).join("")}</ul>
-    <div class="muted" style="text-transform:uppercase;letter-spacing:.7px;font-size:12px;margin-top:14px">Key levels (24ct)</div>
-    <table>${a.levels.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("")}</table>`;
-}
-
-function overall(w, m){
-  if (!w || !m) return "Analysing the market…";
-  if (w.cls === "v-protect" || m.cls === "v-protect")
-    return `Gold is under real pressure. The ${m.cls === "v-protect" ? "monthly" : "weekly"} picture has broken down. If you're relying on this gold's value, selling a portion now is the cautious move. If you can wait, hold the rest and let the market recover in its own time.`;
-  if (w.score >= 65 && m.score >= 45)
-    return `This is a strong time to sell. Gold is strong both this week and on the bigger monthly picture. I'd sell a good portion, around a third to a half, and keep the rest.`;
-  if (w.score >= 65)
-    return `This is a short-term selling opportunity. Gold has run hard this week, but the monthly trend isn't at an extreme. Sell a portion into this rally and hold the rest.`;
-  if (w.score >= 45 || m.score >= 55)
-    return `The window is opening but isn't at its best yet. If gold reaches your target price, sell a small portion. Otherwise be patient, because a better moment is likely to come.`;
-  if (w.downTrend && m.score < 35)
-    return `Hold. Gold is in a downtrend and is cheaper than it's been for a while, so selling now would lock in a poor price. Wait for it to climb back above its weekly averages, and I'll flag it when the selling window opens.`;
-  return `Hold for now. There's no strong selling signal this week or this month. Check back after Friday's close.`;
-}
-
-/* ================= 6-month outlook & track record ================= */
-function rsiSeries(a, n = 14){
-  const out = new Array(a.length).fill(null);
-  if (a.length < n + 1) return out;
-  let gain = 0, loss = 0;
-  for (let i = 1; i <= n; i++){ const d = a[i] - a[i-1]; d > 0 ? gain += d : loss -= d; }
-  gain /= n; loss /= n;
-  out[n] = loss === 0 ? 100 : 100 - 100 / (1 + gain / loss);
-  for (let i = n + 1; i < a.length; i++){
-    const d = a[i] - a[i-1];
-    gain = (gain * (n - 1) + Math.max(d, 0)) / n;
-    loss = (loss * (n - 1) + Math.max(-d, 0)) / n;
-    out[i] = loss === 0 ? 100 : 100 - 100 / (1 + gain / loss);
-  }
-  return out;
-}
-const quant = (arr, q) => { const a = [...arr].sort((x, y) => x - y); const i = (a.length - 1) * q; const lo = Math.floor(i); return a[lo] + (a[Math.ceil(i)] - a[lo]) * (i - lo); };
-// same scoring as the weekly call, without the wording
-function weeklyScoreAt(c, R, i){
-  const p = c[i], f = sma(c, 10, i + 1), s = sma(c, 40, i + 1), r = R[i];
-  if (f == null || s == null || r == null || i < 52) return null;
-  const hi = Math.max(...c.slice(i - 51, i + 1));
-  const ext = (p - s) / s * 100, fromHi = (hi - p) / hi * 100, chg = (p - c[i-4]) / c[i-4] * 100;
-  let sc = 0;
-  sc += r >= 75 ? 30 : r >= 70 ? 25 : r >= 60 ? 15 : r >= 45 ? 6 : 0;
-  sc += ext >= 20 ? 25 : ext >= 12 ? 18 : ext >= 5 ? 10 : ext >= 0 ? 4 : 0;
-  sc += fromHi <= 2 ? 20 : fromHi <= 6 ? 12 : fromHi <= 12 ? 5 : 0;
-  sc += chg >= 8 ? 15 : chg >= 4 ? 8 : 0;
-  if (p > f && f > s) sc += 10;
-  return Math.min(100, sc);
-}
-function outlook(){
-  const c = periods("w"), n = c.length, R = rsiSeries(c), H = 26;
-  if (n < 120) return null;
-  const now = n - 1;
-  const state = i => ({above: c[i] > sma(c, 40, i + 1), cross: sma(c, 10, i + 1) > sma(c, 40, i + 1), r: R[i]});
-  const cur = state(now);
-  let band = 8, matches = [];
-  const all = [];
-  for (let i = 52; i < n - H; i++) all.push(c[i + H] / c[i] - 1);
-  for (let tries = 0; tries < 3 && matches.length < 15; tries++){
-    matches = [];
-    for (let i = 52; i < n - H; i++){
-      const st = state(i);
-      if (st.above === cur.above && (tries === 2 || st.cross === cur.cross) && Math.abs(st.r - cur.r) <= band) matches.push(c[i + H] / c[i] - 1);
-    }
-    band += 6;
-  }
-  if (matches.length < 8) return null;
-  const up = matches.filter(x => x > 0).length / matches.length;
-  return {
-    count: matches.length, up, med: quant(matches, .5), lo: quant(matches, .2), hi: quant(matches, .8),
-    baseUp: all.filter(x => x > 0).length / all.length, baseMed: quant(all, .5), price: c[now], cur
-  };
-}
-function trackRecord(){
-  const c = periods("w"), n = c.length, R = rsiSeries(c), H = 13;
-  const sells = [], holds = [];
+  // what happened next, for every past week with 6 months of future data
+  const hist = [];
   for (let i = 52; i < n - H; i++){
-    const sc = weeklyScoreAt(c, R, i); if (sc == null) continue;
-    const fwd = c[i + H] / c[i] - 1;
-    if (sc >= 65) sells.push(fwd); else if (sc < 25) holds.push(fwd);
+    const fut = c.slice(i + 1, i + 1 + H);
+    hist.push({i, date: dates[i], tier: tier[i], ext: ext[i], f26: (c[i + H] / c[i] - 1) * 100,
+               beat: fut.filter(x => x < c[i]).length / H, early: dates[i] < "2016-01-01"});
   }
-  return {sells, holds};
+  const now = n - 1;
+  return {dates, c, ext, mom, tier, s40, hist, now, cur: {p: c[now], ext: ext[now], mom: mom[now], tier: tier[now], s40: s40[now]}};
 }
+
+/* =============== render: the call =============== */
+const TIERS = [
+  {cls: "t0", call: "Hold: not in the sell zone"},
+  {cls: "t1", call: "Hold: rising, sell zone getting close"},
+  {cls: "t2", call: "Sell zone: sell about a quarter"},
+  {cls: "t3", call: "Strong sell zone: sell more now"}
+];
+function tierStats(S, t){
+  const h = S.hist.filter(x => x.tier === t);
+  return {n: h.length, lower: h.filter(x => x.f26 < 0).length / h.length * 100, med: median(h.map(x => x.f26))};
+}
+function renderCall(){
+  const S = sig, k = S.cur, t = k.tier;
+  const allMed = median(S.hist.map(x => x.f26));
+  const st = tierStats(S, t);
+  const z18 = g(k.s40 * 1.18), z25 = g(k.s40 * 1.25), z10 = g(k.s40 * 1.10);
+  const turning = k.mom < 0;
+  let line;
+  if (t === 3) line = `Gold is ${k.ext.toFixed(0)}% above its 40-week average${turning ? " and has started to fall back" : ""}. In the past 22 years, gold was lower 6 months after weeks like this <b>${st.lower.toFixed(0)}% of the time</b>, typically ${pc(st.med)}. If you've already sold a quarter, sell another quarter to a third now. If you haven't sold any yet, sell around half. Keep the rest for the next rise.`;
+  else if (t === 2) line = `Gold is ${k.ext.toFixed(0)}% above its 40-week average${turning ? " and starting to turn down" : ""}. That's stretched. After weeks like this, gold typically gained only ${pc(st.med, 1)} over the next 6 months, compared with ${pc(allMed, 1)} normally. Sell about a quarter now. Gold often climbs further before it tops out, so sell in stages and sell more if it reaches the strong sell zone (${fmt(z25)}/g).`;
+  else if (t === 1) line = `Gold is rising strongly (${k.ext.toFixed(0)}% above its 40-week average) but isn't stretched enough to sell yet. In the past, weeks like this were usually followed by <b>further gains</b> (typically ${pc(st.med)} over 6 months), so selling now has tended to be too early. Get ready: the sell zone starts at about <b>${fmt(z18)}/g</b>.`;
+  else if (k.ext < 0) line = `Gold is ${Math.abs(k.ext).toFixed(0)}% <b>below</b> its 40-week average, so it's cheap compared with recent months. Selling now would mean selling low. Hold unless you need the cash. The sell zone currently starts at about <b>${fmt(z18)}/g</b>.`;
+  else line = `Gold is only ${k.ext.toFixed(0)}% above its 40-week average, not stretched. There's no selling edge here. Hold. The sell zone currently starts at about <b>${fmt(z18)}/g</b>.`;
+
+  const pos = Math.max(0, Math.min(100, (k.ext + 35) / 70 * 100)); // scale −35% … +35%
+  const reasons = [
+    `Gold is ${fmt(g(k.p))}/g, and its 40-week average is ${fmt(g(k.s40))}/g, so gold is <b>${k.ext >= 0 ? k.ext.toFixed(1) + "% above" : Math.abs(k.ext).toFixed(1) + "% below"}</b> it.`,
+    `Over the last 4 weeks gold has ${k.mom >= 0 ? "risen" : "fallen"} ${Math.abs(k.mom).toFixed(1)}%. ${k.ext >= 15 ? (turning ? "Turning down while stretched is the strongest selling sign." : "It's still climbing, which often carries on for a while before turning.") : "This matters only once gold is in or near the sell zone."}`,
+    `This rule was tested on every week from 2005 to today. It held up in both halves of that period (2005–15 and 2016–26), which is why it's trusted here. RSI and "near the high" rules didn't hold up, so they're not used.`
+  ];
+  $("call").innerHTML = `
+    <div class="verdict ${TIERS[t].cls}">
+      <div class="call">${TIERS[t].call}</div>
+      <div>${line}</div>
+    </div>
+    <div class="zone"><i style="left:${pos}%"></i></div>
+    <div class="zl"><span>Cheap</span><span>Average</span><span>Close</span><span>Sell</span><span>Strong</span></div>
+    <div class="sub">Sell zone prices (24ct)</div>
+    <table>
+      <tr><td>Getting close (get ready)</td><td>${fmt(z10)}/g</td></tr>
+      <tr><td>Sell zone: sell about a quarter</td><td>${fmt(z18)}/g</td></tr>
+      <tr><td>Strong sell zone</td><td>${fmt(z25)}/g</td></tr>
+    </table>
+    <p class="muted" style="margin:6px 0 0">These levels move slowly as the 40-week average moves. The sell zone starts sooner (from 15%) if gold is already turning down.</p>
+    <div class="sub">Why</div>
+    <ul class="reasons">${reasons.map(r => `<li>${r}</li>`).join("")}</ul>
+    ${eventWarning()}`;
+  const zEl = $("cZone"); if (zEl) zEl.innerHTML = `Today's signal: <b>${TIERS[t].call}</b>`;
+}
+
+/* =============== render: 6-month outlook =============== */
 function renderOutlook(){
-  const o = outlook();
-  if (!o){ $("outlook").innerHTML = '<p class="muted" style="margin:0">Not enough history for a reliable outlook.</p>'; }
-  else {
-    const pg = x => fmt(g(o.price * (1 + x))) + "/g";
-    const p1 = v => (v * 100 >= 0 ? "+" : "") + (v * 100).toFixed(0) + "%";
-    const lean = o.up >= 0.62 ? "Odds favour higher prices" : o.up <= 0.42 ? "Odds favour lower prices" : "No clear edge either way";
-    const adv = o.up >= 0.62
-      ? "History favours patience. In set-ups like this, waiting has usually paid off, so there's no rush to sell unless you need the money."
-      : o.up <= 0.42
-      ? "History says set-ups like this have often led to lower prices. If gold bounces in the coming weeks, use the bounce to sell a portion rather than waiting for a full recovery."
-      : "History doesn't give a strong steer, so let the weekly call and your target price decide your timing.";
-    $("outlook").innerHTML = `
-      <div class="ncheck ${o.up >= 0.62 ? "n-ok" : o.up <= 0.42 ? "n-warn" : ""}"><div class="call">${lean}</div><div>${adv}</div></div>
-      <table>
-        <tr><td>Gold today (24ct)</td><td>${fmt(g(o.price))}/g</td></tr>
-        <tr><td>Most likely in 6 months</td><td>about ${pg(o.med)} (${p1(o.med)})</td></tr>
-        <tr><td>Realistic range</td><td>${pg(o.lo)} to ${pg(o.hi)}</td></tr>
-        <tr><td>Chance gold is higher</td><td>${Math.round(o.up * 100)}%</td></tr>
-      </table>
-      <p class="muted">Based on ${o.count} past weeks from the last 10 years that looked like today: price ${o.cur.above ? "above" : "below"} its 40-week average, trend ${o.cur.cross ? "up" : "down"}, RSI around ${o.cur.r.toFixed(0)}. Across all weeks, gold was higher 6 months later ${Math.round(o.baseUp * 100)}% of the time. This is what has tended to happen, not a promise. Big news can change things fast.</p>`;
+  const S = sig, k = S.cur;
+  const bands = [[-100,-8],[-8,-3],[-3,3],[3,8],[8,12],[12,18],[18,100]];
+  const b = bands.find(([lo, hi]) => k.ext >= lo && k.ext < hi);
+  const same = S.hist.filter(x => x.ext >= b[0] && x.ext < b[1]);
+  const early = same.filter(x => x.early), late = same.filter(x => !x.early);
+  const up = a => a.filter(x => x.f26 > 0).length / a.length * 100;
+  const all = up(same), e = early.length ? up(early) : null, l = late.length ? up(late) : null;
+  const mixed = e == null || l == null || Math.abs(e - l) > 30 || same.length < 30;
+  const r = same.map(x => x.f26);
+  const pg = x => fmt(g(k.p) * (1 + x / 100)) + "/g";
+  const head = mixed ? "History gives no reliable steer here"
+             : all >= 65 ? "History favours higher prices"
+             : all <= 40 ? "History favours lower prices" : "History is roughly 50/50";
+  const advice = mixed
+    ? `In past weeks like this, what happened next depended heavily on the period: gold was higher 6 months later ${e != null ? e.toFixed(0) + "% of the time in 2005–15" : ""}${e != null && l != null ? " but " : ""}${l != null ? l.toFixed(0) + "% of the time in 2016–26" : ""}. So treat any 6-month forecast with caution. The sell zone prices above are the better guide.`
+    : all >= 65 ? `In past weeks like this, gold was higher 6 months later ${all.toFixed(0)}% of the time. Patience has usually paid.`
+    : all <= 40 ? `In past weeks like this, gold was higher 6 months later only ${all.toFixed(0)}% of the time. Selling a portion has usually been the better move.`
+    : `In past weeks like this, gold was higher 6 months later ${all.toFixed(0)}% of the time, so there's no strong edge either way.`;
+  $("outlook").innerHTML = `
+    <div class="verdict t0" style="margin-bottom:10px"><div class="call" style="font-size:19px">${head}</div><div>${advice}</div></div>
+    <table>
+      <tr><td>Typical result in 6 months</td><td>${pg(median(r))} (${pc(median(r), 1)})</td></tr>
+      <tr><td>Realistic range</td><td>${pg(quant(r, .2))} to ${pg(quant(r, .8))}</td></tr>
+      <tr><td>Times gold was higher</td><td>${all.toFixed(0)}%</td></tr>
+    </table>
+    <p class="muted" style="margin:6px 0 0">Based on ${same.length} past weeks since 2005 when gold was a similar distance from its 40-week average (${b[0] <= -100 ? "more than 8% below" : b[1] >= 100 ? "more than 18% above" : `between ${b[0]}% and ${b[1]}%`}). Big news can change things quickly.</p>`;
+}
+
+/* =============== render: track record =============== */
+function renderTrack(){
+  const S = sig;
+  const rows = [];
+  let last = -99;
+  for (let i = 52; i < S.c.length; i++){
+    if (S.tier[i] >= 2 && !(S.tier[i-1] >= 2) && i - last > 8){
+      last = i;
+      const j = i + 26;
+      // best price during the sell zone episode (to see how close it got to the top)
+      rows.push({date: S.dates[i], tier: S.tier[i], p: S.c[i], later: j < S.c.length ? S.c[j] : null});
+    }
   }
-  const t = trackRecord();
-  if (!t.sells.length){ $("track").innerHTML = '<p class="muted" style="margin:0">Not enough past sell signals to judge yet.</p>'; return; }
-  const lower = t.sells.filter(x => x < 0).length / t.sells.length;
-  const avg = t.sells.reduce((a, b) => a + b, 0) / t.sells.length;
-  const hAvg = t.holds.length ? t.holds.reduce((a, b) => a + b, 0) / t.holds.length : 0;
-  const hUp = t.holds.length ? t.holds.filter(x => x > 0).length / t.holds.length : 0;
+  const done = rows.filter(r => r.later != null);
+  const right = done.filter(r => r.later < r.p).length;
+  const t2 = S.hist.filter(x => x.tier >= 2), t3 = S.hist.filter(x => x.tier === 3), t1 = S.hist.filter(x => x.tier === 1);
+  const lower = a => (a.filter(x => x.f26 < 0).length / a.length * 100).toFixed(0);
   $("track").innerHTML = `
     <table>
-      <tr><td>Weeks the app would have said "Sell a portion"</td><td>${t.sells.length}</td></tr>
-      <tr><td>Gold lower 3 months later</td><td>${Math.round(lower * 100)}% of the time</td></tr>
-      <tr><td>Average move 3 months after a sell call</td><td>${(avg * 100 >= 0 ? "+" : "") + (avg * 100).toFixed(1)}%</td></tr>
-      <tr><td>Average move 3 months after "Hold, don't sell"</td><td>${(hAvg * 100 >= 0 ? "+" : "") + (hAvg * 100).toFixed(1)}% (up ${Math.round(hUp * 100)}% of the time)</td></tr>
+      <tr><td>Strong sell zone: gold lower 6 months later</td><td>${lower(t3)}% of ${t3.length} wks</td></tr>
+      <tr><td>Sell zone or stronger: gold lower 6 months later</td><td>${lower(t2)}% of ${t2.length} wks</td></tr>
+      <tr><td>All other weeks: gold lower 6 months later</td><td>${lower(S.hist.filter(x => x.tier < 2))}%</td></tr>
     </table>
-    <p class="muted">The weekly rules tested on 10 years of UK gold prices. Gold rose strongly over most of this period, so even good sell signals were often followed by higher prices later. That's why the app says to sell in portions rather than all at once.</p>`;
+    <div class="sub">Every sell alert since 2005</div>
+    <table>${rows.slice().reverse().map(r => {
+      const ch = r.later != null ? (r.later / r.p - 1) * 100 : null;
+      const d = new Date(r.date).toLocaleDateString("en-GB", {month: "short", year: "numeric"});
+      return `<tr><td>${d} · ${r.tier === 3 ? "strong" : "sell"} at ${fmt(g(r.p))}/g</td><td style="color:${ch == null ? "var(--muted)" : ch < 0 ? "var(--up)" : "var(--amber)"}">${ch == null ? "too recent" : "6 mths later " + pc(ch)}</td></tr>`;
+    }).join("")}</table>
+    <p class="muted" style="margin:6px 0 0">Green means gold was lower 6 months after the first alert. Amber means it went higher first. In ${done.length} completed alerts, gold was lower 6 months later ${right} times. Gold often keeps climbing after first entering the sell zone (for example, Oct 2025 at £93/g ran on to £125 in January before falling back). That's why the advice is to <b>sell in stages</b>: a quarter when the sell zone starts, more in the strong zone, rather than all at the first alert. Week by week, the strong sell zone has been right 87% of the time.</p>`;
 }
 
-/* ================= news & events ================= */
-let news = null;
-async function loadNews(){ news = await fetchJSON("news.json?t=" + Date.now()); }
-const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-function ago(iso){
-  const h = (Date.now() - new Date(iso)) / 36e5;
-  if (h < 1) return "just now"; if (h < 24) return Math.round(h) + "h ago";
-  return Math.round(h / 24) + "d ago";
+/* =============== news & events (context) =============== */
+async function fetchJSON(url){ const r = await fetch(url, {cache: "no-store"}); if (!r.ok) throw new Error(r.status); return r.json(); }
+function evWhen(iso){ const d = new Date(iso); return d.toLocaleDateString("en-GB", {weekday: "short", day: "numeric", month: "short"}) + " " + d.toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"}); }
+function ago(iso){ const h = (Date.now() - new Date(iso)) / 36e5; return h < 1 ? "just now" : h < 24 ? Math.round(h) + "h ago" : Math.round(h / 24) + "d ago"; }
+function upcoming(){ return news ? (news.events || []).filter(e => new Date(e.date) > Date.now()) : []; }
+function eventWarning(){
+  if (!sig || sig.cur.tier < 2) return "";
+  const soon = upcoming().filter(e => (new Date(e.date) - Date.now()) / 36e5 < 72);
+  if (!soon.length) return "";
+  const e = soon[0];
+  return `<div class="warn"><b>Timing tip:</b> ${e.country === "USD" ? "US" : "UK"} ${esc(e.title)} is due ${evWhen(e.date)}. Gold often swings sharply on announcements like this. If you're selling, either sell before it, or wait until the result is out, rather than having your sale go through during it.</div>`;
 }
-function evWhen(iso){
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-GB", {weekday: "short", day: "numeric", month: "short"}) + " " + d.toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"});
-}
-function listDrivers(sign, n = 2){
-  return news.drivers.filter(d => d.sign === sign && !/^Price (rising|falling)$/.test(d.label)).slice(0, n).map(d => d.label.replace(/ \((good|bad) for gold\)/, "").toLowerCase()).join(" and ");
-}
-function newsCheck(w, m){
-  if (!news || !news.count) return null;
-  const tone = news.netScore / news.count;
-  const mood = tone > 0.35 ? "bull" : tone < -0.35 ? "bear" : "mixed";
-  const selling = (w && w.score >= 45) || (m && m.score >= 55);
-  const protect = (w && w.cls === "v-protect") || (m && m.cls === "v-protect");
-  const bullWhy = listDrivers("+") || "positive price moves";
-  const bearWhy = listDrivers("-") || "falling prices";
-  let call, cls, text;
-  if (selling || protect){
-    if (mood === "bear"){ call = "News confirms selling"; cls = "n-ok"; text = `The headlines are negative for gold (${bearWhy}). That backs the call: prices could weaken from here, so selling a portion now locks in today's value.`; }
-    else if (mood === "bull"){ call = "News says: don't sell it all"; cls = "n-warn"; text = `The headlines are still positive for gold (${bullWhy}), so the rally may have further to run. Sell a smaller portion and keep more back for higher prices.`; }
-    else { call = "News is mixed"; cls = ""; text = `The news isn't pointing clearly either way, so the price signals lead. Stick to selling in portions.`; }
-  } else {
-    if (mood === "bull"){ call = "News confirms holding"; cls = "n-ok"; text = `The headlines lean positive for gold (${bullWhy}). Those are the drivers that lift prices, which backs waiting rather than selling at today's lower level.`; }
-    else if (mood === "bear"){ call = "News warns of more weakness"; cls = "n-warn"; text = `The headlines lean negative for gold (${bearWhy}), so the price may fall further before it recovers. Holding is still the main call. If you need certainty about what your gold is worth, selling a small portion would protect part of its value.`; }
-    else { call = "News is mixed"; cls = ""; text = `Good and bad news for gold are roughly balanced, so the news doesn't change the call: hold, and let the price signals lead.`; }
-  }
-  const soon = (news.events || []).filter(e => { const h = (new Date(e.date) - Date.now()) / 36e5; return h > 0 && h < 72; });
-  if (soon.length){
-    const e = soon[0];
-    text += ` <b>Heads up:</b> ${esc(e.country === "USD" ? "US" : "UK")} ${esc(e.title)} is due ${evWhen(e.date)}. Gold often swings sharply around big announcements, so if you're selling, wait until after the result.`;
-  }
-  return {call, cls, text, mood, tone};
-}
-function renderNews(w, m){
-  if (!news){ $("newsCheck").innerHTML = '<p class="muted" style="margin:0">News isn\'t available just now. The price-based call still stands.</p>'; return; }
-  const c = newsCheck(w, m);
-  const chips = news.drivers.map(d => `<span class="${d.sign === "+" ? "up" : "dn"}">${d.sign === "+" ? "▲" : "▼"} ${esc(d.label)} · ${d.count}</span>`).join("");
-  $("newsCheck").innerHTML = c ? `
-    <div class="ncheck ${c.cls}"><div class="call">${c.call}</div><div>${c.text}</div></div>
-    <div class="muted">From ${news.count} gold headlines over the last 3 days: ${news.bullish} point to gold rising and ${news.bearish} to it falling. Checked ${ago(news.updated)}.</div>
-    <div class="drivers">${chips}</div>` : '<p class="muted" style="margin:0">No recent gold headlines found.</p>';
-  const upcoming = (news.events || []).filter(e => new Date(e.date) > Date.now());
-  $("events").innerHTML = upcoming.length
-    ? upcoming.slice(0, 8).map(e => `<div class="ev"><div><b style="color:var(--gold2)">${e.country === "USD" ? "US" : "UK"}</b> ${esc(e.title)}${e.forecast ? `<div class="muted">Forecast ${esc(e.forecast)} · previous ${esc(e.previous)}</div>` : ""}</div><div class="when">${evWhen(e.date)}</div></div>`).join("")
+function renderNews(){
+  const ev = upcoming();
+  $("events").innerHTML = ev.length
+    ? ev.slice(0, 8).map(e => `<div class="ev"><div><b style="color:var(--gold2)">${e.country === "USD" ? "US" : "UK"}</b> ${esc(e.title)}${e.forecast ? `<div class="muted">Forecast ${esc(e.forecast)} · previous ${esc(e.previous)}</div>` : ""}</div><div class="when">${evWhen(e.date)}</div></div>`).join("")
     : '<p class="muted">No major US or UK announcements in the next two weeks.</p>';
-  $("headlines").innerHTML = news.headlines.slice(0, 10).map(h => `<a class="hl" href="${esc(h.link)}" target="_blank" rel="noopener"><i class="${h.score > 0 ? "up" : h.score < 0 ? "dn" : ""}"></i>${esc(h.title)}<div class="meta">${esc(h.source)} · ${ago(h.date)}</div></a>`).join("");
+  if (!news || !news.count){ $("newsBox").innerHTML = '<p class="muted" style="margin:0">No recent headlines available.</p>'; return; }
+  const chips = news.drivers.filter(d => !/^Price (rising|falling)$/.test(d.label)).map(d => `<span class="${d.sign === "+" ? "up" : "dn"}">${d.sign === "+" ? "▲" : "▼"} ${esc(d.label)}</span>`).join("");
+  $("newsBox").innerHTML = `
+    <p style="margin:0">Over the last 3 days, ${news.bullish} headline${news.bullish === 1 ? "" : "s"} pointed to gold rising and ${news.bearish} to it falling.${chips ? " The main themes:" : ""}</p>
+    <div class="drivers">${chips}</div>
+    <p class="muted">Headlines mostly describe moves that have already happened, so they're here for background. They don't change the sell signal.</p>
+    ${news.headlines.slice(0, 8).map(h => `<a class="hl" href="${esc(h.link)}" target="_blank" rel="noopener"><i class="${h.score > 0 ? "up" : h.score < 0 ? "dn" : ""}"></i>${esc(h.title)}<div class="meta">${esc(h.source)} · ${ago(h.date)}</div></a>`).join("")}`;
 }
 
-function runAnalysis(){
-  if (!daily.length) return;
-  const w = analyse("w"), m = analyse("m");
-  renderTF(w, $("tf-w"));
-  renderTF(m, $("tf-m"));
-  const c = newsCheck(w, m);
-  let txt = overall(w, m);
-  if (c) txt += c.mood === "mixed" ? " The news is mixed, so it doesn't change this view." : (/confirms/.test(c.call) ? " The latest news backs this up." : " Note: the latest news leans the other way. See the news check below.");
-  $("overall").textContent = txt;
-  renderNews(w, m);
-  try { renderOutlook(); } catch(e){ console.log(e); }
-}
-
-/* ================= prices ================= */
-async function fetchJSON(url){
-  const r = await fetch(url, {cache: "no-store"});
-  if (!r.ok) throw new Error(r.status);
-  return r.json();
-}
-async function loadHistory(){
-  const d = await fetchJSON("data.json?t=" + Date.now());
-  daily = d.daily;
-}
+/* =============== prices =============== */
 async function getLiveOz(){
-  // live spot gold converted to pounds
   const [xau, fx] = await Promise.all([
     fetchJSON("https://api.gold-api.com/price/XAU").then(d => d.price),
     fetchJSON("https://open.er-api.com/v6/latest/GBP").then(d => d.rates.USD)
@@ -616,26 +437,29 @@ function showPrice(oz, label){
   $("pTime").textContent = label;
   calc(); checkAlert();
 }
+function analyse(){
+  if (!daily.length) return;
+  try { sig = compute(); renderCall(); renderOutlook(); renderTrack(); }
+  catch(e){ console.log(e); $("call").innerHTML = '<p class="muted">Couldn\'t run the analysis just now.</p>'; }
+  renderNews();
+}
 async function refresh(){
   try {
     liveOz = await getLiveOz();
     showPrice(liveOz, "Live · updated " + new Date().toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"}) + " · refreshes every minute");
   } catch(e){
-    if (daily.length){
-      const [d, v] = daily[daily.length - 1];
-      liveOz = null;
-      showPrice(v, "Live feed unavailable. Showing last close (" + new Date(d).toLocaleDateString("en-GB") + "). Retrying…");
-    } else $("pTime").textContent = "Can't reach prices right now. Retrying in a minute.";
+    liveOz = null;
+    if (daily.length){ const [d, v] = daily[daily.length - 1]; showPrice(v, "Live feed unavailable. Showing last close (" + new Date(d).toLocaleDateString("en-GB") + "). Retrying…"); }
+    else $("pTime").textContent = "Can't reach prices right now. Retrying in a minute.";
   }
-  runAnalysis();
+  analyse();
 }
 
-/* ================= value calculator ================= */
+/* =============== value calculator =============== */
 function calc(){
   const w = parseFloat($("cG").value) || 0, k = parseFloat($("cK").value), p = parseFloat($("cP").value) || 0;
   const pure = w * k;
-  $("cPure").textContent = pure.toFixed(2);
-  $("cPct").textContent = p;
+  $("cPure").textContent = pure.toFixed(2); $("cPct").textContent = p;
   if (gbpPerGram == null) return;
   $("cSpot").textContent = fmt(pure * gbpPerGram);
   $("cNet").textContent = fmt(pure * gbpPerGram * p / 100);
@@ -643,78 +467,54 @@ function calc(){
 }
 ["cG","cK","cP"].forEach(id => $(id).addEventListener("input", calc));
 
-/* ================= target ================= */
+/* =============== own target =============== */
 function checkAlert(){
   const t = parseFloat(store.get("target"));
   if (!t){ $("aDist").textContent = "No target set"; $("aHit").style.display = "none"; return; }
   if (gbpPerGram == null) return;
   const diff = t - gbpPerGram;
-  if (diff <= 0){
-    $("aDist").textContent = "Reached: " + fmt(gbpPerGram) + "/g";
-    $("aHit").style.display = "block";
-    try { navigator.vibrate && navigator.vibrate([300,150,300]); } catch(e){}
-  } else {
-    $("aDist").textContent = fmt(diff) + "/g to go (" + pct(diff / gbpPerGram * 100).replace("+", "") + ")";
-    $("aHit").style.display = "none";
-  }
+  if (diff <= 0){ $("aDist").textContent = "Reached: " + fmt(gbpPerGram) + "/g"; $("aHit").style.display = "block"; }
+  else { $("aDist").textContent = fmt(diff) + "/g to go (" + (diff / gbpPerGram * 100).toFixed(1) + "%)"; $("aHit").style.display = "none"; }
 }
 $("aSave").onclick = () => { const v = parseFloat($("aT").value); if (v > 0){ store.set("target", v); checkAlert(); } };
 $("aClear").onclick = () => { store.del("target"); $("aT").value = ""; checkAlert(); };
 
-/* ================= chart (TradingView, gold in GBP) ================= */
-function loadChart(id, interval){
-  const host = $(id);
-  if (host.dataset.loaded) return;
-  host.dataset.loaded = "1";
-  const monthly = interval === "M";
-  const wrap = document.createElement("div");
-  wrap.className = "tradingview-widget-container"; wrap.style.height = "100%";
-  const inner = document.createElement("div");
-  inner.className = "tradingview-widget-container__widget"; inner.style.height = "100%";
+/* =============== chart =============== */
+function loadChart(){
+  const host = $("chW"); if (host.dataset.loaded) return; host.dataset.loaded = "1";
+  const wrap = document.createElement("div"); wrap.className = "tradingview-widget-container"; wrap.style.height = "100%";
+  const inner = document.createElement("div"); inner.className = "tradingview-widget-container__widget"; inner.style.height = "100%";
   wrap.appendChild(inner);
   const s = document.createElement("script");
   s.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"; s.async = true;
-  s.innerHTML = JSON.stringify({
-    autosize: true, symbol: "OANDA:XAUGBP", interval, timezone: "Europe/London", theme: "dark",
-    style: "1", locale: "en", backgroundColor: "rgba(26,24,21,1)", hide_side_toolbar: true,
-    allow_symbol_change: false, save_image: false, hide_volume: true,
-    studies: [
-      {id: "MASimple@tv-basicstudies", inputs: {length: monthly ? 6 : 10}},
-      {id: "MASimple@tv-basicstudies", inputs: {length: monthly ? 12 : 40}},
-      "RSI@tv-basicstudies"
-    ]
-  });
-  wrap.appendChild(s);
-  host.appendChild(wrap);
+  s.innerHTML = JSON.stringify({autosize: true, symbol: "OANDA:XAUGBP", interval: "W", timezone: "Europe/London", theme: "dark",
+    style: "1", locale: "en", backgroundColor: "rgba(26,24,21,1)", hide_side_toolbar: true, allow_symbol_change: false,
+    save_image: false, hide_volume: true,
+    studies: [{id: "MASimple@tv-basicstudies", inputs: {length: 10}}, {id: "MASimple@tv-basicstudies", inputs: {length: 40}}]});
+  wrap.appendChild(s); host.appendChild(wrap);
 }
 
-/* ================= navigation ================= */
+/* =============== navigation =============== */
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
   document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x === b));
   document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "p-" + b.dataset.p));
-  if (b.dataset.p === "chart") loadChart("chW", "W");
+  if (b.dataset.p === "chart") loadChart();
   window.scrollTo(0, 0);
 });
-document.querySelectorAll(".tabs").forEach(t => t.querySelectorAll("button").forEach(b => b.onclick = () => {
-  t.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
-  const grp = t.dataset.group;
-  document.querySelectorAll('[id^="' + grp + '-"]').forEach(v => v.classList.toggle("on", v.id === grp + "-" + b.dataset.v));
-  if (grp === "ch") loadChart(b.dataset.v === "w" ? "chW" : "chM", b.dataset.v === "w" ? "W" : "M");
-}));
 
-/* ================= start ================= */
-try {
-  const c = JSON.parse(store.get("calc") || "null");
-  if (c){ $("cG").value = c.g; $("cK").value = c.k; $("cP").value = c.p; }
-} catch(e){}
+/* =============== start =============== */
+try { const c = JSON.parse(store.get("calc") || "null"); if (c){ $("cG").value = c.g; $("cK").value = c.k; $("cP").value = c.p; } } catch(e){}
 if (store.get("target")) $("aT").value = store.get("target");
-
 (async () => {
-  try { await loadHistory(); } catch(e){}
-  try { await loadNews(); } catch(e){}
+  try { daily = (await fetchJSON("data.json?t=" + Date.now())).daily; } catch(e){}
+  try { news = await fetchJSON("news.json?t=" + Date.now()); } catch(e){}
   await refresh();
   setInterval(refresh, 60000);
-  setInterval(async () => { try { await loadHistory(); await loadNews(); runAnalysis(); } catch(e){} }, 30 * 60000);
+  setInterval(async () => {
+    try { daily = (await fetchJSON("data.json?t=" + Date.now())).daily; } catch(e){}
+    try { news = await fetchJSON("news.json?t=" + Date.now()); } catch(e){}
+    analyse();
+  }, 30 * 60000);
 })();
 </script>
 </body>
