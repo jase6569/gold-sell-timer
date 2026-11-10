@@ -48,10 +48,17 @@ def send(title, body, priority="default", tags="moneybag"):
         print("sent", r.status, title)
 
 
+def write_widget(p, s40, p4, t, ext, mom4):
+    calls = ["Hold", "Hold: getting close", "Sell about a quarter", "Strong sell: sell more"]
+    json.dump({
+        "updated": dt.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "price_g": round(p / OZ, 2), "s40_g": round(s40 / OZ, 2), "p4_g": round(p4 / OZ, 2),
+        "ext": round(ext, 2), "mom4": round(mom4, 2), "tier": t, "call": calls[t],
+        "zone_close_g": round(s40 * 1.10 / OZ, 2), "zone_sell_g": round(s40 * 1.18 / OZ, 2), "zone_strong_g": round(s40 * 1.25 / OZ, 2),
+    }, open("widget.json", "w"))
+
+
 def main():
-    if not TOPIC:
-        print("NTFY_TOPIC secret not set, so no alerts sent")
-        return
     daily = json.load(open("data.json"))["daily"]
     c = weekly_closes(daily)
     p = c[-1]
@@ -59,6 +66,10 @@ def main():
     ext = (p / s40 - 1) * 100
     mom4 = (p / c[-5] - 1) * 100
     t = tier_of(ext, mom4)
+    write_widget(p, s40, c[-5], t, ext, mom4)
+    if not TOPIC:
+        print("NTFY_TOPIC secret not set, so no alerts sent")
+        return
     g = p / OZ
     z18, z25, z10 = s40 * 1.18 / OZ, s40 * 1.25 / OZ, s40 * 1.10 / OZ
 

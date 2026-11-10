@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f0e0c">
+<title>Gold Trader widget</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#0f0e0c;color:#f3efe6;font:15px/1.3 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+  a{color:inherit;text-decoration:none}
+  .w{display:flex;flex-direction:column;justify-content:center;gap:6px;height:100%;padding:10px 12px;background:#1a1815;border-radius:18px;border:1px solid #2c2924}
+  .top{display:flex;align-items:center;gap:8px}
+  .top img{width:28px;height:28px}
+  .top .t{font-size:12px;color:#a39d90;text-transform:uppercase;letter-spacing:.6px}
+  .price{font-size:30px;font-weight:800;line-height:1}
+  .price small{font-size:13px;color:#a39d90;font-weight:500}
+  .call{font-weight:800;font-size:16px}
+  .c0{color:#cfc8b8}.c1{color:#3fb27f}.c2{color:#d4a843}.c3{color:#f0cb6a}
+  .bar{position:relative;height:8px;border-radius:999px;background:linear-gradient(90deg,#3a3630 0%,#3a3630 50%,#2d5a44 50%,#2d5a44 71.4%,#8a7330 71.4%,#8a7330 85.7%,#d4a843 85.7%)}
+  .bar i{position:absolute;top:-4px;width:3px;height:16px;background:#fff;border-radius:2px;transform:translateX(-1px)}
+  .meta{font-size:12px;color:#a39d90}
+  .meta b{color:#f0cb6a}
+  @media (max-height:150px){ .bar,.meta.z{display:none} .price{font-size:24px} }
+  @media (max-height:100px){ .top{display:none} }
+</style>
+</head>
+<body>
+<a class="w" href="./" target="_top">
+  <div class="top"><img src="favicon.png" alt=""><span class="t">Gold Trader · 24ct</span></div>
+  <div class="price" id="p">£—<small>/g</small></div>
+  <div class="call" id="c">Loading…</div>
+  <div class="bar"><i id="m" style="left:50%"></i></div>
+  <div class="meta z" id="z"></div>
+  <div class="meta" id="u"></div>
+</a>
+<script>
+const OZ = 31.1034768;
+const CALLS = ["Hold", "Hold: getting close", "Sell about a quarter", "Strong sell: sell more"];
+const tierOf = (ext, mom) => ((ext >= 20 && mom < 0) || ext >= 25) ? 3 : ((ext >= 15 && mom < 0) || ext >= 18) ? 2 : ext >= 10 ? 1 : 0;
+const f = n => "£" + n.toFixed(2);
+async function j(u){ const r = await fetch(u, {cache: "no-store"}); if (!r.ok) throw 0; return r.json(); }
+async function run(){
+  let w;
+  try { w = await j("widget.json?t=" + Date.now()); } catch(e){ document.getElementById("c").textContent = "Offline"; return; }
+  let price = w.price_g, live = false;
+  try {
+    const [xau, fx] = await Promise.all([j("https://api.gold-api.com/price/XAU").then(d => d.price), j("https://open.er-api.com/v6/latest/GBP").then(d => d.rates.USD)]);
+    price = xau / fx / OZ; live = true;
+  } catch(e){}
+  // same tested rule as the app, using the live price
+  const ext = (price / w.s40_g - 1) * 100, mom = (price / w.p4_g - 1) * 100, t = tierOf(ext, mom);
+  document.getElementById("p").innerHTML = f(price) + "<small>/g</small>";
+  const c = document.getElementById("c"); c.textContent = CALLS[t]; c.className = "call c" + t;
+  document.getElementById("m").style.left = Math.max(0, Math.min(100, (ext + 35) / 70 * 100)) + "%";
+  document.getElementById("z").innerHTML = t >= 2 ? `Strong zone from <b>${f(w.zone_strong_g)}</b>` : `Sell zone from <b>${f(w.zone_sell_g)}</b>`;
+  document.getElementById("u").textContent = (live ? "Live " : "Last close ") + new Date().toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"});
+}
+run(); setInterval(run, 10 * 60 * 1000);
+</script>
+</body>
+</html>
