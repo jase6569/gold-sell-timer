@@ -10,8 +10,9 @@ import urllib.request
 UA = {"User-Agent": "Mozilla/5.0 (gold-sell-timer)"}
 
 
-def yahoo_daily(symbol, rng="max"):
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range={rng}"
+def yahoo_daily(symbol):
+    end = int(dt.datetime.utcnow().timestamp())
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&period1=1072915200&period2={end}"
     req = urllib.request.Request(url, headers=UA)
     with urllib.request.urlopen(req, timeout=30) as r:
         data = json.load(r)
