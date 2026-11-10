@@ -554,7 +554,7 @@ function newsCheck(w, m){
     else if (mood === "bear"){ call = "News warns of more weakness"; cls = "n-warn"; text = `The headlines lean negative for gold (${bearWhy}), so the price may fall further before it recovers. Holding is still the main call. If you need certainty about what your gold is worth, selling a small portion would protect part of its value.`; }
     else { call = "News is mixed"; cls = ""; text = `Good and bad news for gold are roughly balanced, so the news doesn't change the call: hold, and let the price signals lead.`; }
   }
-  const soon = (news.events || []).filter(e => { const h = (new Date(e.date) - Date.now()) / 36e5; return h > -1 && h < 72; });
+  const soon = (news.events || []).filter(e => { const h = (new Date(e.date) - Date.now()) / 36e5; return h > 0 && h < 72; });
   if (soon.length){
     const e = soon[0];
     text += ` <b>Heads up:</b> ${esc(e.country === "USD" ? "US" : "UK")} ${esc(e.title)} is due ${evWhen(e.date)}. Gold often swings sharply around big announcements, so if you're selling, wait until after the result.`;
@@ -569,8 +569,9 @@ function renderNews(w, m){
     <div class="ncheck ${c.cls}"><div class="call">${c.call}</div><div>${c.text}</div></div>
     <div class="muted">From ${news.count} gold headlines over the last 3 days: ${news.bullish} point to gold rising and ${news.bearish} to it falling. Checked ${ago(news.updated)}.</div>
     <div class="drivers">${chips}</div>` : '<p class="muted" style="margin:0">No recent gold headlines found.</p>';
-  $("events").innerHTML = (news.events || []).length
-    ? news.events.slice(0, 8).map(e => `<div class="ev"><div>${e.country === "USD" ? "🇺🇸" : "🇬🇧"} ${esc(e.title)}${e.forecast ? `<div class="muted">Forecast ${esc(e.forecast)} · previous ${esc(e.previous)}</div>` : ""}</div><div class="when">${evWhen(e.date)}</div></div>`).join("")
+  const upcoming = (news.events || []).filter(e => new Date(e.date) > Date.now());
+  $("events").innerHTML = upcoming.length
+    ? upcoming.slice(0, 8).map(e => `<div class="ev"><div><b style="color:var(--gold2)">${e.country === "USD" ? "US" : "UK"}</b> ${esc(e.title)}${e.forecast ? `<div class="muted">Forecast ${esc(e.forecast)} · previous ${esc(e.previous)}</div>` : ""}</div><div class="when">${evWhen(e.date)}</div></div>`).join("")
     : '<p class="muted">No major US or UK announcements in the next two weeks.</p>';
   $("headlines").innerHTML = news.headlines.slice(0, 10).map(h => `<a class="hl" href="${esc(h.link)}" target="_blank" rel="noopener"><i class="${h.score > 0 ? "up" : h.score < 0 ? "dn" : ""}"></i>${esc(h.title)}<div class="meta">${esc(h.source)} · ${ago(h.date)}</div></a>`).join("");
 }
