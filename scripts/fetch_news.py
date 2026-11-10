@@ -33,9 +33,10 @@ BULL = [
 ]
 BEAR = [
     (r"rate (hike|rise|increase)s?|raise rates|raising rates|hawkish|higher for longer", 2, "Interest rate rises expected (bad for gold)"),
-    (r"(dollar|greenback|usd) (rises?|rose|gains?|gained|strengthens?|firms?|climbs?|jumps?)|stronger dollar|strong dollar|lifts? (the )?dollar|(dollar|yields) and (yields|dollar) (rise|rose|climb|gain)", 2, "Stronger US dollar"),
-    (r"yields? (rise|rose|climb|jump|surge|higher)", 1, "Rising bond yields"),
-    (r"gold(?: prices?| futures| spot)?\s+(?:\w+\s+){0,2}(falls?|fell|drops?|dropped|slides?|slid|slumps?|slumped|tumbles?|tumbled|plunges?|plunged|sinks?|sank|retreats?|dips?|dipped|lower|declines?|declined|eases?|eased)\b", 1, "Price falling"),
+    (r"(dollar|greenback|usd) (rises?|rose|gains?|gained|strengthens?|firms?|climbs?|jumps?)|stronger dollar|strong dollar|lifts? (the )?dollar|lifting (the )?dollar|boosts? (the )?dollar|(dollar|yields) and (yields|dollar) (rise|rose|climb|gain)", 2, "Stronger US dollar"),
+    (r"yields? (rise|rose|climb|jump|surge|higher|above|hit)|lifting dollar and yields|(higher|rising|surging) yields", 1, "Rising bond yields"),
+    (r"hot (us )?inflation|inflation (tops|beats|hotter)|cpi (tops|beats|hotter)|fed (rate )?hike", 2, "Hot inflation means rates stay high (bad for gold)"),
+    (r"gold(?: prices?| futures| spot)?\s+(?:\w+\s+){0,2}(falls?|fell|drops?|dropped|slides?|slid|slumps?|slumped|tumbles?|tumbled|plunges?|plunged|sinks?|sank|retreats?|dips?|dipped|lower|declines?|declined|eases?|eased|dives?|dived|crash(es)?|crashed|loses|lost|sheds?|shed)\b", 1, "Price falling"),
     (r"sell[- ]?off|liquidat|profit[- ]taking|outflows?", 2, "Investors selling"),
     (r"lowest|\blows?\b|multi[- ](week|month) low|year low", 1, "Gold at fresh lows"),
     (r"risk[- ]on|stocks rally|equities rally|ceasefire|peace deal|de-?escalat", 1, "Calmer markets reduce safe-haven demand"),
@@ -77,7 +78,7 @@ def headlines():
             if " - " in title and src and title.endswith(src):
                 title = title[: -len(src) - 3].strip()
             key = title.lower()[:70]
-            if "gold" not in key or key in seen:
+            if "gold" not in key or key in seen or re.search(r"\bstocks?\b|shares|miner|mining|supply|etf|jewellery|jewelry|egr", key):
                 continue
             seen.add(key)
             try:

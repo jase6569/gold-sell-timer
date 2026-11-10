@@ -131,6 +131,16 @@
   </div>
 
   <div class="card">
+    <h2>6-month outlook</h2>
+    <div id="outlook"><p class="muted" style="margin:0">Working it out…</p></div>
+  </div>
+
+  <div class="card">
+    <h2>Track record</h2>
+    <div id="track"><p class="muted" style="margin:0">Checking…</p></div>
+  </div>
+
+  <div class="card">
     <h2>Big events coming up</h2>
     <p class="muted" style="margin-top:0">US and UK announcements that often move the gold price sharply.</p>
     <div id="events"><p class="muted">Loading…</p></div>
@@ -407,6 +417,109 @@ function overall(w, m){
   return `Hold for now. There's no strong selling signal this week or this month. Check back after Friday's close.`;
 }
 
+/* ================= 6-month outlook & track record ================= */
+function rsiSeries(a, n = 14){
+  const out = new Array(a.length).fill(null);
+  if (a.length < n + 1) return out;
+  let gain = 0, loss = 0;
+  for (let i = 1; i <= n; i++){ const d = a[i] - a[i-1]; d > 0 ? gain += d : loss -= d; }
+  gain /= n; loss /= n;
+  out[n] = loss === 0 ? 100 : 100 - 100 / (1 + gain / loss);
+  for (let i = n + 1; i < a.length; i++){
+    const d = a[i] - a[i-1];
+    gain = (gain * (n - 1) + Math.max(d, 0)) / n;
+    loss = (loss * (n - 1) + Math.max(-d, 0)) / n;
+    out[i] = loss === 0 ? 100 : 100 - 100 / (1 + gain / loss);
+  }
+  return out;
+}
+const quant = (arr, q) => { const a = [...arr].sort((x, y) => x - y); const i = (a.length - 1) * q; const lo = Math.floor(i); return a[lo] + (a[Math.ceil(i)] - a[lo]) * (i - lo); };
+// same scoring as the weekly call, without the wording
+function weeklyScoreAt(c, R, i){
+  const p = c[i], f = sma(c, 10, i + 1), s = sma(c, 40, i + 1), r = R[i];
+  if (f == null || s == null || r == null || i < 52) return null;
+  const hi = Math.max(...c.slice(i - 51, i + 1));
+  const ext = (p - s) / s * 100, fromHi = (hi - p) / hi * 100, chg = (p - c[i-4]) / c[i-4] * 100;
+  let sc = 0;
+  sc += r >= 75 ? 30 : r >= 70 ? 25 : r >= 60 ? 15 : r >= 45 ? 6 : 0;
+  sc += ext >= 20 ? 25 : ext >= 12 ? 18 : ext >= 5 ? 10 : ext >= 0 ? 4 : 0;
+  sc += fromHi <= 2 ? 20 : fromHi <= 6 ? 12 : fromHi <= 12 ? 5 : 0;
+  sc += chg >= 8 ? 15 : chg >= 4 ? 8 : 0;
+  if (p > f && f > s) sc += 10;
+  return Math.min(100, sc);
+}
+function outlook(){
+  const c = periods("w"), n = c.length, R = rsiSeries(c), H = 26;
+  if (n < 120) return null;
+  const now = n - 1;
+  const state = i => ({above: c[i] > sma(c, 40, i + 1), cross: sma(c, 10, i + 1) > sma(c, 40, i + 1), r: R[i]});
+  const cur = state(now);
+  let band = 8, matches = [];
+  const all = [];
+  for (let i = 52; i < n - H; i++) all.push(c[i + H] / c[i] - 1);
+  for (let tries = 0; tries < 3 && matches.length < 15; tries++){
+    matches = [];
+    for (let i = 52; i < n - H; i++){
+      const st = state(i);
+      if (st.above === cur.above && (tries === 2 || st.cross === cur.cross) && Math.abs(st.r - cur.r) <= band) matches.push(c[i + H] / c[i] - 1);
+    }
+    band += 6;
+  }
+  if (matches.length < 8) return null;
+  const up = matches.filter(x => x > 0).length / matches.length;
+  return {
+    count: matches.length, up, med: quant(matches, .5), lo: quant(matches, .2), hi: quant(matches, .8),
+    baseUp: all.filter(x => x > 0).length / all.length, baseMed: quant(all, .5), price: c[now], cur
+  };
+}
+function trackRecord(){
+  const c = periods("w"), n = c.length, R = rsiSeries(c), H = 13;
+  const sells = [], holds = [];
+  for (let i = 52; i < n - H; i++){
+    const sc = weeklyScoreAt(c, R, i); if (sc == null) continue;
+    const fwd = c[i + H] / c[i] - 1;
+    if (sc >= 65) sells.push(fwd); else if (sc < 25) holds.push(fwd);
+  }
+  return {sells, holds};
+}
+function renderOutlook(){
+  const o = outlook();
+  if (!o){ $("outlook").innerHTML = '<p class="muted" style="margin:0">Not enough history for a reliable outlook.</p>'; }
+  else {
+    const pg = x => fmt(g(o.price * (1 + x))) + "/g";
+    const p1 = v => (v * 100 >= 0 ? "+" : "") + (v * 100).toFixed(0) + "%";
+    const lean = o.up >= 0.62 ? "Odds favour higher prices" : o.up <= 0.42 ? "Odds favour lower prices" : "No clear edge either way";
+    const adv = o.up >= 0.62
+      ? "History favours patience. In set-ups like this, waiting has usually paid off, so there's no rush to sell unless you need the money."
+      : o.up <= 0.42
+      ? "History says set-ups like this have often led to lower prices. If gold bounces in the coming weeks, use the bounce to sell a portion rather than waiting for a full recovery."
+      : "History doesn't give a strong steer, so let the weekly call and your target price decide your timing.";
+    $("outlook").innerHTML = `
+      <div class="ncheck ${o.up >= 0.62 ? "n-ok" : o.up <= 0.42 ? "n-warn" : ""}"><div class="call">${lean}</div><div>${adv}</div></div>
+      <table>
+        <tr><td>Gold today (24ct)</td><td>${fmt(g(o.price))}/g</td></tr>
+        <tr><td>Most likely in 6 months</td><td>about ${pg(o.med)} (${p1(o.med)})</td></tr>
+        <tr><td>Realistic range</td><td>${pg(o.lo)} to ${pg(o.hi)}</td></tr>
+        <tr><td>Chance gold is higher</td><td>${Math.round(o.up * 100)}%</td></tr>
+      </table>
+      <p class="muted">Based on ${o.count} past weeks from the last 10 years that looked like today: price ${o.cur.above ? "above" : "below"} its 40-week average, trend ${o.cur.cross ? "up" : "down"}, RSI around ${o.cur.r.toFixed(0)}. Across all weeks, gold was higher 6 months later ${Math.round(o.baseUp * 100)}% of the time. This is what has tended to happen, not a promise. Big news can change things fast.</p>`;
+  }
+  const t = trackRecord();
+  if (!t.sells.length){ $("track").innerHTML = '<p class="muted" style="margin:0">Not enough past sell signals to judge yet.</p>'; return; }
+  const lower = t.sells.filter(x => x < 0).length / t.sells.length;
+  const avg = t.sells.reduce((a, b) => a + b, 0) / t.sells.length;
+  const hAvg = t.holds.length ? t.holds.reduce((a, b) => a + b, 0) / t.holds.length : 0;
+  const hUp = t.holds.length ? t.holds.filter(x => x > 0).length / t.holds.length : 0;
+  $("track").innerHTML = `
+    <table>
+      <tr><td>Weeks the app would have said "Sell a portion"</td><td>${t.sells.length}</td></tr>
+      <tr><td>Gold lower 3 months later</td><td>${Math.round(lower * 100)}% of the time</td></tr>
+      <tr><td>Average move 3 months after a sell call</td><td>${(avg * 100 >= 0 ? "+" : "") + (avg * 100).toFixed(1)}%</td></tr>
+      <tr><td>Average move 3 months after "Hold, don't sell"</td><td>${(hAvg * 100 >= 0 ? "+" : "") + (hAvg * 100).toFixed(1)}% (up ${Math.round(hUp * 100)}% of the time)</td></tr>
+    </table>
+    <p class="muted">The weekly rules tested on 10 years of UK gold prices. Gold rose strongly over most of this period, so even good sell signals were often followed by higher prices later. That's why the app says to sell in portions rather than all at once.</p>`;
+}
+
 /* ================= news & events ================= */
 let news = null;
 async function loadNews(){ news = await fetchJSON("news.json?t=" + Date.now()); }
@@ -472,6 +585,7 @@ function runAnalysis(){
   if (c) txt += c.mood === "mixed" ? " The news is mixed, so it doesn't change this view." : (/confirms/.test(c.call) ? " The latest news backs this up." : " Note: the latest news leans the other way. See the news check below.");
   $("overall").textContent = txt;
   renderNews(w, m);
+  try { renderOutlook(); } catch(e){ console.log(e); }
 }
 
 /* ================= prices ================= */
