@@ -13,7 +13,7 @@ import os
 import datetime as dt
 import urllib.request
 
-TOPIC = "gold-trader-jase-2b05ab99"
+TOPIC = os.environ.get("NTFY_TOPIC", "").strip()  # private, stored as a GitHub secret
 APP = "https://jase6569.github.io/gold-sell-timer/"
 OZ = 31.1034768
 STATE = "state.json"
@@ -49,6 +49,9 @@ def send(title, body, priority="default", tags="moneybag"):
 
 
 def main():
+    if not TOPIC:
+        print("NTFY_TOPIC secret not set, so no alerts sent")
+        return
     daily = json.load(open("data.json"))["daily"]
     c = weekly_closes(daily)
     p = c[-1]

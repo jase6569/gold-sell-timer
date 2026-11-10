@@ -14,7 +14,7 @@ Live: https://jase6569.github.io/gold-sell-timer/
 | `state.json` | The alert system's memory (last signal sent) |
 | `scripts/fetch_data.py` | Downloads prices (gold in USD ÷ GBP/USD) |
 | `scripts/fetch_news.py` | Downloads headlines and the economic calendar |
-| `scripts/notify.py` | Sends phone alerts via ntfy (topic `gold-trader-jase-2b05ab99`) |
+| `scripts/notify.py` | Sends phone alerts via ntfy. The topic is private and stored as the `NTFY_TOPIC` repository secret, never in the code |
 | `.github/workflows/update.yml` | Runs the three scripts every 3 hours on GitHub |
 
 ## The sell signal
@@ -49,7 +49,7 @@ Then open http://localhost:8000
 Test the alert logic without sending anything:
 
 ```bash
-python -c "import sys; sys.path.insert(0,'scripts'); import notify; notify.send=lambda *a,**k: print('WOULD SEND:', a[0]); notify.STATE='/tmp/state.json'; notify.main()"
+python -c "import sys; sys.path.insert(0,'scripts'); import notify; notify.TOPIC='test'; notify.send=lambda *a,**k: print('WOULD SEND:', a[0]); notify.STATE='/tmp/state.json'; notify.main()"
 ```
 
 ## Publishing changes
