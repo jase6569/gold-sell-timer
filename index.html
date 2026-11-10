@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gold Trader">
+<meta name="theme-color" content="#0f0e0c">
+<title>Gold Trader</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f0e0c'/%3E%3Cpath d='M14 44h36l-6-14H20z' fill='%23d4a843'/%3E%3Cpath d='M22 28h20l-4-10H26z' fill='%23f0cb6a'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+  :root{
+    --bg:#0f0e0c; --card:#1a1815; --line:#2c2924; --text:#f3efe6; --muted:#a39d90;
+    --gold:#d4a843; --gold2:#f0cb6a; --up:#3fb27f; --down:#e05d4f; --amber:#e3a33b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  body{padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 76px) env(safe-area-inset-left)}
+  header{padding:18px 16px 4px;max-width:720px;margin:0 auto}
+  header h1{margin:0;font-size:22px}
+  header h1 span{color:var(--gold)}
+  header p{margin:2px 0 0;color:var(--muted);font-size:13px}
+  main{padding:4px 12px;max-width:720px;margin:0 auto}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}
+  .card h2{margin:0 0 10px;font-size:13px;color:var(--gold2);font-weight:700;text-transform:uppercase;letter-spacing:.7px}
+  .price{font-size:42px;font-weight:700;line-height:1.1}
+  .price small{font-size:16px;color:var(--muted);font-weight:500}
+  .muted{color:var(--muted);font-size:13px}
+  .carats{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:14px}
+  .carats div{background:#12110f;border:1px solid var(--line);border-radius:10px;padding:8px 4px;text-align:center}
+  .carats b{display:block;font-size:15px}
+  .carats span{font-size:11px;color:var(--muted)}
+  .verdict{border-radius:14px;padding:16px;margin-bottom:12px}
+  .verdict .lbl{font-size:12px;text-transform:uppercase;letter-spacing:.7px;opacity:.85}
+  .verdict .call{font-size:24px;font-weight:800;margin:2px 0 6px;line-height:1.2}
+  .v-sell{background:linear-gradient(135deg,#3a2c0c,#5a4310);border:1px solid var(--gold)}
+  .v-open{background:linear-gradient(135deg,#2a2412,#3a3014);border:1px solid #8a7330}
+  .v-hold{background:#1f1d19;border:1px solid var(--line)}
+  .v-wait{background:linear-gradient(135deg,#1c1615,#2a1a17);border:1px solid #5c2e27}
+  .v-protect{background:linear-gradient(135deg,#2c1512,#3d1a15);border:1px solid var(--down)}
+  .meter{height:10px;border-radius:999px;background:#2a2722;overflow:hidden;margin:8px 0 4px}
+  .meter i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#6b5a2a,var(--gold2))}
+  .scale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+  .tabs{display:flex;background:#12110f;border-radius:12px;padding:4px;margin-bottom:12px}
+  .tabs button{flex:1;border:0;background:none;color:var(--muted);padding:10px;border-radius:9px;font-size:15px;font-weight:600}
+  .tabs button.on{background:var(--gold);color:#1a1408}
+  .view{display:none}.view.on{display:block}
+  ul.reasons{list-style:none;padding:0;margin:8px 0 0}
+  ul.reasons li{padding:10px 0 10px 28px;border-top:1px solid var(--line);position:relative;font-size:15px}
+  ul.reasons li:before{content:"";position:absolute;left:4px;top:16px;width:12px;height:12px;border-radius:50%}
+  ul.reasons li.s:before{background:var(--gold2)}
+  ul.reasons li.h:before{background:#7d776b}
+  ul.reasons li.r:before{background:var(--down)}
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  td{padding:9px 0;border-top:1px solid var(--line)}
+  td:last-child{text-align:right;font-weight:600}
+  .tv{border-radius:12px;overflow:hidden}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+  input,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#12110f;color:var(--text);font-size:17px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .result{margin-top:14px;padding:14px;border-radius:12px;background:#12110f;border:1px solid var(--line)}
+  .result b{font-size:28px;color:var(--gold2)}
+  .btn{display:block;width:100%;margin-top:12px;padding:13px;border:0;border-radius:12px;background:var(--gold);color:#1a1408;font-weight:700;font-size:16px}
+  .btn.ghost{background:none;border:1px solid var(--line);color:var(--text)}
+  ol{margin:6px 0 0;padding-left:20px} ol li{margin:6px 0}
+  nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:rgba(15,14,12,.97);border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
+  nav button{flex:1;border:0;background:none;color:var(--muted);font-size:12px;padding:6px 2px}
+  nav button svg{display:block;margin:0 auto 3px;width:22px;height:22px}
+  nav button.on{color:var(--gold2)}
+  .page{display:none}.page.on{display:block}
+  .alertbox{margin-top:10px;padding:12px;border-radius:12px;border:1px solid var(--gold);background:rgba(212,168,67,.12);display:none}
+  .live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--up);margin-right:6px;animation:p 1.6s infinite}
+  @keyframes p{50%{opacity:.25}}
+  .summary{font-size:16px;margin:0}
+</style>
+</head>
+<body>
+<header>
+  <h1>Gold <span>Trader</span></h1>
+  <p><i class="live"></i>Your selling adviser · UK gold, live</p>
+</header>
+
+<main>
+
+<!-- ========== ADVICE ========== -->
+<section class="page on" id="p-home">
+
+  <div class="card">
+    <h2>Gold today · 24ct</h2>
+    <div class="price" id="pGram">£—<small> /gram</small></div>
+    <div class="muted" id="pOz" style="margin-top:4px">£— per troy ounce</div>
+    <div class="carats" id="carats"></div>
+    <p class="muted" id="pTime" style="margin:10px 0 0">Loading live price…</p>
+  </div>
+
+  <div class="card">
+    <h2>Trader's call</h2>
+    <p class="summary" id="overall">Analysing the market…</p>
+  </div>
+
+  <div class="card">
+    <h2>Selling timing</h2>
+    <div class="tabs" data-group="tf">
+      <button class="on" data-v="w">This week</button>
+      <button data-v="m">This month</button>
+    </div>
+    <div class="view on" id="tf-w"></div>
+    <div class="view" id="tf-m"></div>
+  </div>
+
+  <p class="muted" style="padding:0 4px">These calls come from fixed trading rules (trend, momentum and how stretched the price is) applied to live UK gold prices. They're general information, not regulated financial advice, and the final decision is yours.</p>
+</section>
+
+<!-- ========== CHART ========== -->
+<section class="page" id="p-chart">
+  <div class="card" style="padding:10px">
+    <div class="tabs" data-group="ch">
+      <button class="on" data-v="w">Weekly</button>
+      <button data-v="m">Monthly</button>
+    </div>
+    <div class="view on" id="ch-w"><div class="tv" id="chW" style="height:560px"></div></div>
+    <div class="view" id="ch-m"><div class="tv" id="chM" style="height:560px"></div></div>
+  </div>
+  <div class="card">
+    <h2>What's on the chart</h2>
+    <ol>
+      <li>Gold in <b>pounds</b>, with two moving averages: 10 and 40 weeks on the weekly chart, and 6 and 12 months on the monthly one.</li>
+      <li><b>RSI</b> in the panel underneath. Above 70 means stretched, which is a good moment to sell some. Below 30 means oversold, so avoid selling.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ========== VALUE ========== -->
+<section class="page" id="p-calc">
+  <div class="card">
+    <h2>What's my gold worth now?</h2>
+    <div class="grid2">
+      <div><label>Weight (grams)</label><input id="cG" type="number" inputmode="decimal" placeholder="e.g. 250"></div>
+      <div><label>Carat</label>
+        <select id="cK">
+          <option value="0.375">9ct</option>
+          <option value="0.585">14ct</option>
+          <option value="0.75">18ct</option>
+          <option value="0.916">22ct</option>
+          <option value="0.999">24ct</option>
+        </select>
+      </div>
+    </div>
+    <label>Buyer pays (% of spot)</label>
+    <input id="cP" type="number" inputmode="decimal" value="95">
+    <div class="result">
+      <div class="muted">Melt value at today's price</div>
+      <b id="cSpot">£0</b>
+      <div class="muted" style="margin-top:8px">You'd receive at <span id="cPct">95</span>%</div>
+      <b id="cNet">£0</b>
+    </div>
+    <p class="muted">Pure gold content: <span id="cPure">0</span> g. Get quotes from two or three buyers: the payout percentage can be worth as much as good timing.</p>
+  </div>
+</section>
+
+<!-- ========== TARGET ========== -->
+<section class="page" id="p-alert">
+  <div class="card">
+    <h2>My sell target</h2>
+    <p class="muted" style="margin-top:0">Set the 24ct price per gram you'd be happy selling at. While the app is open it checks every minute and lights up when the price gets there.</p>
+    <label>Sell when 24ct reaches (£ per gram)</label>
+    <input id="aT" type="number" inputmode="decimal" placeholder="e.g. 105">
+    <button class="btn" id="aSave">Save target</button>
+    <button class="btn ghost" id="aClear">Clear</button>
+    <div class="result">
+      <div class="muted">Distance to target</div>
+      <b id="aDist">No target set</b>
+    </div>
+    <div class="alertbox" id="aHit"><b>Target reached.</b> Gold is at or above your sell price. Think about selling a portion now and holding the rest.</div>
+  </div>
+  <div class="card">
+    <h2>Selling in portions</h2>
+    <ol>
+      <li>Sell about a <b>third</b> when the call says <b>Sell a portion</b> or your target is hit.</li>
+      <li>Sell another third if gold keeps climbing and the weekly score goes over 80.</li>
+      <li>Keep the last third, unless the monthly call turns to <b>Protect your value</b>.</li>
+    </ol>
+  </div>
+</section>
+
+</main>
+
+<nav>
+  <button class="on" data-p="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>Advice</button>
+  <button data-p="chart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M6 16l4-5 3 3 5-7"/></svg>Chart</button>
+  <button data-p="calc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/></svg>Value</button>
+  <button data-p="alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 21h4"/></svg>Target</button>
+</nav>
+
+<script>
+const OZ = 31.1034768;
+const CARATS = [["9ct",0.375],["14ct",0.585],["18ct",0.75],["22ct",0.916],["24ct",0.999]];
+let daily = [];          // [[date, £/oz]]
+let liveOz = null;       // live £/oz
+let gbpPerGram = null;
+
+const $ = id => document.getElementById(id);
+const g = oz => oz / OZ;
+const fmt = (n, d = 2) => "£" + n.toLocaleString("en-GB", {minimumFractionDigits: d, maximumFractionDigits: d});
+const pct = n => (n >= 0 ? "+" : "") + n.toFixed(1) + "%";
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+  set(k,v){ try { localStorage.setItem(k,v); } catch(e){} },
+  del(k){ try { localStorage.removeItem(k); } catch(e){} }
+};
+
+/* ================= indicators ================= */
+const sma = (a, n, end = a.length) => end < n ? null : a.slice(end - n, end).reduce((s, x) => s + x, 0) / n;
+function rsi(a, n = 14){
+  if (a.length < n + 1) return null;
+  let gain = 0, loss = 0;
+  for (let i = 1; i <= n; i++){ const d = a[i] - a[i-1]; d > 0 ? gain += d : loss -= d; }
+  gain /= n; loss /= n;
+  for (let i = n + 1; i < a.length; i++){
+    const d = a[i] - a[i-1];
+    gain = (gain * (n - 1) + Math.max(d, 0)) / n;
+    loss = (loss * (n - 1) + Math.max(-d, 0)) / n;
+  }
+  return loss === 0 ? 100 : 100 - 100 / (1 + gain / loss);
+}
+
+/* group daily closes into weekly (ISO week) or monthly closes */
+function periods(kind){
+  const map = new Map();
+  for (const [d, v] of daily){
+    const dt = new Date(d + "T12:00:00Z");
+    let key;
+    if (kind === "m") key = d.slice(0, 7);
+    else {
+      const t = new Date(dt); const day = (t.getUTCDay() + 6) % 7;
+      t.setUTCDate(t.getUTCDate() - day); key = t.toISOString().slice(0, 10);
+    }
+    map.set(key, v);
+  }
+  const keys = [...map.keys()];
+  const closes = [...map.values()];
+  // put the live price in as this period's latest close
+  if (liveOz){
+    const now = new Date();
+    let cur;
+    if (kind === "m") cur = now.toISOString().slice(0, 7);
+    else { const t = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12)); t.setUTCDate(t.getUTCDate() - (t.getUTCDay() + 6) % 7); cur = t.toISOString().slice(0, 10); }
+    if (keys[keys.length - 1] === cur) closes[closes.length - 1] = liveOz;
+    else { keys.push(cur); closes.push(liveOz); }
+  }
+  return closes;
+}
+
+/* ================= the trader ================= */
+function analyse(kind){
+  const P = kind === "w"
+    ? {fast: 10, slow: 40, look: 52, mom: 4, unit: "week", fastName: "10-week average", slowName: "40-week average", hiName: "52-week high", loName: "52-week low", momName: "the last 4 weeks"}
+    : {fast: 6, slow: 12, look: 12, mom: 3, unit: "month", fastName: "6-month average", slowName: "12-month average", hiName: "12-month high", loName: "12-month low", momName: "the last 3 months"};
+  const c = periods(kind);
+  const n = c.length;
+  if (n < P.slow + 5) return null;
+  const p = c[n-1];
+  const f = sma(c, P.fast), s = sma(c, P.slow);
+  const fPrev = sma(c, P.fast, n - 3), sPrev = sma(c, P.slow, n - 3);
+  const r = rsi(c);
+  const win = c.slice(n - P.look);
+  const hi = Math.max(...win), lo = Math.min(...win);
+  const prevLo = Math.min(...c.slice(n - P.look - 1, n - 1));
+  const ath = Math.max(...c);
+  const ext = (p - s) / s * 100;
+  const fromHi = (hi - p) / hi * 100;
+  const chg = (p - c[n - 1 - P.mom]) / c[n - 1 - P.mom] * 100;
+  const upTrend = p > f && f > s;
+  const downTrend = p < s && f < s && f < fPrev;
+  const brokeLow = p < prevLo;
+
+  let score = 0;
+  const why = [];
+
+  // momentum
+  if (r >= 75){ score += 30; why.push(["s", `Momentum is very stretched (RSI ${r.toFixed(0)}). Rallies this hot usually cool off, so this is a strong moment to sell some.`]); }
+  else if (r >= 70){ score += 25; why.push(["s", `Momentum is overheated (RSI ${r.toFixed(0)}, above 70). Prices often pull back from here, so selling into it makes sense.`]); }
+  else if (r >= 60){ score += 15; why.push(["s", `Momentum is strong (RSI ${r.toFixed(0)}) but not yet overheated. There may be more upside before the best selling point.`]); }
+  else if (r >= 45){ score += 6; why.push(["h", `Momentum is middling (RSI ${r.toFixed(0)}). No pressure to sell on this alone.`]); }
+  else if (r >= 30){ why.push(["h", `Momentum is weak (RSI ${r.toFixed(0)}). Selling now means selling while buyers are scarce, so you'd likely get a poorer price.`]); }
+  else { why.push(["h", `Gold is oversold (RSI ${r.toFixed(0)}, below 30). This is usually close to a short-term low, about the worst time to sell.`]); }
+
+  // stretch above the long average
+  if (ext >= 20){ score += 25; why.push(["s", `The price is ${ext.toFixed(0)}% above its ${P.slowName} (${fmt(g(s))}/g). That's a big gap, and gaps like this tend to close.`]); }
+  else if (ext >= 12){ score += 18; why.push(["s", `The price is ${ext.toFixed(0)}% above its ${P.slowName} (${fmt(g(s))}/g), which is well extended.`]); }
+  else if (ext >= 5){ score += 10; why.push(["s", `The price is ${ext.toFixed(0)}% above its ${P.slowName} (${fmt(g(s))}/g), comfortably in profit territory.`]); }
+  else if (ext >= 0){ score += 4; why.push(["h", `The price is only just above its ${P.slowName} (${fmt(g(s))}/g).`]); }
+  else { why.push(["h", `The price is ${Math.abs(ext).toFixed(0)}% below its ${P.slowName} (${fmt(g(s))}/g), so gold is cheap against its recent trend.`]); }
+
+  // nearness to the high
+  if (fromHi <= 2){ score += 20; why.push(["s", `Gold is at or near its ${P.hiName} (${fmt(g(hi))}/g). Selling near the top of the range is what you want.`]); }
+  else if (fromHi <= 6){ score += 12; why.push(["s", `Gold is within ${fromHi.toFixed(0)}% of its ${P.hiName} (${fmt(g(hi))}/g).`]); }
+  else if (fromHi <= 12){ score += 5; why.push(["h", `Gold is ${fromHi.toFixed(0)}% below its ${P.hiName} (${fmt(g(hi))}/g).`]); }
+  else { why.push(["h", `Gold is ${fromHi.toFixed(0)}% below its ${P.hiName} (${fmt(g(hi))}/g), so there's a lot of room to recover before it's back at the top.`]); }
+
+  // recent burst
+  if (chg >= 8){ score += 15; why.push(["s", `Gold is up ${chg.toFixed(1)}% over ${P.momName}. Sharp runs like this are good to sell into.`]); }
+  else if (chg >= 4){ score += 8; why.push(["s", `Gold is up ${chg.toFixed(1)}% over ${P.momName}.`]); }
+  else if (chg <= -4){ why.push(["h", `Gold is down ${Math.abs(chg).toFixed(1)}% over ${P.momName}. Selling after a drop locks in the lower price.`]); }
+
+  // trend
+  if (upTrend){ score += 10; why.push(["s", `The trend is up: the price is above the ${P.fastName} (${fmt(g(f))}/g), which is above the ${P.slowName}.`]); }
+  else if (downTrend){ why.push(["r", `The trend is down: the ${P.fastName} (${fmt(g(f))}/g) is below the ${P.slowName} and still falling.`]); }
+  else { why.push(["h", `The trend is mixed. The ${P.fastName} is ${fmt(g(f))}/g and the ${P.slowName} is ${fmt(g(s))}/g.`]); }
+
+  if (brokeLow) why.push(["r", `The price has broken below its previous ${P.loName} (${fmt(g(prevLo))}/g). That's a warning sign that the fall may continue.`]);
+
+  score = Math.min(100, score);
+
+  let call, cls, line;
+  if (brokeLow && downTrend){
+    call = "Protect your value"; cls = "v-protect";
+    line = `Gold is in a downtrend and has broken to a new ${P.unit === "week" ? "52-week" : "12-month"} low. If you can't afford to see the value fall further, selling a portion now limits the damage. Otherwise hold, and don't add to your stock.`;
+  } else if (score >= 65){
+    call = "Sell a portion now"; cls = "v-sell";
+    line = `This is a good selling window. Gold is strong and stretched, so sell around a third and keep the rest in case it runs further.`;
+  } else if (score >= 45){
+    call = "Selling window opening"; cls = "v-open";
+    line = `Conditions are turning in a seller's favour. If gold is at your target price, sell a small portion. Otherwise get ready, because a stronger signal may follow.`;
+  } else if (score >= 25){
+    call = "Hold and watch"; cls = "v-hold";
+    line = `No strong reason to sell yet. Hold your gold and check again next ${P.unit}.`;
+  } else {
+    call = "Hold, don't sell into weakness"; cls = "v-wait";
+    line = `Gold is weak right now, so selling would mean accepting a poor price. Wait for a recovery unless you need the cash.`;
+  }
+
+  const better = Math.max(f, s) * 1.0;
+  const levels = [
+    [`Where it gets better for selling`, `${fmt(g(Math.max(p, s) * 1.08))}/g and above`],
+    [P.hiName, `${fmt(g(hi))}/g`],
+    [P.fastName, `${fmt(g(f))}/g`],
+    [P.slowName, `${fmt(g(s))}/g`],
+    [P.loName, `${fmt(g(lo))}/g`],
+    [`All-time high (10 yrs)`, `${fmt(g(ath))}/g`]
+  ];
+  return {kind, P, score, call, cls, line, why, levels, r, p, f, s, upTrend, downTrend, brokeLow};
+}
+
+function renderTF(a, el){
+  if (!a){ el.innerHTML = '<p class="muted">Not enough price history yet.</p>'; return; }
+  el.innerHTML = `
+    <div class="verdict ${a.cls}">
+      <div class="lbl">${a.kind === "w" ? "Weekly" : "Monthly"} call</div>
+      <div class="call">${a.call}</div>
+      <div>${a.line}</div>
+      <div class="meter"><i style="width:${Math.max(4, a.score)}%"></i></div>
+      <div class="scale"><span>Hold</span><span>Selling score ${a.score}/100</span><span>Sell</span></div>
+    </div>
+    <div class="muted" style="text-transform:uppercase;letter-spacing:.7px;font-size:12px">Why</div>
+    <ul class="reasons">${a.why.map(([t, x]) => `<li class="${t}">${x}</li>`).join("")}</ul>
+    <div class="muted" style="text-transform:uppercase;letter-spacing:.7px;font-size:12px;margin-top:14px">Key levels (24ct)</div>
+    <table>${a.levels.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("")}</table>`;
+}
+
+function overall(w, m){
+  if (!w || !m) return "Analysing the market…";
+  if (w.cls === "v-protect" || m.cls === "v-protect")
+    return `Gold is under real pressure. The ${m.cls === "v-protect" ? "monthly" : "weekly"} picture has broken down. If you're relying on this gold's value, selling a portion now is the cautious move. If you can wait, hold the rest and let the market recover in its own time.`;
+  if (w.score >= 65 && m.score >= 45)
+    return `This is a strong time to sell. Gold is strong both this week and on the bigger monthly picture. I'd sell a good portion, around a third to a half, and keep the rest.`;
+  if (w.score >= 65)
+    return `This is a short-term selling opportunity. Gold has run hard this week, but the monthly trend isn't at an extreme. Sell a portion into this rally and hold the rest.`;
+  if (w.score >= 45 || m.score >= 55)
+    return `The window is opening but isn't at its best yet. If gold reaches your target price, sell a small portion. Otherwise be patient, because a better moment is likely to come.`;
+  if (w.downTrend && m.score < 35)
+    return `Hold. Gold is in a downtrend and is cheaper than it's been for a while, so selling now would lock in a poor price. Wait for it to climb back above its weekly averages, and I'll flag it when the selling window opens.`;
+  return `Hold for now. There's no strong selling signal this week or this month. Check back after Friday's close.`;
+}
+
+function runAnalysis(){
+  if (!daily.length) return;
+  const w = analyse("w"), m = analyse("m");
+  renderTF(w, $("tf-w"));
+  renderTF(m, $("tf-m"));
+  $("overall").textContent = overall(w, m);
+}
+
+/* ================= prices ================= */
+async function fetchJSON(url){
+  const r = await fetch(url, {cache: "no-store"});
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+async function loadHistory(){
+  const d = await fetchJSON("data.json?t=" + Date.now());
+  daily = d.daily;
+}
+async function getLiveOz(){
+  // live spot gold converted to pounds
+  const [xau, fx] = await Promise.all([
+    fetchJSON("https://api.gold-api.com/price/XAU").then(d => d.price),
+    fetchJSON("https://open.er-api.com/v6/latest/GBP").then(d => d.rates.USD)
+      .catch(() => fetchJSON("https://api.frankfurter.app/latest?from=GBP&to=USD").then(d => d.rates.USD))
+  ]);
+  return xau / fx;
+}
+function showPrice(oz, label){
+  gbpPerGram = g(oz);
+  $("pGram").innerHTML = fmt(gbpPerGram) + "<small> /gram</small>";
+  $("pOz").textContent = fmt(oz, 0) + " per troy ounce";
+  $("carats").innerHTML = CARATS.map(([k, f]) => `<div><b>${fmt(gbpPerGram * f)}</b><span>${k}/g</span></div>`).join("");
+  $("pTime").textContent = label;
+  calc(); checkAlert();
+}
+async function refresh(){
+  try {
+    liveOz = await getLiveOz();
+    showPrice(liveOz, "Live · updated " + new Date().toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"}) + " · refreshes every minute");
+  } catch(e){
+    if (daily.length){
+      const [d, v] = daily[daily.length - 1];
+      liveOz = null;
+      showPrice(v, "Live feed unavailable. Showing last close (" + new Date(d).toLocaleDateString("en-GB") + "). Retrying…");
+    } else $("pTime").textContent = "Can't reach prices right now. Retrying in a minute.";
+  }
+  runAnalysis();
+}
+
+/* ================= value calculator ================= */
+function calc(){
+  const w = parseFloat($("cG").value) || 0, k = parseFloat($("cK").value), p = parseFloat($("cP").value) || 0;
+  const pure = w * k;
+  $("cPure").textContent = pure.toFixed(2);
+  $("cPct").textContent = p;
+  if (gbpPerGram == null) return;
+  $("cSpot").textContent = fmt(pure * gbpPerGram);
+  $("cNet").textContent = fmt(pure * gbpPerGram * p / 100);
+  store.set("calc", JSON.stringify({g: $("cG").value, k: $("cK").value, p: $("cP").value}));
+}
+["cG","cK","cP"].forEach(id => $(id).addEventListener("input", calc));
+
+/* ================= target ================= */
+function checkAlert(){
+  const t = parseFloat(store.get("target"));
+  if (!t){ $("aDist").textContent = "No target set"; $("aHit").style.display = "none"; return; }
+  if (gbpPerGram == null) return;
+  const diff = t - gbpPerGram;
+  if (diff <= 0){
+    $("aDist").textContent = "Reached: " + fmt(gbpPerGram) + "/g";
+    $("aHit").style.display = "block";
+    try { navigator.vibrate && navigator.vibrate([300,150,300]); } catch(e){}
+  } else {
+    $("aDist").textContent = fmt(diff) + "/g to go (" + pct(diff / gbpPerGram * 100).replace("+", "") + ")";
+    $("aHit").style.display = "none";
+  }
+}
+$("aSave").onclick = () => { const v = parseFloat($("aT").value); if (v > 0){ store.set("target", v); checkAlert(); } };
+$("aClear").onclick = () => { store.del("target"); $("aT").value = ""; checkAlert(); };
+
+/* ================= chart (TradingView, gold in GBP) ================= */
+function loadChart(id, interval){
+  const host = $(id);
+  if (host.dataset.loaded) return;
+  host.dataset.loaded = "1";
+  const monthly = interval === "M";
+  const wrap = document.createElement("div");
+  wrap.className = "tradingview-widget-container"; wrap.style.height = "100%";
+  const inner = document.createElement("div");
+  inner.className = "tradingview-widget-container__widget"; inner.style.height = "100%";
+  wrap.appendChild(inner);
+  const s = document.createElement("script");
+  s.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"; s.async = true;
+  s.innerHTML = JSON.stringify({
+    autosize: true, symbol: "OANDA:XAUGBP", interval, timezone: "Europe/London", theme: "dark",
+    style: "1", locale: "en", backgroundColor: "rgba(26,24,21,1)", hide_side_toolbar: true,
+    allow_symbol_change: false, save_image: false,
+    studies: [
+      {id: "MASimple@tv-basicstudies", inputs: {length: monthly ? 6 : 10}},
+      {id: "MASimple@tv-basicstudies", inputs: {length: monthly ? 12 : 40}},
+      "RSI@tv-basicstudies"
+    ]
+  });
+  wrap.appendChild(s);
+  host.appendChild(wrap);
+}
+
+/* ================= navigation ================= */
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "p-" + b.dataset.p));
+  if (b.dataset.p === "chart") loadChart("chW", "W");
+  window.scrollTo(0, 0);
+});
+document.querySelectorAll(".tabs").forEach(t => t.querySelectorAll("button").forEach(b => b.onclick = () => {
+  t.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+  const grp = t.dataset.group;
+  document.querySelectorAll('[id^="' + grp + '-"]').forEach(v => v.classList.toggle("on", v.id === grp + "-" + b.dataset.v));
+  if (grp === "ch") loadChart(b.dataset.v === "w" ? "chW" : "chM", b.dataset.v === "w" ? "W" : "M");
+}));
+
+/* ================= start ================= */
+try {
+  const c = JSON.parse(store.get("calc") || "null");
+  if (c){ $("cG").value = c.g; $("cK").value = c.k; $("cP").value = c.p; }
+} catch(e){}
+if (store.get("target")) $("aT").value = store.get("target");
+
+(async () => {
+  try { await loadHistory(); } catch(e){}
+  await refresh();
+  setInterval(refresh, 60000);
+  setInterval(async () => { try { await loadHistory(); runAnalysis(); } catch(e){} }, 30 * 60000);
+})();
+</script>
+</body>
+</html>
