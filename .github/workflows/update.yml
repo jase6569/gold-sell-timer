@@ -17,10 +17,13 @@ jobs:
         with:
           python-version: "3.12"
       - run: python scripts/fetch_data.py
+      - run: python scripts/fetch_news.py
+        continue-on-error: true
       - name: Commit data
         run: |
           git config user.name "gold-bot"
           git config user.email "gold-bot@users.noreply.github.com"
           git add data.json
+          if [ -f news.json ]; then git add news.json; fi
           git diff --cached --quiet || git commit -m "Update gold data"
           git push

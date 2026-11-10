@@ -54,6 +54,20 @@
   ul.reasons li.s:before{background:var(--gold2)}
   ul.reasons li.h:before{background:#7d776b}
   ul.reasons li.r:before{background:var(--down)}
+  .ncheck{border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid var(--line);background:#12110f}
+  .ncheck .call{font-size:19px;font-weight:800;margin:2px 0 4px}
+  .n-ok{border-color:#3d6b4f;background:rgba(63,178,127,.08)}
+  .n-warn{border-color:#8a5a20;background:rgba(227,163,59,.08)}
+  .drivers{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
+  .drivers span{font-size:12px;padding:4px 9px;border-radius:999px;border:1px solid var(--line)}
+  .drivers .up{color:var(--up);border-color:#2d5a44}
+  .drivers .dn{color:var(--down);border-color:#5c2e27}
+  .hl{display:block;padding:10px 0;border-top:1px solid var(--line);color:var(--text);text-decoration:none}
+  .hl .meta{font-size:12px;color:var(--muted);margin-top:2px}
+  .hl i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;background:#7d776b}
+  .hl i.up{background:var(--up)} .hl i.dn{background:var(--down)}
+  .ev{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:15px}
+  .ev .when{color:var(--gold2);font-weight:600;white-space:nowrap}
   table{width:100%;border-collapse:collapse;font-size:15px}
   td{padding:9px 0;border-top:1px solid var(--line)}
   td:last-child{text-align:right;font-weight:600}
@@ -102,6 +116,11 @@
   </div>
 
   <div class="card">
+    <h2>News check</h2>
+    <div id="newsCheck"><p class="muted" style="margin:0">Reading the latest gold news…</p></div>
+  </div>
+
+  <div class="card">
     <h2>Selling timing</h2>
     <div class="tabs" data-group="tf">
       <button class="on" data-v="w">This week</button>
@@ -109,6 +128,18 @@
     </div>
     <div class="view on" id="tf-w"></div>
     <div class="view" id="tf-m"></div>
+  </div>
+
+  <div class="card">
+    <h2>Big events coming up</h2>
+    <p class="muted" style="margin-top:0">US and UK announcements that often move the gold price sharply.</p>
+    <div id="events"><p class="muted">Loading…</p></div>
+  </div>
+
+  <div class="card">
+    <h2>Latest gold headlines</h2>
+    <p class="muted" style="margin-top:0"><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--up)"></i> points to gold rising &nbsp; <i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--down)"></i> points to gold falling</p>
+    <div id="headlines"><p class="muted">Loading…</p></div>
   </div>
 
   <p class="muted" style="padding:0 4px">These calls come from fixed trading rules (trend, momentum and how stretched the price is) applied to live UK gold prices. They're general information, not regulated financial advice, and the final decision is yours.</p>
@@ -376,12 +407,71 @@ function overall(w, m){
   return `Hold for now. There's no strong selling signal this week or this month. Check back after Friday's close.`;
 }
 
+/* ================= news & events ================= */
+let news = null;
+async function loadNews(){ news = await fetchJSON("news.json?t=" + Date.now()); }
+const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function ago(iso){
+  const h = (Date.now() - new Date(iso)) / 36e5;
+  if (h < 1) return "just now"; if (h < 24) return Math.round(h) + "h ago";
+  return Math.round(h / 24) + "d ago";
+}
+function evWhen(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-GB", {weekday: "short", day: "numeric", month: "short"}) + " " + d.toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"});
+}
+function listDrivers(sign, n = 2){
+  return news.drivers.filter(d => d.sign === sign && !/^Price (rising|falling)$/.test(d.label)).slice(0, n).map(d => d.label.replace(/ \((good|bad) for gold\)/, "").toLowerCase()).join(" and ");
+}
+function newsCheck(w, m){
+  if (!news || !news.count) return null;
+  const tone = news.netScore / news.count;
+  const mood = tone > 0.35 ? "bull" : tone < -0.35 ? "bear" : "mixed";
+  const selling = (w && w.score >= 45) || (m && m.score >= 55);
+  const protect = (w && w.cls === "v-protect") || (m && m.cls === "v-protect");
+  const bullWhy = listDrivers("+") || "positive price moves";
+  const bearWhy = listDrivers("-") || "falling prices";
+  let call, cls, text;
+  if (selling || protect){
+    if (mood === "bear"){ call = "News confirms selling"; cls = "n-ok"; text = `The headlines are negative for gold (${bearWhy}). That backs the call: prices could weaken from here, so selling a portion now locks in today's value.`; }
+    else if (mood === "bull"){ call = "News says: don't sell it all"; cls = "n-warn"; text = `The headlines are still positive for gold (${bullWhy}), so the rally may have further to run. Sell a smaller portion and keep more back for higher prices.`; }
+    else { call = "News is mixed"; cls = ""; text = `The news isn't pointing clearly either way, so the price signals lead. Stick to selling in portions.`; }
+  } else {
+    if (mood === "bull"){ call = "News confirms holding"; cls = "n-ok"; text = `The headlines lean positive for gold (${bullWhy}). Those are the drivers that lift prices, which backs waiting rather than selling at today's lower level.`; }
+    else if (mood === "bear"){ call = "News warns of more weakness"; cls = "n-warn"; text = `The headlines lean negative for gold (${bearWhy}), so the price may fall further before it recovers. Holding is still the main call. If you need certainty about what your gold is worth, selling a small portion would protect part of its value.`; }
+    else { call = "News is mixed"; cls = ""; text = `Good and bad news for gold are roughly balanced, so the news doesn't change the call: hold, and let the price signals lead.`; }
+  }
+  const soon = (news.events || []).filter(e => { const h = (new Date(e.date) - Date.now()) / 36e5; return h > -1 && h < 72; });
+  if (soon.length){
+    const e = soon[0];
+    text += ` <b>Heads up:</b> ${esc(e.country === "USD" ? "US" : "UK")} ${esc(e.title)} is due ${evWhen(e.date)}. Gold often swings sharply around big announcements, so if you're selling, wait until after the result.`;
+  }
+  return {call, cls, text, mood, tone};
+}
+function renderNews(w, m){
+  if (!news){ $("newsCheck").innerHTML = '<p class="muted" style="margin:0">News isn\'t available just now. The price-based call still stands.</p>'; return; }
+  const c = newsCheck(w, m);
+  const chips = news.drivers.map(d => `<span class="${d.sign === "+" ? "up" : "dn"}">${d.sign === "+" ? "▲" : "▼"} ${esc(d.label)} · ${d.count}</span>`).join("");
+  $("newsCheck").innerHTML = c ? `
+    <div class="ncheck ${c.cls}"><div class="call">${c.call}</div><div>${c.text}</div></div>
+    <div class="muted">From ${news.count} gold headlines over the last 3 days: ${news.bullish} point to gold rising and ${news.bearish} to it falling. Checked ${ago(news.updated)}.</div>
+    <div class="drivers">${chips}</div>` : '<p class="muted" style="margin:0">No recent gold headlines found.</p>';
+  $("events").innerHTML = (news.events || []).length
+    ? news.events.slice(0, 8).map(e => `<div class="ev"><div>${e.country === "USD" ? "🇺🇸" : "🇬🇧"} ${esc(e.title)}${e.forecast ? `<div class="muted">Forecast ${esc(e.forecast)} · previous ${esc(e.previous)}</div>` : ""}</div><div class="when">${evWhen(e.date)}</div></div>`).join("")
+    : '<p class="muted">No major US or UK announcements in the next two weeks.</p>';
+  $("headlines").innerHTML = news.headlines.slice(0, 10).map(h => `<a class="hl" href="${esc(h.link)}" target="_blank" rel="noopener"><i class="${h.score > 0 ? "up" : h.score < 0 ? "dn" : ""}"></i>${esc(h.title)}<div class="meta">${esc(h.source)} · ${ago(h.date)}</div></a>`).join("");
+}
+
 function runAnalysis(){
   if (!daily.length) return;
   const w = analyse("w"), m = analyse("m");
   renderTF(w, $("tf-w"));
   renderTF(m, $("tf-m"));
-  $("overall").textContent = overall(w, m);
+  const c = newsCheck(w, m);
+  let txt = overall(w, m);
+  if (c) txt += c.mood === "mixed" ? " The news is mixed, so it doesn't change this view." : (/confirms/.test(c.call) ? " The latest news backs this up." : " Note: the latest news leans the other way. See the news check below.");
+  $("overall").textContent = txt;
+  renderNews(w, m);
 }
 
 /* ================= prices ================= */
@@ -506,9 +596,10 @@ if (store.get("target")) $("aT").value = store.get("target");
 
 (async () => {
   try { await loadHistory(); } catch(e){}
+  try { await loadNews(); } catch(e){}
   await refresh();
   setInterval(refresh, 60000);
-  setInterval(async () => { try { await loadHistory(); runAnalysis(); } catch(e){} }, 30 * 60000);
+  setInterval(async () => { try { await loadHistory(); await loadNews(); runAnalysis(); } catch(e){} }, 30 * 60000);
 })();
 </script>
 </body>
