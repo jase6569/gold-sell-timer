@@ -63,6 +63,15 @@
   .hl i.up{background:var(--up)} .hl i.dn{background:var(--down)}
   .ev{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:15px}
   .ev .when{color:var(--gold2);font-weight:600;white-space:nowrap}
+  .step{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+  .step .n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--gold);color:#1a1408;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .step .b{flex:1;font-size:15px}
+  .step .calc{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:var(--gold2);margin-top:4px}
+  .yes{color:var(--up);font-weight:700} .no{color:var(--muted)}
+  .hist td{font-size:13px;padding:7px 4px}
+  .hist td:last-child{font-size:13px}
+  .hist tr.cur td{background:rgba(212,168,67,.08)}
+  details summary{cursor:pointer;color:var(--gold2);font-weight:600;padding:8px 0}
   .warn{border:1px solid #8a5a20;background:rgba(227,163,59,.08);border-radius:12px;padding:12px;margin-top:12px}
   .tv{border-radius:12px;overflow:hidden}
   .tabs{display:flex;background:#12110f;border-radius:12px;padding:4px;margin-bottom:12px}
@@ -120,6 +129,18 @@
   <div class="card">
     <h2>Should I sell?</h2>
     <div id="call"><p class="muted" style="margin:0">Analysing 22 years of UK gold prices…</p></div>
+  </div>
+
+  <div class="card">
+    <h2>How this decision was made</h2>
+    <p class="muted" style="margin-top:0">Every step, using today's real numbers. Anyone can check it.</p>
+    <div id="explain"><p class="muted">Working it out…</p></div>
+  </div>
+
+  <div class="card">
+    <h2>Decision history</h2>
+    <p class="muted" style="margin-top:0">What the app would have said each week for the last 6 months, using the same rules. Compare it with any gold chart.</p>
+    <div id="history"><p class="muted">Loading…</p></div>
   </div>
 
   <div class="card">
@@ -271,6 +292,7 @@
 
   <div class="card">
     <h2>6. How the advice works</h2>
+    <p style="margin-top:0">The Advice page has a <b>"How this decision was made"</b> section that shows every step with today's real numbers: the price, the 40-week average, the stretch, the 4-week change, which rule matched, and the 22-year evidence behind it. There's also a <b>decision history</b> for the last 6 months. If anyone asks "why did it say that?", that's where to look.</p>
     <p style="margin-top:0">The app looks at one thing: <b>how far gold has stretched above its 40-week average</b>, and whether it has started to turn down. That was the only measure that worked reliably when tested on 22 years of UK gold prices (2004 to today), and it held up in both 2005–2015 and 2016–2026. Popular rules like "RSI over 70" or "near its high" didn't hold up for gold, so they're not used.</p>
     <p>The sell zone prices move slowly as the 40-week average changes, so check them now and then rather than writing them down once.</p>
   </div>
@@ -436,6 +458,88 @@ function renderCall(){
 }
 
 /* =============== render: 6-month outlook =============== */
+
+/* =============== transparency: how the decision was made =============== */
+function rsiArr(a, n = 14){
+  const out = new Array(a.length).fill(null); if (a.length < n + 1) return out;
+  let gn = 0, ls = 0;
+  for (let i = 1; i <= n; i++){ const d = a[i] - a[i-1]; d > 0 ? gn += d : ls -= d; }
+  gn /= n; ls /= n; out[n] = ls === 0 ? 100 : 100 - 100 / (1 + gn / ls);
+  for (let i = n + 1; i < a.length; i++){ const d = a[i] - a[i-1]; gn = (gn * (n-1) + Math.max(d, 0)) / n; ls = (ls * (n-1) + Math.max(-d, 0)) / n; out[i] = ls === 0 ? 100 : 100 - 100 / (1 + gn / ls); }
+  return out;
+}
+function renderExplain(){
+  const S = sig, k = S.cur, n = S.now;
+  const d = iso => new Date(iso).toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"});
+  const p4 = S.c[n - 4], firstWk = S.dates[n - 39];
+  const tick = ok => ok ? '<span class="yes">✔ yes</span>' : '<span class="no">✘ no</span>';
+  const rules = [
+    ["Strong sell zone", "stretch 20%+ and falling over 4 weeks, or stretch 25%+", (k.ext >= 20 && k.mom < 0) || k.ext >= 25],
+    ["Sell zone", "stretch 15%+ and falling over 4 weeks, or stretch 18%+", (k.ext >= 15 && k.mom < 0) || k.ext >= 18],
+    ["Getting close", "stretch 10%+", k.ext >= 10],
+    ["Hold", "none of the above", true]
+  ];
+  const matched = rules.findIndex(r => r[2]);
+  const st = tierStats(S, k.tier), allLower = S.hist.filter(x => x.f26 < 0).length / S.hist.length * 100, allMed = median(S.hist.map(x => x.f26));
+
+  // what is NOT used, with live test results
+  const R = rsiArr(S.c);
+  const hiFlag = i => { const w = S.c.slice(Math.max(0, i - 51), i + 1); return S.c[i] >= Math.max(...w) * 0.98; };
+  const lowerPct = arr => arr.length ? (arr.filter(x => x.f26 < 0).length / arr.length * 100).toFixed(0) : "–";
+  const rsiWeeks = S.hist.filter(x => R[x.i] != null && R[x.i] > 70), hiWeeks = S.hist.filter(x => hiFlag(x.i));
+  const strong = S.hist.filter(x => x.tier === 3);
+
+  // news & events, current
+  const ev = upcoming(), soon = ev.filter(e => (new Date(e.date) - Date.now()) / 36e5 < 72);
+  const themes = news && news.drivers ? news.drivers.filter(x => !/^Price (rising|falling)$/.test(x.label)).map(x => x.label.replace(/ \((good|bad) for gold\)/, "").toLowerCase()) : [];
+
+  $("explain").innerHTML = `
+    <div class="step"><div class="n">1</div><div class="b"><b>Today's price.</b> Live spot gold converted to pounds: <b>${fmt(g(k.p))}/g</b> (24ct).
+      <div class="muted">Source: live spot gold price (gold-api.com) ÷ live pound-to-dollar rate. Refreshed every minute.</div></div></div>
+    <div class="step"><div class="n">2</div><div class="b"><b>The 40-week average.</b> The average of gold's closing price over the last 40 weeks (${d(firstWk)} to today), which shows its "normal" level lately.
+      <div class="calc">40-week average = ${fmt(g(k.s40))}/g</div></div></div>
+    <div class="step"><div class="n">3</div><div class="b"><b>How stretched is gold?</b> How far today's price is above or below that average.
+      <div class="calc">${fmt(g(k.p))} ÷ ${fmt(g(k.s40))} − 1 = ${k.ext >= 0 ? "+" : ""}${k.ext.toFixed(1)}%</div>
+      <div class="muted">This is the key number. When gold gets far above its normal level, it has usually fallen back.</div></div></div>
+    <div class="step"><div class="n">4</div><div class="b"><b>Is it turning down?</b> Today's price compared with 4 weeks ago.
+      <div class="calc">${fmt(g(k.p))} vs ${fmt(g(p4))} on ${d(S.dates[n - 4])} = ${k.mom >= 0 ? "+" : ""}${k.mom.toFixed(1)}% (${k.mom < 0 ? "falling" : "rising"})</div></div></div>
+    <div class="step"><div class="n">5</div><div class="b"><b>Check the rules</b>, from the top down. The first one that matches is the decision.
+      <table style="margin-top:6px">${rules.map((r, i) => `<tr${i === matched ? ' style="background:rgba(212,168,67,.1)"' : ""}><td><b>${r[0]}</b><div class="muted">${r[1]}</div></td><td>${i <= matched ? tick(r[2]) : '<span class="no">–</span>'}</td></tr>`).join("")}</table>
+      <div class="calc" style="margin-top:6px">Decision: ${TIERS[k.tier].call}</div></div></div>
+    <div class="step"><div class="n">6</div><div class="b"><b>Why trust that rule?</b> Every week since 2005 has been checked to see what gold did over the next 6 months.
+      <table style="margin-top:6px">
+        <tr><td>Weeks in "${rules[matched][0]}" since 2005</td><td>${st.n}</td></tr>
+        <tr><td>Gold lower 6 months later</td><td>${st.lower.toFixed(0)}% (all weeks: ${allLower.toFixed(0)}%)</td></tr>
+        <tr><td>Typical 6-month change</td><td>${pc(st.med, 1)} (all weeks: ${pc(allMed, 1)})</td></tr>
+      </table>
+      <div class="muted">The rule was built on 2005–2015 and checked separately on 2016–2026. It held up in both.</div></div></div>
+    <div class="step"><div class="n">7</div><div class="b"><b>News and announcements: what part do they play?</b>
+      <p style="margin:4px 0">News <b>does not change the decision</b>, for two reasons. Headlines mostly report moves that have already happened, so by the time "gold falls on hot inflation" is written, the price has already dropped and that's already in steps 1 to 4. And there's no reliable archive of past headlines, so a news rule can't be tested the way the price rule was. An untested rule could make the advice worse without anyone knowing.</p>
+      <p style="margin:4px 0">News <b>is used for timing</b>. If a big US or UK announcement (inflation, jobs or an interest rate decision) is due within 3 days while gold is in a sell zone, the app warns you, because gold often swings sharply on the day.</p>
+      <p style="margin:4px 0" class="muted">Right now: ${news && news.count ? `${news.bullish} of ${news.count} recent headlines point to gold rising and ${news.bearish} to it falling${themes.length ? ` (main themes: ${themes.slice(0, 3).join(", ")})` : ""}.` : "no recent headlines loaded."} ${soon.length ? `Next big announcement: ${soon[0].country === "USD" ? "US" : "UK"} ${esc(soon[0].title)}, ${evWhen(soon[0].date)}.` : ev.length ? `Next big announcement: ${ev[0].country === "USD" ? "US" : "UK"} ${esc(ev[0].title)}, ${evWhen(ev[0].date)}.` : ""}</p></div></div>
+    <div class="step"><div class="n">8</div><div class="b"><b>What's deliberately left out, and why.</b> These popular signals were tested on the same 22 years and didn't work for gold:
+      <table style="margin-top:6px">
+        <tr><td>"RSI over 70" (overbought)<div class="muted">${rsiWeeks.length} weeks since 2005</div></td><td>lower 6 mths later ${lowerPct(rsiWeeks)}%</td></tr>
+        <tr><td>"At or near the 52-week high"<div class="muted">${hiWeeks.length} weeks since 2005</div></td><td>lower 6 mths later ${lowerPct(hiWeeks)}%</td></tr>
+        <tr><td><b>Strong sell zone (used)</b><div class="muted">${strong.length} weeks since 2005</div></td><td><b>lower 6 mths later ${lowerPct(strong)}%</b></td></tr>
+      </table>
+      <div class="muted">Gold tends to keep rising when it's "overbought" or at a high, so those signals would have told you to sell too early.</div></div></div>
+    <details><summary>Where the data comes from</summary>
+      <p class="muted" style="margin:0">Live price: spot gold from gold-api.com, converted with the live pound-to-dollar rate from open.er-api.com. History (since 2004): daily COMEX gold closes divided by the same-day pound-to-dollar rate, from Yahoo Finance, refreshed every 3 hours. Announcements: the Forex Factory economic calendar (high-impact US and UK events only). Headlines: Google News, gold stories from the last 3 days. All the calculations run openly in this page and in the project's code on GitHub.</p>
+    </details>`;
+}
+function renderHistory(){
+  const S = sig, n = S.now, rows = [];
+  const short = ["Hold", "Getting close", "Sell zone", "Strong sell"];
+  const col = ["var(--muted)", "#3fb27f", "var(--gold)", "var(--gold2)"];
+  for (let i = n; i > n - 26 && i >= 40; i--){
+    const t = S.tier[i];
+    rows.push(`<tr class="${i === n ? "cur" : ""}"><td>${i === n ? "This week" : new Date(S.dates[i]).toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "2-digit"})}</td><td>${fmt(g(S.c[i]))}</td><td>${S.ext[i] >= 0 ? "+" : ""}${S.ext[i].toFixed(1)}%</td><td>${S.mom[i] >= 0 ? "+" : ""}${S.mom[i].toFixed(1)}%</td><td style="color:${col[t]}">${short[t]}</td></tr>`);
+  }
+  $("history").innerHTML = `<table class="hist"><tr class="muted"><td>Week</td><td>24ct /g</td><td>Stretch</td><td>4 wks</td><td>Decision</td></tr>${rows.join("")}</table>
+    <p class="muted" style="margin:6px 0 0">Stretch = how far above (+) or below (−) the 40-week average. 4 wks = change over the previous 4 weeks. Past weeks use Friday's closing price.</p>`;
+}
+
 function renderOutlook(){
   const S = sig, k = S.cur;
   const bands = [[-100,-8],[-8,-3],[-3,3],[3,8],[8,12],[12,18],[18,100]];
@@ -542,7 +646,7 @@ function showPrice(oz, label){
 }
 function analyse(){
   if (!daily.length) return;
-  try { sig = compute(); renderCall(); renderOutlook(); renderTrack(); }
+  try { sig = compute(); renderCall(); renderExplain(); renderHistory(); renderOutlook(); renderTrack(); }
   catch(e){ console.log(e); $("call").innerHTML = '<p class="muted">Couldn\'t run the analysis just now.</p>'; }
   renderNews();
 }
