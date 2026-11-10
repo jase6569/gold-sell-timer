@@ -472,7 +472,7 @@ function loadChart(id, interval){
   s.innerHTML = JSON.stringify({
     autosize: true, symbol: "OANDA:XAUGBP", interval, timezone: "Europe/London", theme: "dark",
     style: "1", locale: "en", backgroundColor: "rgba(26,24,21,1)", hide_side_toolbar: true,
-    allow_symbol_change: false, save_image: false,
+    allow_symbol_change: false, save_image: false, hide_volume: true,
     studies: [
       {id: "MASimple@tv-basicstudies", inputs: {length: monthly ? 6 : 10}},
       {id: "MASimple@tv-basicstudies", inputs: {length: monthly ? 12 : 40}},
