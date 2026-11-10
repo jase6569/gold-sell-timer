@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Gold Trader</string>
+    <string name="widget_name">Gold Trader</string>
+    <string name="widget_desc">Live UK gold price and when to sell</string>
+</resources>
