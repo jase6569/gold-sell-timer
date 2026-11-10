@@ -55,6 +55,11 @@ def write_widget(p, s40, p4, t, ext, mom4):
         "price_g": round(p / OZ, 2), "s40_g": round(s40 / OZ, 2), "p4_g": round(p4 / OZ, 2),
         "ext": round(ext, 2), "mom4": round(mom4, 2), "tier": t, "call": calls[t],
         "zone_close_g": round(s40 * 1.10 / OZ, 2), "zone_sell_g": round(s40 * 1.18 / OZ, 2), "zone_strong_g": round(s40 * 1.25 / OZ, 2),
+        # ready-made text lines for home-screen widget apps
+        "line1": f"Gold 24ct £{p / OZ:.2f}/g",
+        "line2": calls[t],
+        "line3": (f"Strong zone from £{s40 * 1.25 / OZ:.2f}/g" if t >= 2 else f"Sell zone from £{s40 * 1.18 / OZ:.2f}/g"),
+        "line4": "Updated " + (dt.datetime.utcnow() + dt.timedelta(hours=0)).strftime("%d %b %H:%M") + " UTC",
     }, open("widget.json", "w"))
 
 
