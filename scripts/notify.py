@@ -12,6 +12,7 @@ import json
 import os
 import datetime as dt
 import urllib.request
+from zoneinfo import ZoneInfo
 
 TOPIC = os.environ.get("NTFY_TOPIC", "").strip()  # private, stored as a GitHub secret
 APP = "https://jase6569.github.io/gold-sell-timer/"
@@ -59,7 +60,7 @@ def write_widget(p, s40, p4, t, ext, mom4):
         "line1": f"Gold 24ct £{p / OZ:.2f}/g",
         "line2": calls[t],
         "line3": (f"Strong zone from £{s40 * 1.25 / OZ:.2f}/g" if t >= 2 else f"Sell zone from £{s40 * 1.18 / OZ:.2f}/g"),
-        "line4": "Updated " + (dt.datetime.utcnow() + dt.timedelta(hours=0)).strftime("%d %b %H:%M") + " UTC",
+        "line4": "Updated " + dt.datetime.now(ZoneInfo("Europe/London")).strftime("%d %b %H:%M"),
     }, open("widget.json", "w"))
 
 
