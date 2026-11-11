@@ -74,6 +74,12 @@
   details summary{cursor:pointer;color:var(--gold2);font-weight:600;padding:8px 0}
   .warn{border:1px solid #8a5a20;background:rgba(227,163,59,.08);border-radius:12px;padding:12px;margin-top:12px}
   .tv{border-radius:12px;overflow:hidden}
+  .rng{display:flex;gap:6px;margin:0 2px 8px}
+  .rng button{flex:1;border:1px solid var(--line);background:#12110f;color:var(--muted);border-radius:8px;padding:7px 0;font-weight:600;font-size:13px}
+  .rng button.on{background:var(--gold);color:#1a1408;border-color:var(--gold)}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin:10px 4px 2px}
+  .legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+  #zTip{position:absolute;top:6px;left:8px;z-index:3;font-size:12px;background:rgba(15,14,12,.85);border:1px solid var(--line);border-radius:8px;padding:6px 8px;pointer-events:none}
   .tabs{display:flex;background:#12110f;border-radius:12px;padding:4px;margin-bottom:12px}
   .tabs button{flex:1;border:0;background:none;color:var(--muted);padding:10px;border-radius:9px;font-size:15px;font-weight:600}
   .tabs button.on{background:var(--gold);color:#1a1408}
@@ -96,6 +102,7 @@
   .live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--up);margin-right:6px;animation:p 1.6s infinite}
   @keyframes p{50%{opacity:.25}}
 </style>
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
 <header>
@@ -221,13 +228,37 @@
 <!-- ========== CHART ========== -->
 <section class="page" id="p-chart">
   <div class="card" style="padding:10px">
-    <div class="tv" id="chW" style="height:560px"></div>
+    <div class="tabs" data-group="cv">
+      <button class="on" data-v="z">Sell zones</button>
+      <button data-v="tv">TradingView</button>
+    </div>
+    <div class="view on" id="cv-z">
+      <div class="rng" id="rng">
+        <button data-y="1">1Y</button><button class="on" data-y="3">3Y</button><button data-y="5">5Y</button><button data-y="10">10Y</button><button data-y="0">All</button>
+      </div>
+      <div id="zc" style="height:440px;position:relative"></div>
+      <div class="legend">
+        <span><i style="background:#f3efe6"></i>Gold £/g (weekly)</span>
+        <span><i style="background:#7d9cc4"></i>40-week average</span>
+        <span><i style="background:#3fb27f"></i>Getting close</span>
+        <span><i style="background:#d4a843"></i>Sell zone</span>
+        <span><i style="background:#f0cb6a"></i>Strong sell</span>
+        <span>▼ past sell alert</span>
+      </div>
+    </div>
+    <div class="view" id="cv-tv">
+      <div class="tv" id="chW" style="height:560px"></div>
+      <p class="muted" style="margin:8px 4px 0">TradingView's live chart of gold in pounds per troy ounce (divide by 31.1 for per gram), with 10-week and 40-week averages. Use it for the full trading view.</p>
+    </div>
   </div>
   <div class="card">
-    <h2>Reading the chart</h2>
+    <h2>Reading the sell zones chart</h2>
     <ol>
-      <li>Weekly gold in <b>pounds</b>. Each candle is one week.</li>
-      <li>The two lines are the <b>10-week</b> and <b>40-week averages</b>. The sell signal measures how far the price has stretched above the 40-week line, the slower of the two.</li>
+      <li>Weekly gold in <b>pounds per gram</b> (24ct). Each candle is one week. The last candle uses the live price.</li>
+      <li>The <b>blue line</b> is the 40-week average, gold's "normal" level lately.</li>
+      <li>The three lines above it are the <b>zones</b>: <span style="color:#3fb27f">getting close</span> (10% above), <span style="color:#d4a843">sell zone</span> (18% above) and <span style="color:#f0cb6a">strong sell</span> (25% above). When the candles push up into them, the app tells you to sell in stages. The sell zone also starts sooner, at 15%, if gold is already turning down.</li>
+      <li>The <b>▼ markers</b> show every past sell alert, so you can see how they lined up with the peaks.</li>
+      <li>Pinch or drag to zoom and scroll. Tap anywhere to see that week's prices.</li>
     </ol>
   </div>
 </section>
@@ -788,6 +819,89 @@ $("aSave").onclick = () => { const v = parseFloat($("aT").value); if (v > 0){ st
 $("aClear").onclick = () => { store.del("target"); $("aT").value = ""; checkAlert(); };
 
 /* =============== chart =============== */
+/* =============== sell-zones chart (own data) =============== */
+let zChart = null, zYears = 3;
+function weeklyOHLC(){
+  const map = new Map();
+  const fri = d => { const t = new Date(d + "T12:00:00Z"); t.setUTCDate(t.getUTCDate() + ((5 - t.getUTCDay() + 7) % 7)); return t.toISOString().slice(0, 10); };
+  const add = (k, v) => { const o = map.get(k); if (!o) map.set(k, {o: v, h: v, l: v, c: v}); else { o.h = Math.max(o.h, v); o.l = Math.min(o.l, v); o.c = v; } };
+  for (const [d, v] of daily) add(fri(d), v);
+  if (liveOz) add(fri(new Date().toISOString().slice(0, 10)), liveOz);
+  return map;
+}
+function loadZoneChart(){
+  if (!sig || !window.LightweightCharts) return;
+  const host = $("zc");
+  const S = sig, ohlc = weeklyOHLC();
+  const G = v => +(v / OZ).toFixed(2);
+  const candles = [], avg = [], z10 = [], z18 = [], z25 = [], markers = [];
+  let last = -99;
+  for (let i = 0; i < S.c.length; i++){
+    const t = S.dates[i], o = ohlc.get(t);
+    if (!o) continue;
+    candles.push({time: t, open: G(o.o), high: G(o.h), low: G(o.l), close: G(o.c)});
+    if (S.s40[i]){
+      avg.push({time: t, value: G(S.s40[i])});
+      z10.push({time: t, value: G(S.s40[i] * 1.10)});
+      z18.push({time: t, value: G(S.s40[i] * 1.18)});
+      z25.push({time: t, value: G(S.s40[i] * 1.25)});
+    }
+    if (i >= 52 && S.tier[i] >= 2 && !(S.tier[i-1] >= 2) && i - last > 8){
+      last = i;
+      markers.push({time: t, position: "aboveBar", color: S.tier[i] === 3 ? "#f0cb6a" : "#d4a843", shape: "arrowDown", text: S.tier[i] === 3 ? "Strong" : "Sell"});
+    }
+  }
+  if (zChart){ zChart.remove(); zChart = null; }
+  host.innerHTML = '<div id="zTip"></div>';
+  const LC = window.LightweightCharts;
+  zChart = LC.createChart(host, {
+    autoSize: true,
+    layout: {background: {type: "solid", color: "#1a1815"}, textColor: "#a39d90", fontSize: 11},
+    grid: {vertLines: {color: "#24211d"}, horzLines: {color: "#24211d"}},
+    rightPriceScale: {borderColor: "#2c2924"},
+    timeScale: {borderColor: "#2c2924"},
+    crosshair: {mode: 0},
+    localization: {priceFormatter: v => "£" + v.toFixed(2)}
+  });
+  const line = (data, color, style, width = 2) => { const sr = zChart.addLineSeries({color, lineWidth: width, lineStyle: style, priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: false}); sr.setData(data); return sr; };
+  line(z25, "#f0cb6a", 0);
+  line(z18, "#d4a843", 0);
+  line(z10, "#3fb27f", 2, 1);
+  line(avg, "#7d9cc4", 0);
+  const cs = zChart.addCandlestickSeries({upColor: "#cfc8b8", downColor: "#6b655a", borderUpColor: "#f3efe6", borderDownColor: "#8a8478", wickUpColor: "#cfc8b8", wickDownColor: "#8a8478", priceLineColor: "#f3efe6"});
+  cs.setData(candles);
+  cs.setMarkers(markers);
+  const tip = $("zTip");
+  const byTime = new Map(candles.map((c, i) => [c.time, i]));
+  zChart.subscribeCrosshairMove(p => {
+    const i = p && p.time ? byTime.get(p.time) : null;
+    const show = i != null ? i : candles.length - 1;
+    const c = candles[show], a = avg.find(x => x.time === c.time);
+    const ext = a ? (c.close / a.value - 1) * 100 : null;
+    tip.innerHTML = `<b>${new Date(c.time).toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"})}</b> · £${c.close.toFixed(2)}/g${ext != null ? ` · <span style="color:${ext >= 18 ? "#d4a843" : ext >= 10 ? "#3fb27f" : "#a39d90"}">${ext >= 0 ? "+" : ""}${ext.toFixed(1)}% vs avg</span>` : ""}`;
+  });
+  const lastC = candles[candles.length - 1], lastA = avg[avg.length - 1];
+  tip.innerHTML = `<b>Now</b> · £${lastC.close.toFixed(2)}/g · ${((lastC.close / lastA.value - 1) * 100).toFixed(1)}% vs avg`;
+  setZoneRange(zYears);
+}
+function setZoneRange(y){
+  zYears = y;
+  document.querySelectorAll("#rng button").forEach(b => b.classList.toggle("on", +b.dataset.y === y));
+  if (!zChart) return;
+  if (!y){ zChart.timeScale().fitContent(); return; }
+  const to = new Date(), from = new Date(); from.setFullYear(from.getFullYear() - y);
+  to.setDate(to.getDate() + 21);
+  zChart.timeScale().setVisibleRange({from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10)});
+}
+document.querySelectorAll("#rng button").forEach(b => b.onclick = () => setZoneRange(+b.dataset.y));
+document.querySelectorAll(".tabs").forEach(t => t.querySelectorAll("button").forEach(b => b.onclick = () => {
+  t.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+  const grp = t.dataset.group;
+  document.querySelectorAll('[id^="' + grp + '-"]').forEach(v => v.classList.toggle("on", v.id === grp + "-" + b.dataset.v));
+  if (grp === "cv" && b.dataset.v === "tv") loadChart();
+  if (grp === "cv" && b.dataset.v === "z") loadZoneChart();
+}));
+
 function loadChart(){
   const host = $("chW"); if (host.dataset.loaded) return; host.dataset.loaded = "1";
   const wrap = document.createElement("div"); wrap.className = "tradingview-widget-container"; wrap.style.height = "100%";
@@ -807,7 +921,7 @@ function go(page){ const b = document.querySelector('nav button[data-p="' + page
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
   document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x === b));
   document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "p-" + b.dataset.p));
-  if (b.dataset.p === "chart") loadChart();
+  if (b.dataset.p === "chart") loadZoneChart();
   window.scrollTo(0, 0);
 });
 
