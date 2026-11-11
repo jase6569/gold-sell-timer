@@ -855,17 +855,17 @@ function loadZoneChart(){
   zChart = LC.createChart(host, {
     autoSize: true,
     layout: {background: {type: "solid", color: "#1a1815"}, textColor: "#a39d90", fontSize: 11},
-    grid: {vertLines: {color: "#24211d"}, horzLines: {color: "#24211d"}},
+    grid: {vertLines: {visible: false}, horzLines: {visible: false}},
     rightPriceScale: {borderColor: "#2c2924"},
     timeScale: {borderColor: "#2c2924"},
     crosshair: {mode: 0},
     localization: {priceFormatter: v => "£" + v.toFixed(2)}
   });
-  // shaded "sell area" above the sell-zone line
-  const sellArea = zChart.addAreaSeries({lineColor: "#d4a843", lineWidth: 2, topColor: "rgba(212,168,67,0.28)", bottomColor: "rgba(212,168,67,0.28)", priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false, title: "SELL ZONE"});
-  sellArea.setData(z18.map(x => ({time: x.time, value: x.value})));
-  const cover = zChart.addAreaSeries({lineColor: "rgba(0,0,0,0)", lineWidth: 1, topColor: "#1a1815", bottomColor: "#1a1815", priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false});
-  cover.setData(z18.map(x => ({time: x.time, value: +(x.value - 0.01).toFixed(2)})));
+  // shaded "sell area": fill from well above down to the sell line, then mask everything below the line
+  const sellArea = zChart.addAreaSeries({lineColor: "rgba(0,0,0,0)", lineWidth: 1, topColor: "rgba(212,168,67,0.30)", bottomColor: "rgba(212,168,67,0.30)", priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false, autoscaleInfoProvider: () => null});
+  sellArea.setData(z18.map(x => ({time: x.time, value: +(x.value * 3).toFixed(2)})));
+  const cover = zChart.addAreaSeries({lineColor: "#d4a843", lineWidth: 2, topColor: "#1a1815", bottomColor: "#1a1815", priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: false, title: "SELL FROM"});
+  cover.setData(z18.map(x => ({time: x.time, value: x.value})));
   const line = (data, color, style, width, title) => { const sr = zChart.addLineSeries({color, lineWidth: width, lineStyle: style, priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: false, title}); sr.setData(data); return sr; };
   line(avg, "#7d9cc4", 2, 1, "average");
   const cs = zChart.addLineSeries({color: "#f3efe6", lineWidth: 3, priceLineVisible: true, priceLineColor: "#f3efe6", title: "GOLD"});
