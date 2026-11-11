@@ -175,7 +175,7 @@
 <section class="page" id="p-alerts">
   <div class="card">
     <h2>Get sell alerts on your phone</h2>
-    <p style="margin-top:0">The app checks gold every 3 hours, even when your phone is off. It sends you a notification when:</p>
+    <p style="margin-top:0">The app checks gold every hour, even when your phone is off. It sends you a notification when:</p>
     <ol>
       <li>gold moves into the <b>sell zone</b> (sell a portion), or the <b>strong sell zone</b></li>
       <li>gold is getting <b>close to the sell zone</b>, so you can get ready</li>
@@ -261,7 +261,7 @@
       <li>Open it, tap <b>+</b>, and type your private topic name exactly as it was given to you.</li>
       <li>Tap <b>Subscribe</b>. You'll get a "Gold Trader alerts are on" message.</li>
     </ol>
-    <p>The app checks gold every 3 hours, day and night, even when your phone is off. You'll get a message when:</p>
+    <p>The app checks gold every hour, day and night, even when your phone is off. You'll get a message when:</p>
     <table>
       <tr><td>🟢 Gold getting close to the sell zone</td><td>Get ready</td></tr>
       <tr><td>🟡 Sell zone</td><td>Sell about a quarter</td></tr>
@@ -570,7 +570,7 @@ function renderExplain(){
       </table>
       <div class="muted">Gold tends to keep rising when it's "overbought" or at a high, so those signals would have told you to sell too early.</div></div></div>
     <details><summary>Where the data comes from</summary>
-      <p class="muted" style="margin:0">Live price: spot gold from gold-api.com, converted with the live pound-to-dollar rate from open.er-api.com. History (since 2004): daily COMEX gold closes divided by the same-day pound-to-dollar rate, from Yahoo Finance, refreshed every 3 hours. Announcements: the Forex Factory economic calendar (high-impact US and UK events only). Headlines: Google News, gold stories from the last 3 days. All the calculations run openly in this page and in the project's code on GitHub.</p>
+      <p class="muted" style="margin:0">Live price: spot gold from gold-api.com, converted with the live pound-to-dollar rate from open.er-api.com. History (since 2004): daily COMEX gold closes divided by the same-day pound-to-dollar rate, from Yahoo Finance, refreshed every hour. Announcements: the Forex Factory economic calendar (high-impact US and UK events only). Headlines: Google News, gold stories from the last 3 days. All the calculations run openly in this page and in the project's code on GitHub.</p>
     </details>`;
 }
 function renderHistory(){
@@ -771,7 +771,7 @@ function checkHealth(){
   const h = (Date.now() - new Date(dataUpdated)) / 36e5;
   if (h > 12){
     $("stale").style.display = "block";
-    $("staleMsg").innerHTML = `The background price check last ran ${Math.round(h)} hours ago (${new Date(dataUpdated).toLocaleString("en-GB", {weekday: "short", hour: "2-digit", minute: "2-digit"})}). It normally runs every 3 hours, so <b>phone alerts may be paused</b>. The live price above still works, but the sell call may be out of date. Check the "Update gold data" job on GitHub, or ask for it to be looked at.`;
+    $("staleMsg").innerHTML = `The background price check last ran ${Math.round(h)} hours ago (${new Date(dataUpdated).toLocaleString("en-GB", {weekday: "short", hour: "2-digit", minute: "2-digit"})}). It normally runs every hour, so <b>phone alerts may be paused</b>. The live price above still works, but the sell call may be out of date. Check the "Update gold data" job on GitHub, or ask for it to be looked at.`;
   } else $("stale").style.display = "none";
 }
 

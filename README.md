@@ -15,7 +15,7 @@ Live: https://jase6569.github.io/gold-sell-timer/
 | `scripts/fetch_data.py` | Downloads prices (gold in USD ÷ GBP/USD) |
 | `scripts/fetch_news.py` | Downloads headlines and the economic calendar |
 | `scripts/notify.py` | Sends phone alerts via ntfy. The topic is private and stored as the `NTFY_TOPIC` repository secret, never in the code |
-| `.github/workflows/update.yml` | Runs the three scripts every 3 hours on GitHub |
+| `.github/workflows/update.yml` | Runs the three scripts every hour on GitHub |
 
 ## The sell signal
 
@@ -56,7 +56,7 @@ python -c "import sys; sys.path.insert(0,'scripts'); import notify; notify.TOPIC
 
 Pushing to `main` updates the live app within about a minute.
 
-The bot commits fresh data every 3 hours, so always pull before you start:
+The bot commits fresh data every hour, so always pull before you start:
 
 ```bash
 git pull
