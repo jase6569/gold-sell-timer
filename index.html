@@ -233,17 +233,16 @@
       <button data-v="tv">TradingView</button>
     </div>
     <div class="view on" id="cv-z">
+      <div id="zSay" class="verdict t0" style="margin:0 0 10px"></div>
       <div class="rng" id="rng">
         <button data-y="1">1Y</button><button class="on" data-y="3">3Y</button><button data-y="5">5Y</button><button data-y="10">10Y</button><button data-y="0">All</button>
       </div>
       <div id="zc" style="height:440px;position:relative"></div>
       <div class="legend">
-        <span><i style="background:#f3efe6"></i>Gold £/g (weekly)</span>
-        <span><i style="background:#7d9cc4"></i>40-week average</span>
-        <span><i style="background:#3fb27f"></i>Getting close</span>
-        <span><i style="background:#d4a843"></i>Sell zone</span>
-        <span><i style="background:#f0cb6a"></i>Strong sell</span>
-        <span>▼ past sell alert</span>
+        <span><i style="background:#f3efe6;height:4px"></i>Gold price (£ per gram)</span>
+        <span><i style="background:rgba(212,168,67,.6);height:10px"></i>Sell area</span>
+        <span><i style="background:#7d9cc4"></i>Gold's recent average</span>
+        <span>▼ when the app said sell before</span>
       </div>
     </div>
     <div class="view" id="cv-tv">
@@ -252,13 +251,12 @@
     </div>
   </div>
   <div class="card">
-    <h2>Reading the sell zones chart</h2>
+    <h2>How to read it</h2>
     <ol>
-      <li>Weekly gold in <b>pounds per gram</b> (24ct). Each candle is one week. The last candle uses the live price.</li>
-      <li>The <b>blue line</b> is the 40-week average, gold's "normal" level lately.</li>
-      <li>The three lines above it are the <b>zones</b>: <span style="color:#3fb27f">getting close</span> (10% above), <span style="color:#d4a843">sell zone</span> (18% above) and <span style="color:#f0cb6a">strong sell</span> (25% above). When the candles push up into them, the app tells you to sell in stages. The sell zone also starts sooner, at 15%, if gold is already turning down.</li>
-      <li>The <b>▼ markers</b> show every past sell alert, so you can see how they lined up with the peaks.</li>
-      <li>Pinch or drag to zoom and scroll. Tap anywhere to see that week's prices.</li>
+      <li>The <b>white line</b> is the gold price per gram.</li>
+      <li>The <b>shaded gold area</b> is where it's worth selling. When the white line climbs into it, the app tells you to sell, in stages.</li>
+      <li>The <b>dotted blue line</b> is gold's average over the last 40 weeks. Below it means gold is cheap at the moment; well above it means expensive.</li>
+      <li>The <b>▼ arrows</b> show when the app would have said sell in the past. Most sit near the tops.</li>
     </ol>
   </div>
 </section>
@@ -863,13 +861,15 @@ function loadZoneChart(){
     crosshair: {mode: 0},
     localization: {priceFormatter: v => "£" + v.toFixed(2)}
   });
-  const line = (data, color, style, width = 2) => { const sr = zChart.addLineSeries({color, lineWidth: width, lineStyle: style, priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: false}); sr.setData(data); return sr; };
-  line(z25, "#f0cb6a", 0);
-  line(z18, "#d4a843", 0);
-  line(z10, "#3fb27f", 2, 1);
-  line(avg, "#7d9cc4", 0);
-  const cs = zChart.addCandlestickSeries({upColor: "#cfc8b8", downColor: "#6b655a", borderUpColor: "#f3efe6", borderDownColor: "#8a8478", wickUpColor: "#cfc8b8", wickDownColor: "#8a8478", priceLineColor: "#f3efe6"});
-  cs.setData(candles);
+  // shaded "sell area" above the sell-zone line
+  const sellArea = zChart.addAreaSeries({lineColor: "#d4a843", lineWidth: 2, topColor: "rgba(212,168,67,0.28)", bottomColor: "rgba(212,168,67,0.28)", priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false, title: "SELL ZONE"});
+  sellArea.setData(z18.map(x => ({time: x.time, value: x.value})));
+  const cover = zChart.addAreaSeries({lineColor: "rgba(0,0,0,0)", lineWidth: 1, topColor: "#1a1815", bottomColor: "#1a1815", priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false});
+  cover.setData(z18.map(x => ({time: x.time, value: +(x.value - 0.01).toFixed(2)})));
+  const line = (data, color, style, width, title) => { const sr = zChart.addLineSeries({color, lineWidth: width, lineStyle: style, priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: false, title}); sr.setData(data); return sr; };
+  line(avg, "#7d9cc4", 2, 1, "average");
+  const cs = zChart.addLineSeries({color: "#f3efe6", lineWidth: 3, priceLineVisible: true, priceLineColor: "#f3efe6", title: "GOLD"});
+  cs.setData(candles.map(c => ({time: c.time, value: c.close})));
   cs.setMarkers(markers);
   const tip = $("zTip");
   const byTime = new Map(candles.map((c, i) => [c.time, i]));
@@ -882,6 +882,12 @@ function loadZoneChart(){
   });
   const lastC = candles[candles.length - 1], lastA = avg[avg.length - 1];
   tip.innerHTML = `<b>Now</b> · £${lastC.close.toFixed(2)}/g · ${((lastC.close / lastA.value - 1) * 100).toFixed(1)}% vs avg`;
+  const k = S.cur, now = g(k.p), sell = g(k.s40 * 1.18), strong = g(k.s40 * 1.25), close = g(k.s40 * 1.10);
+  const gap = sell - now;
+  $("zSay").className = "verdict " + TIERS[k.tier].cls;
+  $("zSay").innerHTML = k.tier >= 2
+    ? `<div class="call" style="font-size:20px">Gold is in the sell zone</div><div>Gold is <b>${fmt(now)}/g</b>, inside the shaded sell area. ${k.tier === 3 ? "It's in the strong part, so sell more now." : `Sell about a quarter now, and more if it climbs to <b>${fmt(strong)}/g</b>.`}</div>`
+    : `<div class="call" style="font-size:20px">Hold: gold needs to rise ${fmt(gap)}/g first</div><div>Gold is <b>${fmt(now)}/g</b> (the white line). Selling starts when it reaches the <b>shaded sell area</b>, currently from <b>${fmt(sell)}/g</b>. That's <b>${(gap / now * 100).toFixed(0)}% higher</b> than today.${k.tier === 1 ? " It's getting close, so get ready." : ""}</div>`;
   setZoneRange(zYears);
 }
 function setZoneRange(y){
