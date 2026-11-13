@@ -27,6 +27,7 @@ jobs:
         continue-on-error: true
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          NTFY_TOPIC_MIKE: ${{ secrets.NTFY_TOPIC_MIKE }}
       - name: Commit data
         run: |
           git config user.name "gold-bot"
@@ -40,9 +41,11 @@ jobs:
         if: failure()
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          NTFY_TOPIC_MIKE: ${{ secrets.NTFY_TOPIC_MIKE }}
         run: |
-          if [ -n "$NTFY_TOPIC" ]; then
+          for T in "$NTFY_TOPIC" "$NTFY_TOPIC_MIKE"; do
+            [ -n "$T" ] || continue
             curl -s -H "Title: Gold Trader update failed" -H "Priority: high" -H "Tags: warning" \
-              -d "The 3-hourly gold price check failed, so sell alerts may be paused until it's fixed. The app still shows the live price." \
-              "https://ntfy.sh/$NTFY_TOPIC"
-          fi
+              -d "The hourly gold price check failed, so sell alerts may be paused until it's fixed. The app still shows the live price." \
+              "https://ntfy.sh/$T"
+          done

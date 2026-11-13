@@ -23,6 +23,8 @@ from zoneinfo import ZoneInfo
 
 TOPIC = os.environ.get("NTFY_TOPIC", "").strip()  # private, stored as a GitHub secret
 APP = "https://jase6569.github.io/gold-sell-timer/"
+# extra private channels that get the same alerts, each opening its own branded app
+EXTRA = [(os.environ.get("NTFY_TOPIC_MIKE", "").strip(), "https://jase6569.github.io/dorset-gold-trader/")]
 OZ = 31.1034768
 STATE = "state.json"
 
@@ -66,13 +68,17 @@ def weekly_closes(daily):
 
 
 def send(title, body, priority="default", tags="moneybag"):
-    req = urllib.request.Request(
-        f"https://ntfy.sh/{TOPIC}", data=body.encode("utf-8"), method="POST",
-        headers={"Title": title.encode("utf-8").decode("latin-1", "ignore"), "Priority": priority,
-                 "Tags": tags, "Click": APP},
-    )
-    with urllib.request.urlopen(req, timeout=20) as r:
-        print("sent", r.status, title)
+    for topic, app in [(TOPIC, APP)] + [e for e in EXTRA if e[0]]:
+        req = urllib.request.Request(
+            f"https://ntfy.sh/{topic}", data=body.encode("utf-8"), method="POST",
+            headers={"Title": title.encode("utf-8").decode("latin-1", "ignore"), "Priority": priority,
+                     "Tags": tags, "Click": app},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=20) as r:
+                print("sent", r.status, title, "->", app)
+        except Exception as e:
+            print("send failed", app, e)
 
 
 def write_widget(p, s40, p4, t, ext, mom4):
