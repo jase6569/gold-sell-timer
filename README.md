@@ -30,6 +30,21 @@ Tested on 22 years of UK gold prices. `ext` = % above the 40-week average, `mom4
 
 The same rule lives in `index.html` (`tierOf`) and `scripts/notify.py` (`tier_of`). If you change one, change both.
 
+## Buying-in mode (My gold tab)
+
+For a shop that buys gold in all the time. You enter how much you buy in a month and the most stock you want to hold (in months of buying). Each week it says how many grams of each carat to send to the refiner, oldest first, and an "I've sent this batch" button takes them off the list.
+
+| Mode | When | Keep at most |
+|---|---|---|
+| Steep slide | ext < −10 (stays on until ext > −8) | 1 month of buying |
+| Normal | anything else below the sell zone | your limit (default 2 months) |
+| Sell zone | tier 2 | 1 month of buying, and sell at least a quarter |
+| Strong sell | tier 3 | a quarter of stock, at most half a month of buying |
+
+Evidence (UK prices 2004–2026, 6 months later): from −10% to +18% against the 40-week average, gold was lower only 26–30% of the time, so holding stock up to a limit has usually paid. Below −10% there are only two past slides: 2013 kept falling 10–15%, 2021 recovered. That's too uncertain to build stock on.
+
+Same rule in `index.html` (`slideFlags`, `buyModeOf`) and `scripts/notify.py` (`slide_flags`, `buy_mode_of`). The phone alerts tell you when a steep slide starts or ends, and the Friday summary includes the buying-in line.
+
 ## Working on it in VS Code
 
 ```bash
