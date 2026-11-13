@@ -7,6 +7,13 @@ Uses exactly the same tested rule as the app:
   tier 2 sell zone   : ext >= 15 and turning down, or ext >= 18
   tier 1 getting close: ext >= 10
   tier 0 hold
+
+Buying-in mode (for a shop that buys gold in all the time), same as the app:
+  steep slide: ext < -10, stays on until ext recovers above -8
+  mode 0 steep slide: keep about a month of buying, send the rest
+  mode 1 normal: hold up to your limit
+  mode 2 sell zone: sell down to a month of buying, at least a quarter
+  mode 3 strong sell: keep only a small reserve
 """
 import json
 import os
@@ -28,6 +35,25 @@ def tier_of(ext, mom4):
     if ext >= 10:
         return 1
     return 0
+
+
+def slide_flags(ext):
+    f = []
+    for i, e in enumerate(ext):
+        f.append(e is not None and (e < -10 or (i > 0 and f[i - 1] and e < -8)))
+    return f
+
+
+def buy_mode_of(t, slide):
+    return 3 if t >= 3 else 2 if t == 2 else 0 if slide else 1
+
+
+BUY_LINE = [
+    "Buying in: steep slide, so don't build stock. Keep about a month's buying and send the rest.",
+    "Buying in: fine to hold stock up to your limit.",
+    "Buying in: sell down to about a month's buying, at least a quarter.",
+    "Buying in: clear most of your stock, keep a small reserve.",
+]
 
 
 def weekly_closes(daily):
@@ -72,6 +98,9 @@ def main():
     ext = (p / s40 - 1) * 100
     mom4 = (p / c[-5] - 1) * 100
     t = tier_of(ext, mom4)
+    exts = [None if i < 39 else (c[i] / (sum(c[i - 39:i + 1]) / 40) - 1) * 100 for i in range(len(c))]
+    slide = slide_flags(exts)[-1]
+    bm = buy_mode_of(t, slide)
     write_widget(p, s40, c[-5], t, ext, mom4)
     if not TOPIC:
         print("NTFY_TOPIC secret not set, so no alerts sent")
@@ -109,6 +138,18 @@ def main():
         title, body, pr, tags = msgs[0]
         send(title, body, pr, tags)
 
+    # buying-in: tell the shop when a steep slide starts or ends (sell zones are covered above)
+    prev_bm = state.get("buymode")
+    if prev_bm is not None and prev_bm != bm and {prev_bm, bm} == {0, 1}:
+        if bm == 0:
+            send("Gold in a steep slide: don't build stock",
+                 f"24ct £{g:.2f}/g, {abs(ext):.0f}% below its 40-week average. If you buy in, keep about a month's buying and send the rest to the refiner. Open My gold for the grams.",
+                 "default", "chart_with_downwards_trend")
+        else:
+            send("Gold slide easing: you can hold more stock",
+                 f"24ct £{g:.2f}/g, {abs(ext):.0f}% {'above' if ext >= 0 else 'below'} its 40-week average. If you buy in, it's fine to hold stock up to your limit again.",
+                 "default", "white_check_mark")
+
     # Friday evening summary, once per week, after the close
     wk = now.strftime("%G-%V")
     if now.weekday() == 4 and now.hour >= 21 and state.get("summary") != wk:
@@ -116,13 +157,13 @@ def main():
                 "Sell zone: sell about a quarter", "Strong sell zone: sell more"][t]
         where = f"{ext:.0f}% {'above' if ext >= 0 else 'below'} its 40-week average"
         send(f"Weekly gold: {call}",
-             f"24ct £{g:.2f}/g ({mom4:+.1f}% over 4 weeks), {where}. Get ready £{z10:.2f}/g · Sell zone £{z18:.2f}/g · Strong £{z25:.2f}/g.",
+             f"24ct £{g:.2f}/g ({mom4:+.1f}% over 4 weeks), {where}. Get ready £{z10:.2f}/g · Sell zone £{z18:.2f}/g · Strong £{z25:.2f}/g. {BUY_LINE[bm]} Open My gold for the grams.",
              "low", "calendar")
         state["summary"] = wk
 
-    state.update({"tier": t, "ext": round(ext, 2), "price_g": round(g, 2), "checked": now.strftime("%Y-%m-%dT%H:%M:%SZ")})
+    state.update({"buymode": bm, "tier": t, "ext": round(ext, 2), "price_g": round(g, 2), "checked": now.strftime("%Y-%m-%dT%H:%M:%SZ")})
     json.dump(state, open(STATE, "w"))
-    print(f"tier {t} ext {ext:.1f} mom4 {mom4:.1f} price £{g:.2f}/g")
+    print(f"buymode {bm} tier {t} ext {ext:.1f} mom4 {mom4:.1f} price £{g:.2f}/g")
 
 
 if __name__ == "__main__":
