@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "41 * * * *"
   workflow_dispatch:
+    inputs:
+      test_alert:
+        description: "Send a test alert to every channel"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -28,6 +33,7 @@ jobs:
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           NTFY_TOPIC_MIKE: ${{ secrets.NTFY_TOPIC_MIKE }}
+          TEST_ALERT: ${{ inputs.test_alert }}
       - name: Commit data
         run: |
           git config user.name "gold-bot"

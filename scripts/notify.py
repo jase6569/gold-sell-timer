@@ -111,6 +111,10 @@ def main():
     if not TOPIC:
         print("NTFY_TOPIC secret not set, so no alerts sent")
         return
+    if os.environ.get("TEST_ALERT") == "true":
+        send("Gold Trader test alert",
+             f"Your alerts are working. 24ct is £{p / OZ:.2f}/g right now. The sell zone starts at about £{s40 * 1.18 / OZ:.2f}/g.",
+             "default", "white_check_mark")
     g = p / OZ
     z18, z25, z10 = s40 * 1.18 / OZ, s40 * 1.25 / OZ, s40 * 1.10 / OZ
 
