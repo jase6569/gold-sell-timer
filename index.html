@@ -1157,7 +1157,7 @@ function setZoneRange(y){
   zChart.timeScale().setVisibleRange({from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10)});
 }
 document.querySelectorAll("#rng button").forEach(b => b.onclick = () => setZoneRange(+b.dataset.y));
-document.querySelectorAll(".tabs").forEach(t => t.querySelectorAll("button").forEach(b => b.onclick = () => {
+document.querySelectorAll(".tabs[data-group]").forEach(t => t.querySelectorAll("button").forEach(b => b.onclick = () => {
   t.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
   const grp = t.dataset.group;
   document.querySelectorAll('[id^="' + grp + '-"]').forEach(v => v.classList.toggle("on", v.id === grp + "-" + b.dataset.v));
