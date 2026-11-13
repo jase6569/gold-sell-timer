@@ -405,6 +405,16 @@
 
 <!-- ========== VALUE ========== -->
 <section class="page" id="p-calc">
+  <div class="card" id="buyCard">
+    <h2>Buying in: what to send to the refiner</h2>
+    <p class="muted" style="margin-top:0">For a shop that buys gold in all the time. Your profit is the gap between what you pay and what the refiner pays, and you only lock it in when you sell. This works out how much stock to keep and how much to send off this week, oldest gold first.</p>
+    <div class="grid2">
+      <div><label>Gold you buy in a month (grams, all carats)</label><input id="bM" type="number" inputmode="decimal" placeholder="e.g. 400"></div>
+      <div><label>Most stock to hold (months of buying)</label><input id="bC" type="number" inputmode="decimal" value="2"></div>
+    </div>
+    <div id="buyPlan" style="margin-top:12px"><p class="muted" style="margin:0">Enter how much you buy in a month to see your plan.</p></div>
+  </div>
+
   <div class="card">
     <h2>My gold</h2>
     <p class="muted" style="margin-top:0">Add the gold you're holding to see what it's worth today and exactly how much to sell when the time comes. It's saved on this phone only and never sent anywhere.</p>
@@ -449,16 +459,6 @@
     <h2>My gold today</h2>
     <div id="stockTotals"></div>
     <div id="stockPlan"></div>
-  </div>
-
-  <div class="card" id="buyCard">
-    <h2>Buying in: what to send to the refiner</h2>
-    <p class="muted" style="margin-top:0">For a shop that buys gold in all the time. Your profit is the gap between what you pay and what the refiner pays, and you only lock it in when you sell. This works out how much stock to keep and how much to send off this week, oldest gold first.</p>
-    <div class="grid2">
-      <div><label>Gold you buy in a month (grams, all carats)</label><input id="bM" type="number" inputmode="decimal" placeholder="e.g. 400"></div>
-      <div><label>Most stock to hold (months of buying)</label><input id="bC" type="number" inputmode="decimal" value="2"></div>
-    </div>
-    <div id="buyPlan" style="margin-top:12px"><p class="muted" style="margin:0">Enter how much you buy in a month to see your plan.</p></div>
   </div>
 
   <div class="card">
