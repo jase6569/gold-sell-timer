@@ -144,6 +144,12 @@
     <p class="muted" id="pTime" style="margin:10px 0 0">Loading live price…</p>
   </div>
 
+  <div class="card" id="liveMine" style="display:none">
+    <h2>Your gold right now · live</h2>
+    <div id="liveMineBody"></div>
+    <p class="muted" style="margin:8px 0 0">Updates every minute with the live price. Change the refiner % on the My gold page.</p>
+  </div>
+
   <div class="card" style="border-color:var(--gold)">
     <h2>Your stock: what to do this week</h2>
     <div id="dealerCall"><p class="muted" style="margin:0">Working it out…</p></div>
@@ -405,6 +411,12 @@
 
 <!-- ========== VALUE ========== -->
 <section class="page" id="p-calc">
+  <div class="card" id="stockSum" style="display:none">
+    <h2>My gold today · live</h2>
+    <div id="stockTotals"></div>
+    <div id="stockPlan"></div>
+  </div>
+
   <div class="card" id="buyCard">
     <h2>Buying in: what to send to the refiner</h2>
     <p class="muted" style="margin-top:0">For a shop that buys gold in all the time. Your profit is the gap between what you pay and what the refiner pays, and you only lock it in when you sell. This works out how much stock to keep and how much to send off this week, oldest gold first.</p>
@@ -455,11 +467,6 @@
     <p class="muted" id="bkMsg" style="margin:8px 0 0">Your gold is saved on this phone only. Download a backup now and then, and keep it somewhere safe, like your email or Google Drive.</p>
   </div>
 
-  <div class="card" id="stockSum" style="display:none">
-    <h2>My gold today</h2>
-    <div id="stockTotals"></div>
-    <div id="stockPlan"></div>
-  </div>
 
   <div class="card">
     <h2>Quick check: what's this worth?</h2>
@@ -1057,7 +1064,7 @@ function renderStock(){
   const a = stock(), pay = (parseFloat($("cP").value) || 95) / 100;
   $("stockList").innerHTML = renderLots(a, pay);
   renderBuy();
-  if (!a.length || !gbpPerGram){ $("stockSum").style.display = "none"; return; }
+  if (!a.length || !gbpPerGram){ $("stockSum").style.display = "none"; $("liveMine").style.display = "none"; return; }
   $("stockSum").style.display = "block";
   const pure = a.reduce((s, x) => s + x.w * parseFloat(x.k), 0);
   const paid = a.reduce((s, x) => s + (x.paid || 0), 0), allPaid = a.every(x => x.paid > 0);
@@ -1068,6 +1075,8 @@ function renderStock(){
     <tr><td>You'd receive at ${Math.round(pay * 100)}%</td><td>${fmt(net, 0)}</td></tr>
     ${paid ? `<tr><td>${allPaid ? "Profit or loss" : "Profit or loss (on items with a price)"}</td><td style="color:${(allPaid ? net : a.filter(x => x.paid).reduce((s, x) => s + x.w * parseFloat(x.k) * gbpPerGram * pay, 0)) - paid >= 0 ? "var(--up)" : "var(--down)"}">${(() => { const base = allPaid ? net : a.filter(x => x.paid).reduce((s, x) => s + x.w * parseFloat(x.k) * gbpPerGram * pay, 0); const d = base - paid; return (d >= 0 ? "+" : "−") + fmt(Math.abs(d), 0) + " (" + pc(d / paid * 100) + ")"; })()}</td></tr>` : ""}
   </table>`;
+  $("liveMine").style.display = "block";
+  $("liveMineBody").innerHTML = $("stockTotals").innerHTML;
   if (!sig || parseFloat(buySettings().m) > 0){ $("stockPlan").innerHTML = ""; return; }
   const t = sig.cur.tier, zSell = g(sig.cur.s40 * 1.18), zStrong = g(sig.cur.s40 * 1.25);
   const share = t === 3 ? 0.3 : t === 2 ? 0.25 : 0;
