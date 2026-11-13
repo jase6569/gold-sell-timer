@@ -72,6 +72,13 @@
   .hist td:last-child{font-size:13px}
   .hist tr.cur td{background:rgba(212,168,67,.08)}
   details summary{cursor:pointer;color:var(--gold2);font-weight:600;padding:8px 0}
+  .lot{border:1px solid var(--line);border-radius:12px;padding:12px;margin:0 0 10px;background:#12110f}
+  .lot .hd{display:flex;justify-content:space-between;gap:8px;font-weight:700}
+  .lot .sm{font-size:13px;color:var(--muted);margin-top:2px}
+  .lot .row{display:flex;justify-content:space-between;font-size:14px;margin-top:6px}
+  .lot details summary{font-size:13px;padding:6px 0 0}
+  .lot .it{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-top:1px solid var(--line)}
+  .pos{color:var(--up)} .neg{color:var(--down)}
   .warn{border:1px solid #8a5a20;background:rgba(227,163,59,.08);border-radius:12px;padding:12px;margin-top:12px}
   .tv{border-radius:12px;overflow:hidden}
   .rng{display:flex;gap:6px;margin:0 2px 8px}
@@ -411,8 +418,25 @@
       <div><label>What is it? (optional)</label><input id="sN" type="text" placeholder="e.g. broken chains"></div>
       <div><label>What you paid, £ (optional)</label><input id="sP" type="number" inputmode="decimal" placeholder="e.g. 2500"></div>
     </div>
+    <label>Date bought</label>
+    <input id="sD" type="date">
     <button class="btn" id="sAdd">Add to my gold</button>
-    <div id="stockList" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card" id="lotsCard">
+    <h2>My lots</h2>
+    <div class="tabs" id="lotTabs" style="margin-bottom:10px">
+      <button data-v="w">Week</button>
+      <button class="on" data-v="m">Month</button>
+      <button data-v="a">Every item</button>
+    </div>
+    <div id="stockList"></div>
+    <div class="grid2" style="margin-top:12px">
+      <button class="btn ghost" id="bkSave" style="margin-top:0">Download backup</button>
+      <button class="btn ghost" id="bkLoad" style="margin-top:0">Restore backup</button>
+    </div>
+    <input id="bkFile" type="file" accept=".json,application/json" style="display:none">
+    <p class="muted" id="bkMsg" style="margin:8px 0 0">Your gold is saved on this phone only. Download a backup now and then, and keep it somewhere safe, like your email or Google Drive.</p>
   </div>
 
   <div class="card" id="stockSum" style="display:none">
@@ -889,18 +913,116 @@ $("sAdd").onclick = () => {
   const w = parseFloat($("sG").value);
   if (!(w > 0)) { $("sG").focus(); return; }
   const a = stock();
-  a.push({w, k: $("sK").value, n: $("sN").value.trim(), paid: parseFloat($("sP").value) || 0, d: new Date().toISOString().slice(0, 10)});
+  a.push({w, k: $("sK").value, n: $("sN").value.trim(), paid: parseFloat($("sP").value) || 0, d: $("sD").value || new Date().toISOString().slice(0, 10)});
   $("sG").value = ""; $("sN").value = ""; $("sP").value = "";
   saveStock(a);
 };
-function delStock(i){ const a = stock(); a.splice(i, 1); saveStock(a); }
+try { $("sD").value = new Date().toISOString().slice(0, 10); } catch(e){}
+function delStock(i){ const a = stock(); if (!confirmDel(i, a)) return; a.splice(i, 1); saveStock(a); }
+function confirmDel(i, a){ const x = a[i]; const btn = document.getElementById("del" + i); if (btn && btn.dataset.armed){ return true; } if (btn){ btn.dataset.armed = "1"; btn.textContent = "Tap again to delete"; btn.style.color = "var(--down)"; setTimeout(() => { if (btn){ delete btn.dataset.armed; btn.textContent = "✕"; btn.style.color = "var(--muted)"; } }, 3000); } return false; }
+
+/* ---- lots: group purchases by week or month ---- */
+let lotView = store.get("lotView") || "m";
+document.querySelectorAll("#lotTabs button").forEach(b => {
+  b.classList.toggle("on", b.dataset.v === lotView);
+  b.onclick = () => { lotView = b.dataset.v; store.set("lotView", lotView); document.querySelectorAll("#lotTabs button").forEach(x => x.classList.toggle("on", x === b)); renderStock(); };
+});
+function lotKey(d, view){
+  if (!d) return ["0000", "Earlier (no date)"];
+  const dt = new Date(d + "T12:00:00Z");
+  if (view === "m") return [d.slice(0, 7), dt.toLocaleDateString("en-GB", {month: "long", year: "numeric"})];
+  const mon = new Date(dt); mon.setUTCDate(mon.getUTCDate() - (mon.getUTCDay() + 6) % 7);
+  const sun = new Date(mon); sun.setUTCDate(sun.getUTCDate() + 6);
+  const f = x => x.toLocaleDateString("en-GB", {day: "numeric", month: "short"});
+  return [mon.toISOString().slice(0, 10), "Week " + f(mon) + " – " + f(sun) + " " + sun.getUTCFullYear()];
+}
+function lotStats(items, pay){
+  const pure = items.reduce((t, x) => t + x.w * parseFloat(x.k), 0);
+  const paidItems = items.filter(x => x.paid > 0);
+  const cost = paidItems.reduce((t, x) => t + x.paid, 0);
+  const purePaid = paidItems.reduce((t, x) => t + x.w * parseFloat(x.k), 0);
+  const worth = gbpPerGram ? pure * gbpPerGram * pay : 0;
+  const worthPaid = gbpPerGram ? purePaid * gbpPerGram * pay : 0;
+  const be = purePaid > 0 ? cost / (purePaid * pay) : null;   // 24ct £/g needed to break even after the buyer's cut
+  const byCarat = {};
+  items.forEach(x => { byCarat[x.k] = (byCarat[x.k] || 0) + x.w; });
+  return {pure, cost, purePaid, worth, worthPaid, be, byCarat, all: paidItems.length === items.length, pnl: worthPaid - cost, pnlPct: cost ? (worthPaid - cost) / cost * 100 : null};
+}
+function caratText(byCarat){ return Object.entries(byCarat).map(([k, w]) => `${+w.toFixed(1)}g ${CT[k]}`).join(" · "); }
+function renderLots(a, pay){
+  if (!a.length) return '<p class="muted" style="margin:0">Nothing added yet. Add each purchase above, with the date you bought it.</p>';
+  const withIdx = a.map((x, i) => Object.assign({i}, x));
+  if (lotView === "a"){
+    return `<table>${withIdx.slice().reverse().map(x => {
+      const pure = x.w * parseFloat(x.k);
+      const val = gbpPerGram ? fmt(pure * gbpPerGram * pay, 0) : "";
+      return `<tr><td>${x.w}g ${CT[x.k]}${x.n ? " · " + esc(x.n) : ""}<div class="muted">${pure.toFixed(1)}g pure${x.paid ? " · paid " + fmt(x.paid, 0) : ""}${x.d ? " · " + new Date(x.d).toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"}) : ""}</div></td><td>${val} <a href="#" id="del${x.i}" onclick="delStock(${x.i});return false" style="color:var(--muted);margin-left:8px;text-decoration:none">✕</a></td></tr>`;
+    }).join("")}</table>`;
+  }
+  const groups = new Map();
+  withIdx.forEach(x => { const [k, label] = lotKey(x.d, lotView); if (!groups.has(k)) groups.set(k, {label, items: []}); groups.get(k).items.push(x); });
+  const zSell = sig ? g(sig.cur.s40 * 1.18) : null;
+  return [...groups.entries()].sort((p, q) => q[0].localeCompare(p[0])).map(([k, grp]) => {
+    const st = lotStats(grp.items, pay);
+    const pnlRow = st.cost ? `<div class="row"><span>${st.all ? "Profit / loss" : "Profit / loss (priced items)"}</span><span class="${st.pnl >= 0 ? "pos" : "neg"}">${st.pnl >= 0 ? "+" : "−"}${fmt(Math.abs(st.pnl), 0)} (${pc(st.pnlPct, 1)})</span></div>` : "";
+    const beRow = st.be ? `<div class="row"><span>Break-even price (24ct)</span><span>${fmt(st.be)}/g ${gbpPerGram ? (gbpPerGram >= st.be ? '<span class="pos">✓ in profit</span>' : '<span class="neg">below</span>') : ""}</span></div>` : "";
+    const atZone = (st.be && zSell && gbpPerGram < zSell) ? `<div class="row"><span>At the sell zone (${fmt(zSell)}/g)</span><span class="${zSell >= st.be ? "pos" : "neg"}">${zSell >= st.be ? "+" : "−"}${fmt(Math.abs(st.purePaid * zSell * pay - st.cost), 0)}</span></div>` : "";
+    return `<div class="lot">
+      <div class="hd"><span>${grp.label}</span><span>${gbpPerGram ? fmt(st.worth, 0) : ""}</span></div>
+      <div class="sm">${caratText(st.byCarat)} · ${st.pure.toFixed(1)}g pure${st.cost ? " · cost " + fmt(st.cost, 0) : ""}</div>
+      ${pnlRow}${beRow}${atZone}
+      <details><summary>${grp.items.length} item${grp.items.length === 1 ? "" : "s"}</summary>
+        ${grp.items.map(x => `<div class="it"><span>${x.w}g ${CT[x.k]}${x.n ? " · " + esc(x.n) : ""}${x.paid ? " · " + fmt(x.paid, 0) : ""}${x.d ? " · " + new Date(x.d).toLocaleDateString("en-GB", {day: "numeric", month: "short"}) : ""}</span><a href="#" id="del${x.i}" onclick="delStock(${x.i});return false" style="color:var(--muted);text-decoration:none">✕</a></div>`).join("")}
+      </details>
+    </div>`;
+  }).join("");
+}
+function sellOrder(a, pay){
+  // which lots to sell first: the most profitable first, and flag any that would sell at a loss
+  const groups = new Map();
+  a.forEach(x => { const [k, label] = lotKey(x.d, lotView === "a" ? "m" : lotView); if (!groups.has(k)) groups.set(k, {label, items: []}); groups.get(k).items.push(x); });
+  const rows = [...groups.values()].map(g2 => Object.assign({label: g2.label}, lotStats(g2.items, pay)));
+  const priced = rows.filter(r => r.be), unpriced = rows.filter(r => !r.be);
+  const win = priced.filter(r => gbpPerGram >= r.be).sort((p, q) => (q.pnlPct || 0) - (p.pnlPct || 0));
+  const lose = priced.filter(r => gbpPerGram < r.be);
+  if (!priced.length) return "";
+  return `<div class="sub">Which lots to sell first</div>
+    <table>${win.map((r, n) => `<tr><td>${n + 1}. ${r.label}<div class="muted">${caratText(r.byCarat)}</div></td><td class="pos">${pc(r.pnlPct, 1)}</td></tr>`).join("")}
+    ${lose.map(r => `<tr><td>Hold: ${r.label}<div class="muted">would sell at a loss until ${fmt(r.be)}/g</div></td><td class="neg">${pc(r.pnlPct, 1)}</td></tr>`).join("")}
+    ${unpriced.length ? `<tr><td colspan="2" class="muted">${unpriced.length} lot${unpriced.length === 1 ? "" : "s"} without a price paid, so profit can't be worked out.</td></tr>` : ""}</table>`;
+}
+
+/* ---- backup ---- */
+$("bkSave").onclick = () => {
+  try {
+    const data = JSON.stringify({app: "Gold Trader", saved: new Date().toISOString(), stock: stock()}, null, 1);
+    const url = URL.createObjectURL(new Blob([data], {type: "application/json"}));
+    const link = document.createElement("a");
+    link.href = url; link.download = "gold-trader-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    $("bkMsg").textContent = "Backup downloaded (" + stock().length + " items). Keep it somewhere safe.";
+  } catch(e){ $("bkMsg").textContent = "Couldn't create the backup on this phone."; }
+};
+$("bkLoad").onclick = () => $("bkFile").click();
+$("bkFile").onchange = async () => {
+  const f = $("bkFile").files[0]; if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!Array.isArray(d.stock)) throw 0;
+    const cur = stock();
+    const key = x => [x.w, x.k, x.paid, x.d, x.n].join("|");
+    const have = new Set(cur.map(key));
+    const added = d.stock.filter(x => !have.has(key(x)));
+    saveStock(cur.concat(added));
+    $("bkMsg").textContent = "Restored " + added.length + " item" + (added.length === 1 ? "" : "s") + " from your backup" + (d.stock.length > added.length ? " (skipped ones you already had)." : ".");
+  } catch(e){ $("bkMsg").textContent = "That file isn't a Gold Trader backup."; }
+  $("bkFile").value = "";
+};
+
 function renderStock(){
   const a = stock(), pay = (parseFloat($("cP").value) || 95) / 100;
-  $("stockList").innerHTML = a.length ? `<table>${a.map((x, i) => {
-    const pure = x.w * parseFloat(x.k);
-    const val = gbpPerGram ? fmt(pure * gbpPerGram * pay, 0) : "";
-    return `<tr><td>${x.w}g ${CT[x.k]}${x.n ? " · " + esc(x.n) : ""}<div class="muted">${pure.toFixed(1)}g pure gold${x.paid ? " · paid " + fmt(x.paid, 0) : ""}${x.d ? " · added " + new Date(x.d).toLocaleDateString("en-GB", {day: "numeric", month: "short"}) : ""}</div></td><td>${val} <a href="#" onclick="delStock(${i});return false" style="color:var(--muted);margin-left:8px;text-decoration:none">✕</a></td></tr>`;
-  }).join("")}</table>` : '<p class="muted" style="margin:0">Nothing added yet.</p>';
+  $("stockList").innerHTML = renderLots(a, pay);
   renderBuy();
   if (!a.length || !gbpPerGram){ $("stockSum").style.display = "none"; return; }
   $("stockSum").style.display = "block";
@@ -921,7 +1043,7 @@ function renderStock(){
   const split = Object.entries(byCarat).map(([k, w]) => `${Math.round(w * share)}g of your ${CT[k]}`).join(", ");
   $("stockPlan").innerHTML = share
     ? `<div class="verdict ${TIERS[t].cls}" style="margin:12px 0 0"><div class="call" style="font-size:19px">${TIERS[t].call}</div>
-        <div>For you that's about <b>${Math.round(share * 100)}%</b> of your gold: <b>${split}</b>. That's around <b>${(pure * share).toFixed(1)}g of pure gold, roughly ${fmt(net * share, 0)}</b> at ${Math.round(pay * 100)}%.</div></div>`
+        <div>For you that's about <b>${Math.round(share * 100)}%</b> of your gold: <b>${split}</b>. That's around <b>${(pure * share).toFixed(1)}g of pure gold, roughly ${fmt(net * share, 0)}</b> at ${Math.round(pay * 100)}%.</div></div>${sellOrder(a, pay)}`
     : `<div class="verdict t0" style="margin:12px 0 0"><div class="call" style="font-size:19px">${TIERS[t].call}</div>
         <div>No need to sell any yet. For reference, if gold reaches the <b>sell zone (${fmt(zSell)}/g)</b>, your gold would be worth about <b>${fmt(pure * zSell * pay, 0)}</b>, which is ${fmt(pure * (zSell - gbpPerGram) * pay, 0)} more than today. At that point, selling a quarter would mean about ${Object.entries(byCarat).map(([k, w]) => `${Math.round(w * 0.25)}g of your ${CT[k]}`).join(", ")}.</div></div>`;
 }
