@@ -36,7 +36,7 @@ public class GoldWidget extends AppWidgetProvider {
     static final String APP_URL = "https://jase6569.github.io/gold-sell-timer/";
     static final String ACTION_REFRESH = "uk.jase.goldtrader.REFRESH";
     static final double OZ = 31.1034768;
-    static final String[] CALLS = {"Hold", "Hold: getting close", "Sell about a quarter", "Strong sell: sell more"};
+    static final String[] CALLS = {"Don't build stock: send extra", "Fine to hold stock", "Sell zone: sell stock down", "Strong sell: clear stock"};
     static final int[] COLOURS = {Color.parseColor("#CFC8B8"), Color.parseColor("#3FB27F"), Color.parseColor("#D4A843"), Color.parseColor("#F0CB6A")};
     static final int GREY = Color.parseColor("#7D776B");
     static final int AMBER = Color.parseColor("#E3A33B");
@@ -181,12 +181,14 @@ public class GoldWidget extends AppWidgetProvider {
             }
             double ext = (price / w.getDouble("s40_g") - 1) * 100;
             double mom = (price / w.getDouble("p4_g") - 1) * 100;
-            int t = tierOf(ext, mom);
+            int tier = tierOf(ext, mom);
+            // the gold dealer's call: how much stock to keep (steep slide = keep about a month's buying)
+            int t = tier >= 3 ? 3 : tier == 2 ? 2 : (w.optBoolean("slide", false) ? 0 : 1);
 
             v.setTextViewText(R.id.price, gbp(price) + "/g");
             v.setTextViewText(R.id.call, CALLS[t]);
             v.setTextColor(R.id.call, COLOURS[t]);
-            v.setTextViewText(R.id.zone, t >= 2
+            v.setTextViewText(R.id.zone, tier >= 2
                     ? "Strong zone from " + gbp(w.getDouble("zone_strong_g")) + "/g"
                     : "Sell zone from " + gbp(w.getDouble("zone_sell_g")) + "/g");
 

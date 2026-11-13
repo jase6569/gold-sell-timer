@@ -81,16 +81,19 @@ def send(title, body, priority="default", tags="moneybag"):
             print("send failed", app, e)
 
 
-def write_widget(p, s40, p4, t, ext, mom4):
-    calls = ["Hold", "Hold: getting close", "Sell about a quarter", "Strong sell: sell more"]
+DEALER_SHORT = ["Don't build stock: send extra", "Fine to hold stock", "Sell zone: sell stock down", "Strong sell: clear stock"]
+
+
+def write_widget(p, s40, p4, t, ext, mom4, slide=False, bm=1):
+    calls = DEALER_SHORT
     json.dump({
         "updated": dt.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
         "price_g": round(p / OZ, 2), "s40_g": round(s40 / OZ, 2), "p4_g": round(p4 / OZ, 2),
-        "ext": round(ext, 2), "mom4": round(mom4, 2), "tier": t, "call": calls[t],
+        "ext": round(ext, 2), "mom4": round(mom4, 2), "tier": t, "slide": bool(slide), "buymode": bm, "call": calls[bm],
         "zone_close_g": round(s40 * 1.10 / OZ, 2), "zone_sell_g": round(s40 * 1.18 / OZ, 2), "zone_strong_g": round(s40 * 1.25 / OZ, 2),
         # ready-made text lines for home-screen widget apps
         "line1": f"Gold 24ct £{p / OZ:.2f}/g",
-        "line2": calls[t],
+        "line2": calls[bm],
         "line3": (f"Strong zone from £{s40 * 1.25 / OZ:.2f}/g" if t >= 2 else f"Sell zone from £{s40 * 1.18 / OZ:.2f}/g"),
         "line4": "Updated " + dt.datetime.now(ZoneInfo("Europe/London")).strftime("%d %b %H:%M"),
     }, open("widget.json", "w"))
@@ -107,7 +110,7 @@ def main():
     exts = [None if i < 39 else (c[i] / (sum(c[i - 39:i + 1]) / 40) - 1) * 100 for i in range(len(c))]
     slide = slide_flags(exts)[-1]
     bm = buy_mode_of(t, slide)
-    write_widget(p, s40, c[-5], t, ext, mom4)
+    write_widget(p, s40, c[-5], t, ext, mom4, slide, bm)
     if not TOPIC:
         print("NTFY_TOPIC secret not set, so no alerts sent")
         return
@@ -124,50 +127,40 @@ def main():
     prev = state.get("tier")
     now = dt.datetime.utcnow()
 
-    msgs = {
-        3: ("STRONG SELL: sell more gold now",
-            f"24ct £{g:.2f}/g, {ext:.0f}% above its 40-week average"
-            + (" and turning down" if mom4 < 0 else "")
-            + ". Historically gold was lower 6 months later 87% of the time from here. Sell another good portion.", "high", "rotating_light,moneybag"),
-        2: ("SELL ZONE: sell about a quarter",
-            f"24ct £{g:.2f}/g, {ext:.0f}% above its 40-week average. Sell around a quarter now and more if it reaches £{z25:.2f}/g.", "high", "moneybag"),
-        1: ("Gold getting close to the sell zone",
-            f"24ct £{g:.2f}/g. Still rising, so hold for now. The sell zone starts at about £{z18:.2f}/g.", "default", "eyes"),
-        0: ("Sell zone over: hold",
-            f"24ct £{g:.2f}/g. Gold has come back below the sell zone. Hold the rest. The sell zone starts at about £{z18:.2f}/g.", "default", "white_check_mark"),
+    # alerts are worded for a gold dealer: how much stock to keep, and when to send it to the refiner
+    dealer = {
+        3: ("STRONG SELL: clear most of your stock",
+            f"24ct £{g:.2f}/g, {ext:.0f}% above its 40-week average. Gold was lower 6 months later 87% of the time from here. Send most of your gold to the refiner now and keep only a small reserve. Open My gold for the grams.",
+            "high", "rotating_light,moneybag"),
+        2: ("SELL ZONE: sell your stock down",
+            f"24ct £{g:.2f}/g, {ext:.0f}% above its 40-week average, so gold is expensive. Send your stock down to about a month's buying, and at least a quarter of what you hold. Open My gold for the grams.",
+            "high", "moneybag"),
+        1: ("Normal: fine to hold stock",
+            f"24ct £{g:.2f}/g. Gold isn't stretched or sliding, so it's fine to hold stock up to your limit. Keep sending the oldest gold first.",
+            "default", "white_check_mark"),
+        0: ("Steep slide: don't build up stock",
+            f"24ct £{g:.2f}/g, {abs(ext):.0f}% below its 40-week average. Keep about a month's buying and send the rest to the refiner, oldest first. Buy in at today's price, not last week's. Open My gold for the grams.",
+            "default", "chart_with_downwards_trend"),
     }
-
-    if prev is None:
-        send("Gold Trader alerts are on",
-             f"You'll get a message when gold nears or enters the sell zone. Right now: 24ct £{g:.2f}/g, sell zone from about £{z18:.2f}/g.",
-             "default", "white_check_mark")
-    elif t > prev:
-        title, body, pr, tags = msgs[t]
-        send(title, body, pr, tags)
-    elif t < prev and prev >= 2 and t <= 1:
-        title, body, pr, tags = msgs[0]
-        send(title, body, pr, tags)
-
-    # buying-in: tell the shop when a steep slide starts or ends (sell zones are covered above)
     prev_bm = state.get("buymode")
-    if prev_bm is not None and prev_bm != bm and {prev_bm, bm} == {0, 1}:
-        if bm == 0:
-            send("Gold in a steep slide: don't build stock",
-                 f"24ct £{g:.2f}/g, {abs(ext):.0f}% below its 40-week average. If you buy in, keep about a month's buying and send the rest to the refiner. Open My gold for the grams.",
-                 "default", "chart_with_downwards_trend")
-        else:
-            send("Gold slide easing: you can hold more stock",
-                 f"24ct £{g:.2f}/g, {abs(ext):.0f}% {'above' if ext >= 0 else 'below'} its 40-week average. If you buy in, it's fine to hold stock up to your limit again.",
-                 "default", "white_check_mark")
+    if prev is None and prev_bm is None:
+        title, body, pr, tags = dealer[bm]
+        send("Gold Trader alerts are on", f"You'll get a message whenever the call on your stock changes. Right now: {title}. {body}", "default", "white_check_mark")
+    elif prev_bm is not None and prev_bm != bm:
+        title, body, pr, tags = dealer[bm]
+        send(title, body, pr, tags)
+    # heads-up when gold starts getting expensive, before the sell zone
+    if prev is not None and t == 1 and prev == 0 and bm == 1:
+        send("Gold getting expensive: sell zone close",
+             f"24ct £{g:.2f}/g. The sell zone starts at about £{z18:.2f}/g. Get ready to send more stock to the refiner.",
+             "default", "eyes")
 
     # Friday evening summary, once per week, after the close
     wk = now.strftime("%G-%V")
     if now.weekday() == 4 and now.hour >= 21 and state.get("summary") != wk:
-        call = ["Hold: not in the sell zone", "Hold: rising, sell zone getting close",
-                "Sell zone: sell about a quarter", "Strong sell zone: sell more"][t]
         where = f"{ext:.0f}% {'above' if ext >= 0 else 'below'} its 40-week average"
-        send(f"Weekly gold: {call}",
-             f"24ct £{g:.2f}/g ({mom4:+.1f}% over 4 weeks), {where}. Get ready £{z10:.2f}/g · Sell zone £{z18:.2f}/g · Strong £{z25:.2f}/g. {BUY_LINE[bm]} Open My gold for the grams.",
+        send(f"Weekly gold: {DEALER_SHORT[bm]}",
+             f"24ct £{g:.2f}/g ({mom4:+.1f}% over 4 weeks), {where}. {BUY_LINE[bm]} Sell zone from £{z18:.2f}/g. Open My gold for this week's grams.",
              "low", "calendar")
         state["summary"] = wk
 

@@ -131,7 +131,7 @@
 
   <div class="card" id="welcome" style="display:none;border-color:var(--gold)">
     <h2>New here?</h2>
-    <p style="margin:0 0 10px">Two minutes of setup gets you sell alerts on your phone. The Guide explains everything.</p>
+    <p style="margin:0 0 10px">Two minutes of setup gets you stock alerts on your phone. The Guide explains everything.</p>
     <button class="btn" style="margin-top:0" onclick="go('help')">Read the guide</button>
     <button class="btn ghost" onclick="document.getElementById('welcome').style.display='none';store.set('seenGuide','1')">Got it, hide this</button>
   </div>
@@ -144,8 +144,13 @@
     <p class="muted" id="pTime" style="margin:10px 0 0">Loading live price…</p>
   </div>
 
+  <div class="card" style="border-color:var(--gold)">
+    <h2>Your stock: what to do this week</h2>
+    <div id="dealerCall"><p class="muted" style="margin:0">Working it out…</p></div>
+  </div>
+
   <div class="card">
-    <h2>Should I sell?</h2>
+    <h2>Market check: is gold cheap or expensive?</h2>
     <div id="call"><p class="muted" style="margin:0">Analysing 22 years of UK gold prices…</p></div>
   </div>
 
@@ -273,13 +278,13 @@
 <section class="page" id="p-help">
   <div class="card">
     <h2>How to use Gold Trader</h2>
-    <p style="margin-top:0">Gold Trader tells you when it's a good time to sell your gold, using live UK prices. It answers one question: <b>sell now, or hold?</b> When the time comes, it alerts your phone.</p>
+    <p style="margin-top:0">Gold Trader is built for a gold dealer. You buy gold in every day and your profit is the gap between what you pay and what the refiner pays. Every gram you hold is a bet on the price, so the app answers one question: <b>how much stock should I keep, and how much should I send to the refiner this week?</b> When the answer changes, it alerts your phone.</p>
     <div class="sub">The short version</div>
     <ol>
       <li>Set up the phone alerts once (Alerts tab).</li>
-      <li>When an alert arrives, or you're curious, open the app and read <b>Should I sell?</b> on the Advice page.</li>
-      <li>Follow what it says. Sell in stages, never everything at once.</li>
-      <li>If you buy gold in all the time, set up <b>Buying in</b> on the My gold tab (section 5). Then every Friday it tells you how many grams to send to the refiner.</li>
+      <li>On the My gold tab, set up <b>Buying in</b> once (how much you buy in a month), and add the gold you're holding (section 5).</li>
+      <li>Open the app, or wait for an alert, and read <b>Your stock: what to do this week</b> at the top of the Advice page. It gives the call and the grams to send to the refiner, oldest gold first.</li>
+      <li>The <b>Market check</b> under it shows whether gold is cheap or expensive right now, and why.</li>
     </ol>
   </div>
 
@@ -314,7 +319,8 @@
   <div class="card">
     <h2>3. Reading the Advice page</h2>
     <p style="margin-top:0"><b>Gold today.</b> The live price of pure 24ct gold per gram, plus 9ct, 14ct, 18ct and 22ct. It refreshes every minute.</p>
-    <p><b>Should I sell?</b> This is the main answer. The coloured box gives the call and what to do. Under it:</p>
+    <p><b>Your stock: what to do this week.</b> This is the main answer. The coloured box says how much stock to keep, and once you've set up Buying in and added your gold, it shows exactly how many grams to send to the refiner this week.</p>
+    <p><b>Market check: is gold cheap or expensive?</b> The reason behind your stock call. Under it:</p>
     <ol>
       <li><b>The bar</b> shows where gold is now, from cheap on the left to strong sell on the right. The white marker is today.</li>
       <li><b>Sell zone prices</b> are the 24ct prices per gram where each zone starts. These are the numbers to watch.</li>
@@ -327,12 +333,12 @@
   </div>
 
   <div class="card">
-    <h2>4. What to do in each zone</h2>
+    <h2>4. What to do with your stock</h2>
     <table>
-      <tr><td><b>Hold: not in the sell zone</b><div class="muted">Gold isn't expensive. Selling now usually means selling too cheap.</div></td><td>Hold</td></tr>
-      <tr><td><b>Hold: sell zone getting close</b><div class="muted">Gold is rising well. In the past it usually kept rising from here.</div></td><td>Hold, get ready</td></tr>
-      <tr><td><b>Sell zone</b><div class="muted">Gold is stretched well above normal.</div></td><td>Sell about ¼</td></tr>
-      <tr><td><b>Strong sell zone</b><div class="muted">Gold was lower 6 months later 87% of the time from here.</div></td><td>Sell another ¼ to ⅓</td></tr>
+      <tr><td><b>Steep slide: don't build up stock</b><div class="muted">Gold is more than 10% below its 40-week average and falling. Holding a lot of gold is risky.</div></td><td>Keep about 1 month's buying, send the rest</td></tr>
+      <tr><td><b>Fine to hold stock</b><div class="muted">Gold isn't stretched or sliding.</div></td><td>Hold up to your limit, send the oldest first</td></tr>
+      <tr><td><b>Sell zone</b><div class="muted">Gold is stretched well above normal, so it's expensive.</div></td><td>Sell stock down, at least ¼</td></tr>
+      <tr><td><b>Strong sell zone</b><div class="muted">Gold was lower 6 months later 87% of the time from here.</div></td><td>Clear most of your stock</td></tr>
     </table>
     <p><b>Why sell in stages?</b> Gold often climbs further after first entering the sell zone. In October 2025 it entered at £93/g, ran up to £125/g in January, then dropped back. Selling a part at each stage means you never sell everything too early, and you never hold everything through a fall.</p>
     <p class="muted">Keep a little back after the strong zone. Gold has risen a lot over the long run, and the next rise will come round.</p>
@@ -577,7 +583,34 @@ function buyBatch(a, sendG){
   return out;
 }
 function buySettings(){ try { return JSON.parse(store.get("buyin") || "{}"); } catch(e){ return {}; } }
+function renderDealer(){
+  const box = $("dealerCall"); if (!box || !sig) return;
+  const set = buySettings(), monthly = parseFloat(set.m) || 0, months = parseFloat(set.c) > 0 ? parseFloat(set.c) : 2;
+  const mode = buyModeOf(sig.cur.tier, sig.cur.slide), b = BUY[mode];
+  const a = stock(), pay = (parseFloat($("cP").value) || 95) / 100, held = a.reduce((t, x) => t + x.w, 0);
+  let extra;
+  if (!monthly){
+    extra = `<p style="margin:10px 0 0">Tell the app roughly how much gold you buy in a month and it will work out exactly how many grams to send to the refiner each week.</p><button class="btn" onclick="go('calc');setTimeout(()=>{const e=document.getElementById('buyCard');if(e)e.scrollIntoView({behavior:'smooth'})},200)">Set up in My gold</button>`;
+  } else if (!held){
+    extra = `<p style="margin:10px 0 0">Add the gold you're holding in <b>My gold</b> to see how many grams to send this week.</p><button class="btn ghost" onclick="go('calc')">Open My gold</button>`;
+  } else {
+    const target = buyTarget(mode, held, monthly, months), send = Math.max(0, held - target);
+    const batch = send >= 1 ? buyBatch(a, send) : [];
+    const byCarat = {}; batch.forEach(({i, take}) => { const k = a[i].k; byCarat[k] = (byCarat[k] || 0) + take; });
+    const pure = batch.reduce((t, {i, take}) => t + take * parseFloat(a[i].k), 0);
+    extra = `<table style="margin-top:10px">
+        <tr><td>Gold you hold</td><td>${held.toFixed(1)} g</td></tr>
+        <tr><td>Most to keep right now</td><td>${target.toFixed(1)} g</td></tr>
+        <tr><td><b>Send to the refiner this week</b></td><td><b>${send >= 1 ? send.toFixed(1) + " g" : "nothing"}</b></td></tr>
+      </table>
+      ${batch.length ? `<p class="muted" style="margin:6px 0 0">Oldest gold first: ${Object.entries(byCarat).map(([k, w]) => `${w.toFixed(1)}g ${CT[k]}`).join(", ")}${gbpPerGram ? `, about <b>${fmt(pure * gbpPerGram * pay, 0)}</b> at ${Math.round(pay * 100)}%` : ""}.</p>` : ""}
+      <button class="btn ghost" onclick="go('calc');setTimeout(()=>{const e=document.getElementById('buyCard');if(e)e.scrollIntoView({behavior:'smooth'})},200)">See the details in My gold</button>`;
+  }
+  box.innerHTML = `<div class="verdict ${b.cls}" style="margin:0"><div class="call">${b.call}</div><div>${b.why}</div></div>${extra}
+    <p class="muted" style="margin:10px 0 0">Your profit is the gap between what you pay and what the refiner pays you. Every gram you hold is a bet on the gold price, so this tells you how much to keep and when to send it off.</p>`;
+}
 function renderBuy(){
+  renderDealer();
   const set = buySettings(), monthly = parseFloat(set.m) || 0, months = parseFloat(set.c) > 0 ? parseFloat(set.c) : 2;
   const box = $("buyPlan");
   if (!monthly){ box.innerHTML = '<p class="muted" style="margin:0">Enter how much you buy in a month to see your plan.</p>'; return; }
@@ -640,10 +673,10 @@ function compute(){
 
 /* =============== render: the call =============== */
 const TIERS = [
-  {cls: "t0", call: "Hold: not in the sell zone"},
-  {cls: "t1", call: "Hold: rising, sell zone getting close"},
-  {cls: "t2", call: "Sell zone: sell about a quarter"},
-  {cls: "t3", call: "Strong sell zone: sell more now"}
+  {cls: "t0", call: "No sell signal: gold isn't expensive"},
+  {cls: "t1", call: "Getting expensive: sell zone close"},
+  {cls: "t2", call: "Sell zone: gold is expensive"},
+  {cls: "t3", call: "Strong sell zone: gold is very expensive"}
 ];
 function tierStats(S, t){
   const h = S.hist.filter(x => x.tier === t);
@@ -659,8 +692,8 @@ function renderCall(){
   if (t === 3) line = `Gold is ${k.ext.toFixed(0)}% above its 40-week average${turning ? " and has started to fall back" : ""}. In the past 22 years, gold was lower 6 months after weeks like this <b>${st.lower.toFixed(0)}% of the time</b>, typically ${pc(st.med)}. If you've already sold a quarter, sell another quarter to a third now. If you haven't sold any yet, sell around half. Keep the rest for the next rise.`;
   else if (t === 2) line = `Gold is ${k.ext.toFixed(0)}% above its 40-week average${turning ? " and starting to turn down" : ""}. That's stretched. After weeks like this, gold typically gained only ${pc(st.med, 1)} over the next 6 months, compared with ${pc(allMed, 1)} normally. Sell about a quarter now. Gold often climbs further before it tops out, so sell in stages and sell more if it reaches the strong sell zone (${fmt(z25)}/g).`;
   else if (t === 1) line = `Gold is rising strongly (${k.ext.toFixed(0)}% above its 40-week average) but isn't stretched enough to sell yet. In the past, weeks like this were usually followed by <b>further gains</b> (typically ${pc(st.med)} over 6 months), so selling now has tended to be too early. Get ready: the sell zone starts at about <b>${fmt(z18)}/g</b>.`;
-  else if (k.ext < 0) line = `Gold is ${Math.abs(k.ext).toFixed(0)}% <b>below</b> its 40-week average, so it's cheap compared with recent months. Selling now would mean selling low. Hold unless you need the cash. The sell zone currently starts at about <b>${fmt(z18)}/g</b>.`;
-  else line = `Gold is only ${k.ext.toFixed(0)}% above its 40-week average, not stretched. There's no selling edge here. Hold. The sell zone currently starts at about <b>${fmt(z18)}/g</b>.`;
+  else if (k.ext < 0) line = `Gold is ${Math.abs(k.ext).toFixed(0)}% <b>below</b> its 40-week average, so it's cheap compared with recent months. That's a poor price to sell at, but holding a lot of stock while gold slides is risky too, so follow your stock call above. The sell zone currently starts at about <b>${fmt(z18)}/g</b>.`;
+  else line = `Gold is only ${k.ext.toFixed(0)}% above its 40-week average, not stretched. There's no selling edge here, so follow your stock call above. The sell zone currently starts at about <b>${fmt(z18)}/g</b>.`;
 
   const pos = Math.max(0, Math.min(100, (k.ext + 35) / 70 * 100)); // scale −35% … +35%
   const reasons = [
@@ -877,7 +910,7 @@ function showPrice(oz, label){
 }
 function analyse(){
   if (!daily.length) return;
-  try { sig = compute(); renderCall(); renderExplain(); renderHistory(); renderOutlook(); renderTrack(); }
+  try { sig = compute(); renderDealer(); renderCall(); renderExplain(); renderHistory(); renderOutlook(); renderTrack(); }
   catch(e){ console.log(e); $("call").innerHTML = '<p class="muted">Couldn\'t run the analysis just now.</p>'; }
   renderNews(); renderStock(); checkHealth();
 }
@@ -1144,7 +1177,7 @@ function loadZoneChart(){
   $("zSay").className = "verdict " + TIERS[k.tier].cls;
   $("zSay").innerHTML = k.tier >= 2
     ? `<div class="call" style="font-size:20px">Gold is in the sell zone</div><div>Gold is <b>${fmt(now)}/g</b>, inside the shaded sell area. ${k.tier === 3 ? "It's in the strong part, so sell more now." : `Sell about a quarter now, and more if it climbs to <b>${fmt(strong)}/g</b>.`}</div>`
-    : `<div class="call" style="font-size:20px">Hold: gold needs to rise ${fmt(gap)}/g first</div><div>Gold is <b>${fmt(now)}/g</b> (the white line). Selling starts when it reaches the <b>shaded sell area</b>, currently from <b>${fmt(sell)}/g</b>. That's <b>${(gap / now * 100).toFixed(0)}% higher</b> than today.${k.tier === 1 ? " It's getting close, so get ready." : ""}</div>`;
+    : `<div class="call" style="font-size:20px">Not in the sell zone: gold is ${fmt(gap)}/g below it</div><div>Gold is <b>${fmt(now)}/g</b> (the white line). Selling starts when it reaches the <b>shaded sell area</b>, currently from <b>${fmt(sell)}/g</b>. That's <b>${(gap / now * 100).toFixed(0)}% higher</b> than today.${k.tier === 1 ? " It's getting close, so get ready." : ""} Your stock call on the Advice page says how much to hold meanwhile.</div>`;
   setZoneRange(zYears);
 }
 function setZoneRange(y){
