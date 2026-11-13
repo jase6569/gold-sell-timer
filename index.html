@@ -306,11 +306,11 @@
     </ol>
     <p>The app checks gold every hour, day and night, even when your phone is off. You'll get a message when:</p>
     <table>
-      <tr><td>🟢 Gold getting close to the sell zone</td><td>Get ready</td></tr>
-      <tr><td>🟡 Sell zone</td><td>Sell about a quarter</td></tr>
-      <tr><td>🟠 Strong sell zone</td><td>Sell more</td></tr>
-      <tr><td>✅ Sell zone over</td><td>Hold the rest</td></tr>
-      <tr><td>📉 Gold in a steep slide, or the slide easing</td><td>Change how much stock you hold</td></tr>
+      <tr><td>📉 Steep slide</td><td>Keep about a month's buying, send the rest</td></tr>
+      <tr><td>✅ Back to normal</td><td>Fine to hold stock up to your limit</td></tr>
+      <tr><td>🟢 Gold getting expensive</td><td>Get ready to send more</td></tr>
+      <tr><td>🟡 Sell zone</td><td>Sell your stock down</td></tr>
+      <tr><td>🟠 Strong sell zone</td><td>Clear most of your stock</td></tr>
       <tr><td>📅 Every Friday evening</td><td>Weekly summary, with your buying-in plan</td></tr>
     </table>
     <p class="muted">Sell alerts are rare, around once every year or two, because they only fire when gold is genuinely expensive. Silence means hold.</p>
@@ -673,7 +673,7 @@ function compute(){
 
 /* =============== render: the call =============== */
 const TIERS = [
-  {cls: "t0", call: "No sell signal: gold isn't expensive"},
+  {cls: "t0", call: "Gold isn't expensive right now"},
   {cls: "t1", call: "Getting expensive: sell zone close"},
   {cls: "t2", call: "Sell zone: gold is expensive"},
   {cls: "t3", call: "Strong sell zone: gold is very expensive"}
@@ -711,7 +711,7 @@ function renderCall(){
     <div class="sub">Sell zone prices (24ct)</div>
     <table>
       <tr><td>Getting close (get ready)</td><td>${fmt(z10)}/g</td></tr>
-      <tr><td>Sell zone: sell about a quarter</td><td>${fmt(z18)}/g</td></tr>
+      <tr><td>Sell zone: sell your stock down</td><td>${fmt(z18)}/g</td></tr>
       <tr><td>Strong sell zone</td><td>${fmt(z25)}/g</td></tr>
     </table>
     <p class="muted" style="margin:6px 0 0">These levels move slowly as the 40-week average moves. The sell zone starts sooner (from 15%) if gold is already turning down.</p>
