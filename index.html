@@ -464,6 +464,8 @@
     <div id="pmLots"></div>
     <div class="sub" style="margin-top:14px">How well you're buying, month by month</div>
     <div id="pmMonths"></div>
+    <div class="sub" style="margin-top:14px">Lot alerts on your phone</div>
+    <div id="laBox"></div>
   </div>
 
   <div class="card" id="lotsCard">
@@ -1167,7 +1169,8 @@ function renderPro(){
   if (!PRO_ON()){ $("proCard").style.display = "none"; return; }
   $("proCard").style.display = "block";
   if (!gbpPerGram){ $("pmPay").innerHTML = '<p class="muted">Waiting for the live price…</p>'; return; }
-  if (!renderPro.init){ renderPro.init = true; $("pmM").value = store.get("pmM") || "20"; }
+  if (!renderPro.init){ renderPro.init = true; $("pmM").value = store.get("pmM") || "20"; renderLotAlerts(); }
+  queueLotSync();
   const raw = $("pmM").value.trim();   // the box can be empty while typing; keep using the last saved number until a new one is typed
   if (raw !== "" && !isNaN(parseFloat(raw))) store.set("pmM", raw);
   const m = Math.min(90, Math.max(0, parseFloat(raw !== "" ? raw : (store.get("pmM") || "20")) || 0)) / 100;
@@ -1205,6 +1208,81 @@ function renderPro(){
     : '<p class="muted" style="margin:0">Fills in as you buy gold, through the Buy log or by adding it with what you paid.</p>';
 }
 $("pmM").addEventListener("input", renderPro);
+/* ---- lot alerts: send a locked summary of the lots to the hourly alert check ---- */
+// Only month, pure grams paid for, cost and grams per carat are sent, locked with a key made from your
+// private alert code. Customer details never leave the phone.
+const LOT_TO_MAIN = false;
+const te8 = new TextEncoder();
+const sha8 = async b => new Uint8Array(await crypto.subtle.digest("SHA-256", b));
+const hex8 = b => [...b].map(x => x.toString(16).padStart(2, "0")).join("");
+async function lotKeys(code){
+  const h = s2 => sha8(te8.encode(s2));
+  return {sync: "gts" + hex8(await h("sync|" + code)).slice(0, 28), lots: "gtl" + hex8(await h("lots|" + code)).slice(0, 28), enc: await h("enc|" + code), mac: await h("mac|" + code)};
+}
+async function sealLots(k, obj){
+  const pt = te8.encode(JSON.stringify(obj)), n = crypto.getRandomValues(new Uint8Array(16)), ct = new Uint8Array(pt.length);
+  for (let i = 0; i * 32 < pt.length; i++){
+    const blk = new Uint8Array(52); blk.set(k.enc, 0); blk.set(n, 32); new DataView(blk.buffer).setUint32(48, i);
+    const ks = await sha8(blk);
+    for (let j = 0; j < 32 && i * 32 + j < pt.length; j++) ct[i * 32 + j] = pt[i * 32 + j] ^ ks[j];
+  }
+  const nc = new Uint8Array(16 + ct.length); nc.set(n); nc.set(ct, 16);
+  const mk = await crypto.subtle.importKey("raw", k.mac, {name: "HMAC", hash: "SHA-256"}, false, ["sign"]);
+  const tag = new Uint8Array(await crypto.subtle.sign("HMAC", mk, nc));
+  const all = new Uint8Array(nc.length + 32); all.set(nc); all.set(tag, nc.length);
+  let bin = ""; all.forEach(b => bin += String.fromCharCode(b));
+  return "v1:" + btoa(bin);
+}
+function lotSummary(){
+  const months = new Map();
+  stock().forEach(x => { if (!(x.paid > 0) || !x.d) return; const m = x.d.slice(0, 7);
+    const t = months.get(m) || [m, 0, 0, {}]; t[1] += x.w * parseFloat(x.k); t[2] += x.paid; t[3][x.k] = +((t[3][x.k] || 0) + x.w).toFixed(2); months.set(m, t); });
+  return [...months.values()].sort((a2, b2) => b2[0].localeCompare(a2[0])).slice(0, 30).map(t => [t[0], +t[1].toFixed(3), +t[2].toFixed(2), t[3]]);
+}
+let laTimer = null, laBusy = false;
+function queueLotSync(){ clearTimeout(laTimer); laTimer = setTimeout(syncLots, 1500); }
+async function syncLots(force){
+  const code = store.get("lotCode"); if (!code || laBusy || !PRO_ON()) return;
+  const lots = lotSummary(), body = JSON.stringify(lots), last = store.get("lotSent") || "", at = +(store.get("lotSentAt") || 0);
+  if (!force && body === last && Date.now() - at < 6 * 3600e3) return;
+  laBusy = true;
+  try {
+    const k = await lotKeys(code);
+    const r = await fetch("https://ntfy.sh/" + k.sync, {method: "POST", body: await sealLots(k, {v: 1, t: new Date().toISOString(), lots}), headers: {Priority: "min"}});
+    if (!r.ok) throw new Error(r.status);
+    store.set("lotSent", body); store.set("lotSentAt", String(Date.now())); store.del("lotErr");
+  } catch(e){ store.set("lotErr", "1"); }
+  laBusy = false; renderLotAlerts();
+}
+async function renderLotAlerts(){
+  if (!$("laBox")) return;
+  const code = store.get("lotCode");
+  if (!code){
+    $("laBox").innerHTML = `<p class="muted" style="margin:0 0 8px">Get a ping when one of your lots should be sent to the refiner. Type in your Gold Trader alert code, the one you subscribed to in ntfy (it starts <b>gt-</b>).</p>
+      <input id="laCode" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="gt-…">
+      <button class="btn" id="laOn" style="margin-top:8px">Turn on lot alerts</button><p class="muted" id="laMsg" style="margin:6px 0 0"></p>`;
+    $("laOn").onclick = () => {
+      const c = $("laCode").value.trim();
+      if (c.length < 12 || /\s/.test(c)){ $("laMsg").textContent = "That doesn't look like your alert code. Copy it from the ntfy app."; return; }
+      store.set("lotCode", c); store.del("lotSent"); renderLotAlerts(); syncLots(true);
+    };
+    return;
+  }
+  const k = await lotKeys(code), at = +(store.get("lotSentAt") || 0);
+  const when = at ? new Date(at).toLocaleString("en-GB", {weekday: "short", hour: "2-digit", minute: "2-digit"}) : "not yet";
+  $("laBox").innerHTML = `<p style="margin:0 0 6px"><b>On.</b> <span class="muted">Your lots were last sent to your alert check: ${when}${store.get("lotErr") ? ". <span class='neg'>The last send failed, it will retry next time you open the app.</span>" : ""}</span></p>
+    ${LOT_TO_MAIN ? `<p class="muted" style="margin:0 0 8px">Lot alerts come to your usual Gold Trader alerts in ntfy. The hourly check looks at your lots and pings you when one should be sent, locked in, or slips into a loss.</p>`
+      : `<p class="muted" style="margin:0 0 6px">Your lot alerts come on their own private channel, so nobody else on your main alerts gets them. In ntfy, tap <b>+</b> and subscribe to:</p>
+         <code id="laTopic" style="display:inline-block;word-break:break-all">${k.lots}</code> <button class="btn" id="laCopy" style="margin-top:8px">Copy code</button>`}
+    <p class="muted" style="margin:8px 0">Only the month, grams, carats and what you paid are sent, locked so that only your own alert check can read them. Customer details never leave this phone. The lots update whenever you open the app.</p>
+    <button class="btn" id="laOff" style="background:none;border:1px solid var(--line);color:var(--muted)">Turn off lot alerts</button>`;
+  if ($("laCopy")) $("laCopy").onclick = async () => { try { await navigator.clipboard.writeText(k.lots); $("laCopy").textContent = "Copied"; } catch(e){ $("laCopy").textContent = "Press and hold the code to copy"; } };
+  $("laOff").onclick = async () => {
+    try { await fetch("https://ntfy.sh/" + k.sync, {method: "POST", body: await sealLots(k, {v: 1, t: new Date().toISOString(), lots: []}), headers: {Priority: "min"}}); } catch(e){}
+    ["lotCode", "lotSent", "lotSentAt", "lotErr"].forEach(x => store.del(x)); renderLotAlerts();
+  };
+}
+
 
 /* =============== health check =============== */
 let dataUpdated = null;
