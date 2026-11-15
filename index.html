@@ -454,6 +454,18 @@
     <p class="sub" id="blNote" style="margin-top:10px;display:none">Buying from a customer? Use the <a href="buying-log/" style="color:var(--gold2)">Buying log</a>. It records their ID and adds the gold here for you.</p>
   </div>
 
+  <div class="card" id="proCard" style="display:none">
+    <h2>Make more money</h2>
+    <div class="sub">What to pay today</div>
+    <label>Margin you want to keep, %</label>
+    <input id="pmM" type="number" inputmode="decimal" placeholder="e.g. 20">
+    <div id="pmPay"></div>
+    <div class="sub" style="margin-top:14px">Lots to send now</div>
+    <div id="pmLots"></div>
+    <div class="sub" style="margin-top:14px">How well you're buying, month by month</div>
+    <div id="pmMonths"></div>
+  </div>
+
   <div class="card" id="lotsCard">
     <h2>My lots</h2>
     <div class="tabs" id="lotTabs" style="margin-bottom:10px">
@@ -1105,6 +1117,7 @@ function renderStock(){
   const a = stock(), pay = (parseFloat($("cP").value) || 95) / 100;
   $("stockList").innerHTML = renderLots(a, pay);
   renderBuy();
+  try { renderPro(); } catch(e){ console.log(e); }
   if (!a.length || !gbpPerGram){ $("stockSum").style.display = "none"; $("liveMine").style.display = "none"; return; }
   $("stockSum").style.display = "block";
   const pure = a.reduce((s, x) => s + x.w * parseFloat(x.k), 0);
@@ -1132,6 +1145,65 @@ function renderStock(){
 }
 $("cP").addEventListener("input", renderStock);
 ["bM","bC"].forEach(id => $(id).addEventListener("input", () => { store.set("buyin", JSON.stringify({m: $("bM").value, c: $("bC").value})); renderBuy(); }));
+
+/* =============== make more money (Buy log owners only) =============== */
+const PRO_ON = () => store.get("buyingLog") === "1";
+function payRatio(){ return mmOn() ? mm.pure_g / gbpPerGram : (parseFloat($("cP").value) || 95) / 100; }
+function refinerG(k){ return (mmOn() && mm.prices[CT[k]]) ? mm.prices[CT[k]] : gbpPerGram * parseFloat(k) * payRatio(); }
+// How far gold falls in a bad week: the 80th percentile of 5-day moves over the last year
+function badWeek(){
+  if (daily.length < 270) return 4;
+  const c = daily.slice(-265).map(x => x[1]), r = [];
+  for (let i = 5; i < c.length; i++) r.push(Math.abs(c[i] / c[i - 5] - 1) * 100);
+  r.sort((x, y) => x - y); return r[Math.floor(r.length * 0.8)];
+}
+function closeOn(d){
+  let lo = 0, hi = daily.length - 1, ans = null;
+  while (lo <= hi){ const m = (lo + hi) >> 1; if (daily[m][0] <= d){ ans = daily[m][1]; lo = m + 1; } else hi = m - 1; }
+  return ans;
+}
+function buys(){ try { return JSON.parse(store.get("buys") || "[]"); } catch(e){ return []; } }
+function renderPro(){
+  if (!PRO_ON()){ $("proCard").style.display = "none"; return; }
+  $("proCard").style.display = "block";
+  if (!gbpPerGram){ $("pmPay").innerHTML = '<p class="muted">Waiting for the live price…</p>'; return; }
+  if (!$("pmM").value) $("pmM").value = store.get("pmM") || "20";
+  const m = Math.min(90, Math.max(0, parseFloat($("pmM").value) || 0)) / 100;
+  store.set("pmM", $("pmM").value);
+  const src = mmOn() ? `Mastermelt's price (${mmDay()})` : `${Math.round(payRatio() * 100)}% of the live price`;
+  $("pmPay").innerHTML = `<table><tr><td class="muted">Carat</td><td class="muted">Refiner pays</td><td class="muted">Pay up to</td></tr>
+    ${Object.keys(CT).map(k => { const r = refinerG(k); return `<tr><td>${CT[k]}</td><td>${fmt(r)}/g</td><td><b>${fmt(r * (1 - m))}/g</b></td></tr>`; }).join("")}</table>
+    <p class="muted" style="margin:6px 0 0">To keep ${Math.round(m * 100)}% of what the refiner pays, based on ${src}. The live price moves every minute, so check this before each purchase, especially while gold is falling.</p>`;
+
+  // lots: which to send now
+  const a = stock(), pay = (parseFloat($("cP").value) || 95) / 100, risk = badWeek(), tier = sig ? sig.cur.tier : 0;
+  const groups = new Map();
+  a.forEach(x => { const [k, label] = lotKey(x.d, lotView === "a" ? "m" : lotView); if (!groups.has(k)) groups.set(k, {label, items: []}); groups.get(k).items.push(x); });
+  const rows = [...groups.values()].map(g2 => Object.assign({label: g2.label}, lotStats(g2.items, pay))).filter(r => r.be);
+  if (!rows.length){ $("pmLots").innerHTML = '<p class="muted" style="margin:0">Add what you paid for your gold, or buy through the Buy log, and each lot will show here.</p>'; }
+  else {
+    const out = rows.map(r => {
+      const cush = (gbpPerGram / r.be - 1) * 100, gain = r.pnl;
+      if (cush < 0) return {o: 1, html: `<tr><td><b>At a loss:</b> ${r.label}<div class="muted">${caratText(r.byCarat)}. Sending now loses ${fmt(-gain, 0)}. It breaks even if gold gets back to ${fmt(r.be)}/g.</div></td><td class="neg">${pc(r.pnlPct, 1)}</td></tr>`};
+      if (cush < risk) return {o: 0, html: `<tr><td><b>Send now:</b> ${r.label}<div class="muted">${caratText(r.byCarat)}. Only ${cush.toFixed(1)}% above break-even. In a bad week gold falls about ${risk.toFixed(1)}%, which would turn this +${fmt(gain, 0)} into a loss.</div></td><td class="pos">${pc(r.pnlPct, 1)}</td></tr>`};
+      if (tier >= 2) return {o: 0, html: `<tr><td><b>Lock it in:</b> ${r.label}<div class="muted">${caratText(r.byCarat)}. +${fmt(gain, 0)} and gold is in the sell zone.</div></td><td class="pos">${pc(r.pnlPct, 1)}</td></tr>`};
+      return {o: 2, html: `<tr><td>Safe for now: ${r.label}<div class="muted">${caratText(r.byCarat)}. ${cush.toFixed(1)}% above break-even, more than a bad week's fall (${risk.toFixed(1)}%).</div></td><td class="pos">${pc(r.pnlPct, 1)}</td></tr>`};
+    }).sort((x, y) => x.o - y.o);
+    $("pmLots").innerHTML = `<table>${out.map(x => x.html).join("")}</table>`;
+  }
+
+  // buying margin by month: what you paid vs what the refiner was paying that day
+  const entries = buys().concat(a.filter(x => !x.bl).map(x => ({d: x.d, w: x.w, k: x.k, paid: x.paid}))).filter(x => x.paid > 0 && x.d && x.w > 0);
+  const months = new Map();
+  entries.forEach(x => { const oz = closeOn(x.d); if (!oz) return; const r = x.w * parseFloat(x.k) * g(oz) * payRatio(); const key = x.d.slice(0, 7);
+    const t = months.get(key) || {r: 0, paid: 0, w: 0}; t.r += r; t.paid += x.paid; t.w += x.w; months.set(key, t); });
+  const list = [...months.entries()].sort((p, q) => q[0].localeCompare(p[0])).slice(0, 12);
+  $("pmMonths").innerHTML = list.length ? `<table><tr><td class="muted">Month</td><td class="muted">Paid</td><td class="muted">Margin</td></tr>
+    ${list.map(([k, t]) => { const mg = (1 - t.paid / t.r) * 100; return `<tr><td>${new Date(k + "-15").toLocaleDateString("en-GB", {month: "short", year: "numeric"})}<div class="muted">${t.w.toFixed(1)}g</div></td><td>${fmt(t.paid, 0)}</td><td class="${mg >= m * 100 ? "pos" : "neg"}">${mg.toFixed(1)}%</td></tr>`; }).join("")}</table>
+    <p class="muted" style="margin:6px 0 0">What you paid against what the refiner was paying on the day you bought, so it shows how well you bought, whatever gold did afterwards. Green means you hit your ${Math.round(m * 100)}% target.</p>`
+    : '<p class="muted" style="margin:0">Fills in as you buy gold, through the Buy log or by adding it with what you paid.</p>';
+}
+$("pmM").addEventListener("input", renderPro);
 
 /* =============== health check =============== */
 let dataUpdated = null;

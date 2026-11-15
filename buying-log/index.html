@@ -335,7 +335,7 @@
 'use strict';
 
 /* ---------- storage (IndexedDB) ---------- */
-const CFG = { biz:'Dorset Jewellers', prefix:'DJ', db:'dj-buylog', stockKey:'stock' };
+const CFG = { biz:'Dorset Jewellers', prefix:'DJ', db:'dj-buylog', stockKey:'stock', buysKey:'buys' };
 const DB_NAME = CFG.db, STORE = 'records';
 let db;
 function openDB(){
@@ -404,6 +404,16 @@ function addToMyGold(rec){
     saveMyGold(a);
     return lines.reduce((t,x)=>t+parseFloat(x.it.weight),0);
   } catch(e){ toast('Could not add to My gold'); return 0; }
+}
+// Purchase history (gold, weight, carat, price, date only, no personal details) for the monthly buying margin in Gold Trader.
+// Unlike My gold, entries stay after the gold is sent to the refiner.
+function logBuys(rec){
+  try { const a = JSON.parse(localStorage.getItem(CFG.buysKey) || '[]').filter(x => !(x.id && x.id.startsWith(rec.id + ':')));
+    goldLines(rec).forEach(({it,i}) => a.push({ id: rec.id + ':' + i, d: rec.createdAt.slice(0,10), w: parseFloat(it.weight), k: FINENESS[it.purity], paid: parseFloat(it.price)||0 }));
+    localStorage.setItem(CFG.buysKey, JSON.stringify(a)); } catch(e){}
+}
+function unlogBuys(rec){
+  try { const a = JSON.parse(localStorage.getItem(CFG.buysKey) || '[]'); localStorage.setItem(CFG.buysKey, JSON.stringify(a.filter(x => !(x.id && x.id.startsWith(rec.id + ':'))))); } catch(e){}
 }
 function removeFromMyGold(rec){
   try { const a = myGold(), b = a.filter(x => !(x.bl && x.bl.startsWith(rec.id + ':'))); if (b.length !== a.length) saveMyGold(b); return a.length - b.length; } catch(e){ return 0; }
@@ -642,7 +652,7 @@ $('#saveBtn').onclick = async () => {
   };
   await putRecord(rec);
   allCache = [];
-  const grams = addToMyGold(rec);
+  const grams = addToMyGold(rec); logBuys(rec);
   if (v('#f_staff')!==settings.staff){ settings.staff = v('#f_staff'); await saveSettingsObj(); }
   resetForm();
   toast('Saved ' + rec.receipt + (grams ? ` · ${grams.toFixed(2)}g added to My gold` : ''));
@@ -739,7 +749,7 @@ async function openRecord(id){
   $('#delRec').onclick = async () => {
     if (!confirm('Delete this record permanently? Its gold is also taken out of My gold. This cannot be undone.')) return;
     if (prompt('Type DELETE to confirm')!=='DELETE') return;
-    const n = removeFromMyGold(r); await delRecord(r.id); allCache=[]; toast('Record deleted' + (n ? ' and removed from My gold' : '')); close();
+    const n = removeFromMyGold(r); unlogBuys(r); await delRecord(r.id); allCache=[]; toast('Record deleted' + (n ? ' and removed from My gold' : '')); close();
   };
 }
 
