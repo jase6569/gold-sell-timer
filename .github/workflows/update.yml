@@ -35,6 +35,7 @@ jobs:
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           NTFY_TOPIC_MIKE: ${{ secrets.NTFY_TOPIC_MIKE }}
+          NTFY_TOPIC_ADAM: ${{ secrets.NTFY_TOPIC_ADAM }}
           TEST_ALERT: ${{ inputs.test_alert }}
       - name: Commit data
         run: |
@@ -50,8 +51,9 @@ jobs:
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           NTFY_TOPIC_MIKE: ${{ secrets.NTFY_TOPIC_MIKE }}
+          NTFY_TOPIC_ADAM: ${{ secrets.NTFY_TOPIC_ADAM }}
         run: |
-          for T in "$NTFY_TOPIC" "$NTFY_TOPIC_MIKE"; do
+          for T in $(printf '%s\n' "$NTFY_TOPIC" "$NTFY_TOPIC_MIKE" "$NTFY_TOPIC_ADAM" | sort -u); do
             [ -n "$T" ] || continue
             curl -s -H "Title: Gold Trader update failed" -H "Priority: high" -H "Tags: warning" \
               -d "The hourly gold price check failed, so sell alerts may be paused until it's fixed. The app still shows the live price." \

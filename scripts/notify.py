@@ -25,6 +25,8 @@ TOPIC = os.environ.get("NTFY_TOPIC", "").strip()  # private, stored as a GitHub 
 APP = "https://jase6569.github.io/gold-sell-timer/"
 # extra private channels that get the same alerts, each opening its own branded app
 EXTRA = [(os.environ.get("NTFY_TOPIC_MIKE", "").strip(), "https://jase6569.github.io/dorset-gold-trader/")]
+# Adam has his own app and his own alert channel
+ADAM = (os.environ.get("NTFY_TOPIC_ADAM", "").strip(), "https://jase6569.github.io/gold-sell-timer/adam/")
 OZ = 31.1034768
 STATE = "state.json"
 
@@ -68,7 +70,11 @@ def weekly_closes(daily):
 
 
 def send(title, body, priority="default", tags="moneybag"):
-    for topic, app in [(TOPIC, APP)] + [e for e in EXTRA if e[0]]:
+    seen = set()
+    for topic, app in [(TOPIC, APP)] + [e for e in EXTRA + [ADAM] if e[0]]:
+        if topic in seen:
+            continue
+        seen.add(topic)
         req = urllib.request.Request(
             f"https://ntfy.sh/{topic}", data=body.encode("utf-8"), method="POST",
             headers={"Title": title.encode("utf-8").decode("latin-1", "ignore"), "Priority": priority,
@@ -285,6 +291,21 @@ def main():
              f"24ct £{g:.2f}/g ({mom4:+.1f}% over 4 weeks), {where}. {BUY_LINE[bm]} Sell zone from £{z18:.2f}/g. Open My gold for this week's grams.",
              "low", "calendar")
         state["summary"] = wk
+
+    # a newly added channel gets a one-off "alerts are on" message (only a scrambled id is saved)
+    first_time = "channels" not in state
+    known = state.setdefault("channels", [])
+    for topic, app in [(TOPIC, APP)] + [e for e in EXTRA + [ADAM] if e[0]]:
+        cid = hashlib.sha256(("chan|" + topic).encode()).hexdigest()[:10]
+        if cid in known:
+            continue
+        if prev is not None and not first_time:   # channels in use before this feature already had their welcome
+            title, body, pr, tags = dealer[bm]
+            try:
+                ntfy_post(topic, f"Your Gold Trader alerts are on. You'll get a message whenever the call on your stock changes. Right now: {title}. {body}", "Gold Trader alerts are on", "default", "white_check_mark", app)
+            except Exception as e:
+                print("welcome failed", e)
+        known.append(cid)
 
     # lot alerts: Jase's go to their own channel (so Adam doesn't get them), Mike's to his usual channel
     for code, to_topic, app in [(TOPIC, None, APP)] + [(e[0], e[0], e[1]) for e in EXTRA if e[0]]:
