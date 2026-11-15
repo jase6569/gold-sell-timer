@@ -28,6 +28,8 @@ jobs:
       - run: python scripts/fetch_data.py
       - run: python scripts/fetch_news.py
         continue-on-error: true
+      - run: python scripts/fetch_mastermelt.py
+        continue-on-error: true
       - run: python scripts/notify.py
         continue-on-error: true
         env:
@@ -39,7 +41,7 @@ jobs:
           git config user.name "gold-bot"
           git config user.email "gold-bot@users.noreply.github.com"
           git add data.json
-          for f in news.json state.json widget.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          for f in news.json state.json widget.json mastermelt.json; do if [ -f "$f" ]; then git add "$f"; fi; done
           git diff --cached --quiet || git commit -m "Update gold data"
           git pull --rebase -q || true
           git push

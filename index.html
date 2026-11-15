@@ -147,7 +147,7 @@
   <div class="card" id="liveMine" style="display:none">
     <h2>Your gold right now · live</h2>
     <div id="liveMineBody"></div>
-    <p class="muted" style="margin:8px 0 0">Updates every minute with the live price. Change the refiner % on the My gold page.</p>
+    <p class="muted" style="margin:8px 0 0">Updates every minute with the live price. Uses Mastermelt's counter price unless you pick your own % (Quick check, on the My gold page).</p>
   </div>
 
   <div class="card" style="border-color:var(--gold)">
@@ -482,12 +482,18 @@
         </select>
       </div>
     </div>
-    <label>Buyer pays (% of spot). Also used for "My gold"</label>
+    <label>Refiner prices. Used everywhere in the app</label>
+    <select id="rMode">
+      <option value="mastermelt">Mastermelt trade counter prices (automatic)</option>
+      <option value="own">My own % of the gold price</option>
+    </select>
+    <div id="mmInfo" class="muted" style="margin:6px 0 4px"></div>
+    <label id="cPLabel">Buyer pays (% of spot)</label>
     <input id="cP" type="number" inputmode="decimal" value="95">
     <div class="result">
       <div class="muted">Melt value at today's price</div>
       <b id="cSpot">£0</b>
-      <div class="muted" style="margin-top:8px">You'd receive at <span id="cPct">95</span>%</div>
+      <div class="muted" style="margin-top:8px">You'd receive at <span id="cPct">95%</span></div>
       <b id="cNet">£0</b>
       <div class="muted" style="margin-top:8px" id="cZone"></div>
     </div>
@@ -610,7 +616,7 @@ function renderDealer(){
         <tr><td>Most to keep right now</td><td>${target.toFixed(1)} g</td></tr>
         <tr><td><b>Send to the refiner this week</b></td><td><b>${send >= 1 ? send.toFixed(1) + " g" : "nothing"}</b></td></tr>
       </table>
-      ${batch.length ? `<p class="muted" style="margin:6px 0 0">Oldest gold first: ${Object.entries(byCarat).map(([k, w]) => `${w.toFixed(1)}g ${CT[k]}`).join(", ")}${gbpPerGram ? `, about <b>${fmt(pure * gbpPerGram * pay, 0)}</b> at ${Math.round(pay * 100)}%` : ""}.</p>` : ""}
+      ${batch.length ? `<p class="muted" style="margin:6px 0 0">Oldest gold first: ${Object.entries(byCarat).map(([k, w]) => `${w.toFixed(1)}g ${CT[k]}`).join(", ")}${gbpPerGram ? `, about <b>${fmt(pure * gbpPerGram * pay, 0)}</b> ${payAt(pay)}` : ""}.</p>` : ""}
       <button class="btn ghost" onclick="go('calc');setTimeout(()=>{const e=document.getElementById('buyCard');if(e)e.scrollIntoView({behavior:'smooth'})},200)">See the details in My gold</button>`;
   }
   box.innerHTML = `<div class="verdict ${b.cls}" style="margin:0"><div class="call">${b.call}</div><div>${b.why}</div></div>${extra}
@@ -641,7 +647,7 @@ function renderBuy(){
     </table>
     ${batch.length ? `<div class="result"><div class="muted">Send to the refiner this week (oldest first)</div><b>${send.toFixed(1)} g</b>
         <div style="margin-top:6px">${Object.entries(byCarat).map(([k, w]) => `${w.toFixed(1)}g of ${CT[k]}`).join(", ")}</div>
-        ${gbpPerGram ? `<div class="muted" style="margin-top:6px">${pure.toFixed(1)}g pure gold, about <b style="font-size:16px">${fmt(pure * gbpPerGram * pay, 0)}</b> at ${Math.round(pay * 100)}%</div>` : ""}
+        ${gbpPerGram ? `<div class="muted" style="margin-top:6px">${pure.toFixed(1)}g pure gold, about <b style="font-size:16px">${fmt(pure * gbpPerGram * pay, 0)}</b> ${payAt(pay)}</div>` : ""}
       </div>
       <button class="btn" id="bSent">I've sent this batch</button>
       <p class="muted">Tapping this takes the batch off your list, oldest items first, so your stock stays right.</p>`
@@ -898,6 +904,36 @@ function renderNews(){
     ${news.headlines.slice(0, 8).map(h => `<a class="hl" href="${esc(h.link)}" target="_blank" rel="noopener"><i class="${h.score > 0 ? "up" : h.score < 0 ? "dn" : ""}"></i>${esc(h.title)}<div class="meta">${esc(h.source)} · ${ago(h.date)}</div></a>`).join("")}`;
 }
 
+/* =============== refiner: Mastermelt prices =============== */
+// Mastermelt publishes its trade counter buy prices once a day; the hourly job copies them to mastermelt.json.
+// With Mastermelt selected, every "what you'd receive" figure uses Mastermelt's price, so it matches their app.
+const REFINER_DEFAULT = "mastermelt";
+const MM_URL = "mastermelt.json";
+let mm = null;
+function refinerMode(){ return store.get("refiner") || REFINER_DEFAULT; }
+function mmFresh(){ return !!(mm && mm.pure_g && (Date.now() - new Date(mm.date + "T12:00:00")) / 864e5 < 5); }
+function mmOn(){ return refinerMode() === "mastermelt" && mmFresh() && !!gbpPerGram; }
+function mmDay(){ return mm ? new Date(mm.date + "T12:00:00").toLocaleDateString("en-GB", {weekday: "short", day: "numeric", month: "short"}) : ""; }
+function payAt(pay){ return mmOn() ? "at Mastermelt's price" : `at ${Math.round(pay * 100)}%`; }
+function applyRefiner(){
+  const mode = refinerMode(), on = mmOn();
+  $("rMode").value = mode;
+  $("cP").disabled = on;
+  $("cPLabel").style.display = $("cP").style.display = on ? "none" : "";
+  if (on){
+    $("cP").value = String(mm.pure_g / gbpPerGram * 100);
+    $("mmInfo").innerHTML = `Mastermelt counter price, ${mmDay()}: ${Object.entries(mm.prices).map(([k, v]) => `${k} <b>${fmt(v)}</b>`).join(" · ")} per gram. That's ${(mm.pure_g / gbpPerGram * 100).toFixed(1)}% of the live gold price. Updated automatically.`;
+  } else {
+    if ($("cP").value.length > 6 || mode === "own") $("cP").value = store.get("ownPct") || "95";
+    $("mmInfo").innerHTML = mode === "mastermelt"
+      ? (mm ? `Mastermelt's latest price is from ${mmDay()}, which is too old to use, so the app is using your own % below until a new one comes in.` : "Mastermelt's prices haven't loaded yet, so the app is using your own % below for now.")
+      : "";
+  }
+}
+$("rMode").addEventListener("change", () => { store.set("refiner", $("rMode").value); applyRefiner(); calc(); renderStock(); });
+$("cP").addEventListener("input", () => { if (!$("cP").disabled) store.set("ownPct", $("cP").value); });
+async function loadMM(){ try { mm = await fetchJSON(MM_URL + "?t=" + Date.now()); } catch(e){} }
+
 /* =============== prices =============== */
 async function getLiveOz(){
   const [xau, fx] = await Promise.all([
@@ -913,7 +949,7 @@ function showPrice(oz, label){
   $("pOz").textContent = fmt(oz, 0) + " per troy ounce";
   $("carats").innerHTML = CARATS.map(([k, f]) => `<div><b>${fmt(gbpPerGram * f)}</b><span>${k}/g</span></div>`).join("");
   $("pTime").textContent = label;
-  calc(); checkAlert(); renderStock();
+  applyRefiner(); calc(); checkAlert(); renderStock();
 }
 function analyse(){
   if (!daily.length) return;
@@ -937,10 +973,11 @@ async function refresh(){
 function calc(){
   const w = parseFloat($("cG").value) || 0, k = parseFloat($("cK").value), p = parseFloat($("cP").value) || 0;
   const pure = w * k;
-  $("cPure").textContent = pure.toFixed(2); $("cPct").textContent = p;
+  $("cPure").textContent = pure.toFixed(2); $("cPct").textContent = mmOn() ? "Mastermelt's price" : p + "%";
   if (gbpPerGram == null) return;
   $("cSpot").textContent = fmt(pure * gbpPerGram);
-  $("cNet").textContent = fmt(pure * gbpPerGram * p / 100);
+  const mmP = mmOn() && mm.prices[CT[$("cK").value]];   // Mastermelt's own per-gram price for this carat, so pence match exactly
+  $("cNet").textContent = fmt(mmP ? w * mmP : pure * gbpPerGram * p / 100);
   store.set("calc", JSON.stringify({g: $("cG").value, k: $("cK").value, p: $("cP").value}));
 }
 ["cG","cK","cP"].forEach(id => $(id).addEventListener("input", calc));
@@ -1072,7 +1109,7 @@ function renderStock(){
   $("stockTotals").innerHTML = `<table>
     <tr><td>Pure gold you hold</td><td>${pure.toFixed(1)} g</td></tr>
     <tr><td>Worth at today's price</td><td>${fmt(spot, 0)}</td></tr>
-    <tr><td>You'd receive at ${Math.round(pay * 100)}%</td><td>${fmt(net, 0)}</td></tr>
+    <tr><td>${mmOn() ? `Mastermelt pays (counter price, ${mmDay()})` : `You'd receive at ${Math.round(pay*100)}%`}</td><td>${fmt(net, 0)}</td></tr>
     ${paid ? `<tr><td>${allPaid ? "Profit or loss" : "Profit or loss (on items with a price)"}</td><td style="color:${(allPaid ? net : a.filter(x => x.paid).reduce((s, x) => s + x.w * parseFloat(x.k) * gbpPerGram * pay, 0)) - paid >= 0 ? "var(--up)" : "var(--down)"}">${(() => { const base = allPaid ? net : a.filter(x => x.paid).reduce((s, x) => s + x.w * parseFloat(x.k) * gbpPerGram * pay, 0); const d = base - paid; return (d >= 0 ? "+" : "−") + fmt(Math.abs(d), 0) + " (" + pc(d / paid * 100) + ")"; })()}</td></tr>` : ""}
   </table>`;
   $("liveMine").style.display = "block";
@@ -1085,7 +1122,7 @@ function renderStock(){
   const split = Object.entries(byCarat).map(([k, w]) => `${Math.round(w * share)}g of your ${CT[k]}`).join(", ");
   $("stockPlan").innerHTML = share
     ? `<div class="verdict ${TIERS[t].cls}" style="margin:12px 0 0"><div class="call" style="font-size:19px">${TIERS[t].call}</div>
-        <div>For you that's about <b>${Math.round(share * 100)}%</b> of your gold: <b>${split}</b>. That's around <b>${(pure * share).toFixed(1)}g of pure gold, roughly ${fmt(net * share, 0)}</b> at ${Math.round(pay * 100)}%.</div></div>${sellOrder(a, pay)}`
+        <div>For you that's about <b>${Math.round(share * 100)}%</b> of your gold: <b>${split}</b>. That's around <b>${(pure * share).toFixed(1)}g of pure gold, roughly ${fmt(net * share, 0)}</b> ${payAt(pay)}.</div></div>${sellOrder(a, pay)}`
     : `<div class="verdict t0" style="margin:12px 0 0"><div class="call" style="font-size:19px">${TIERS[t].call}</div>
         <div>No need to sell any yet. For reference, if gold reaches the <b>sell zone (${fmt(zSell)}/g)</b>, your gold would be worth about <b>${fmt(pure * zSell * pay, 0)}</b>, which is ${fmt(pure * (zSell - gbpPerGram) * pay, 0)} more than today. At that point, selling a quarter would mean about ${Object.entries(byCarat).map(([k, w]) => `${Math.round(w * 0.25)}g of your ${CT[k]}`).join(", ")}.</div></div>`;
 }
@@ -1238,12 +1275,14 @@ if (!store.get("seenGuide")) $("welcome").style.display = "block";
 (async () => {
   try { const dj = await fetchJSON("data.json?t=" + Date.now()); daily = dj.daily; dataUpdated = dj.updated; } catch(e){}
   try { news = await fetchJSON("news.json?t=" + Date.now()); } catch(e){}
+  await loadMM(); applyRefiner();
   renderStock();
   await refresh();
   setInterval(refresh, 60000);
   setInterval(async () => {
     try { const dj = await fetchJSON("data.json?t=" + Date.now()); daily = dj.daily; dataUpdated = dj.updated; } catch(e){}
     try { news = await fetchJSON("news.json?t=" + Date.now()); } catch(e){}
+    await loadMM(); applyRefiner(); calc();
     analyse();
   }, 30 * 60000);
 })();
