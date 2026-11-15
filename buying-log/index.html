@@ -746,6 +746,7 @@ async function openRecord(id){
       <input id="addNote"><div class="actions"><button class="btn ghost sm" id="addNoteBtn">Add to audit trail</button>
       <button class="btn ghost sm" id="toggleFlag">${r.flagged?'Remove flag':'Flag as suspicious'}</button></div></div>
     <div class="actions">
+      <button class="btn navy" id="emailOne">Email receipt to customer</button>
       <button class="btn navy" id="printOne">Print / save PDF for police</button>
       <button class="btn red" id="delRec">Delete record</button></div>
   </div>`;
@@ -755,6 +756,13 @@ async function openRecord(id){
   m.onclick = e => { if (e.target===m) close(); };
   $$('.modal .photos img').forEach(im => im.onclick = () => viewImage(im.src));
   $('#printOne').onclick = () => printRecords([r]);
+  $('#emailOne').onclick = async () => {
+    const to = r.seller.email || prompt('Customer\'s email address');
+    if (!to) return;
+    location.href = 'mailto:' + encodeURIComponent(to.trim()) + '?subject=' + encodeURIComponent(`Your receipt from ${settings.biz||CFG.biz} (${r.receipt})`) + '&body=' + encodeURIComponent(receiptText(r));
+    r.history = (r.history||[]).concat({at:new Date().toISOString(), what:'Receipt email opened for ' + to.trim()});
+    await putRecord(r);
+  };
   $('#addNoteBtn').onclick = async () => { const t=$('#addNote').value.trim(); if(!t) return; r.history=(r.history||[]).concat({at:new Date().toISOString(), what:t}); await putRecord(r); m.remove(); openRecord(r.id); };
   $('#toggleFlag').onclick = async () => { r.flagged=!r.flagged; r.history=(r.history||[]).concat({at:new Date().toISOString(), what:r.flagged?'Flagged as suspicious':'Flag removed'}); await putRecord(r); m.remove(); openRecord(r.id); };
   $('#delRec').onclick = async () => {
@@ -762,6 +770,23 @@ async function openRecord(id){
     if (prompt('Type DELETE to confirm')!=='DELETE') return;
     const n = removeFromMyGold(r); unlogBuys(r); await delRecord(r.id); allCache=[]; toast('Record deleted' + (n ? ' and removed from My gold' : '')); close();
   };
+}
+
+/* ---------- customer receipt (email) ---------- */
+// What the customer gets: what they sold, what they were paid and how. No ID numbers or date of birth.
+function receiptText(r){
+  const biz = settings.biz || CFG.biz, s = r.seller, L = [];
+  L.push(`Hi ${s.first || 'there'},`, '', `Thank you for selling to ${biz}. Here is your receipt.`, '');
+  L.push(`Receipt no: ${r.receipt}`, `Date: ${fmtDT(r.createdAt)}`, '');
+  L.push('What you sold:');
+  r.items.forEach((i,n) => L.push(`${n+1}. ${i.desc || 'Item'}, ${[i.metal, i.purity].filter(Boolean).join(' ')}${i.weight ? ', ' + i.weight + 'g' : ''}: ${gbp(i.price)}`));
+  L.push('', `Total paid to you: ${gbp(r.total)}`);
+  const pay = [r.payment.method, r.payment.bankLast4 ? 'to the account ending ' + r.payment.bankLast4 : '', r.payment.ref ? '(ref ' + r.payment.ref + ')' : ''].filter(Boolean).join(' ');
+  if (pay) L.push(`Paid by: ${pay}`);
+  L.push('', 'You signed a declaration that you own these items and have the right to sell them. We keep a record of this sale as the law requires.', '');
+  L.push('If you have any questions, just reply to this email' + (settings.phone ? ` or call us on ${settings.phone}` : '') + '.', '', 'Kind regards,', r.staff || '', biz);
+  if (settings.addr) L.push(settings.addr.replace(/\n/g, ', '));
+  return L.filter((x,i,a) => !(x === '' && a[i-1] === '')).join('\n');
 }
 
 /* ---------- printing ---------- */
