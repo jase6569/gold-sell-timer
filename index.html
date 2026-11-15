@@ -89,6 +89,11 @@
   .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin:10px 4px 2px}
   .legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
   #zTip{position:absolute;top:6px;left:8px;z-index:3;font-size:12px;background:rgba(15,14,12,.85);border:1px solid var(--line);border-radius:8px;padding:6px 8px;pointer-events:none}
+  .gtabs{position:sticky;top:0;z-index:5;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;background:var(--bg);padding:8px 0 10px;margin:-4px 0 6px}
+  .gtabs::-webkit-scrollbar{display:none}
+  .gtabs button{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--muted);padding:9px 14px;border-radius:999px;font-size:14px;font-weight:600}
+  .gtabs button.on{background:var(--gold);border-color:var(--gold);color:#1a1408}
+  .gtHide{display:none!important}
   .tabs{display:flex;background:#12110f;border-radius:12px;padding:4px;margin-bottom:12px}
   .tabs button{flex:1;border:0;background:none;color:var(--muted);padding:10px;border-radius:9px;font-size:15px;font-weight:600}
   .tabs button.on{background:var(--gold);color:#1a1408}
@@ -416,8 +421,12 @@
 
 <!-- ========== VALUE ========== -->
 <section class="page" id="p-calc">
-  <div class="bkdue" id="bkDue2" style="display:none"></div>
-  <div class="card" id="weekCard" style="display:none">
+  <div class="gtabs" id="gtTabs">
+    <button data-t="week">Overview</button><button data-t="stock">My stock</button><button data-t="send">Send</button><button data-t="money" id="gtMoney">Make money</button><button data-t="coins">Coins</button><button data-t="prices">Prices</button>
+  </div>
+  <div class="card" data-gt="week" id="ovEmpty" style="display:none"><h2>Nothing here yet</h2><p class="muted" style="margin:0">Add the gold you hold in <b>My stock</b>, or buy through the Buy log, and your week and live totals show here.</p></div>
+  <div data-gt="week" class="bkdue" id="bkDue2" style="display:none"></div>
+  <div data-gt="week" class="card" id="weekCard" style="display:none">
     <h2>Your week</h2>
     <div class="tabs" id="wkTabs" style="margin-bottom:10px">
       <button class="on" data-w="0">This week</button>
@@ -425,13 +434,13 @@
     </div>
     <div id="wkBody"></div>
   </div>
-  <div class="card" id="stockSum" style="display:none">
+  <div data-gt="week" class="card" id="stockSum" style="display:none">
     <h2>My gold today · live</h2>
     <div id="stockTotals"></div>
     <div id="stockPlan"></div>
   </div>
 
-  <div class="card" id="buyCard">
+  <div data-gt="send" class="card" id="buyCard">
     <h2>Buying in: what to send to the refiner</h2>
     <p class="muted" style="margin-top:0">For a shop that buys gold in all the time. Your profit is the gap between what you pay and what the refiner pays, and you only lock it in when you sell. This works out how much stock to keep and how much to send off this week, oldest gold first.</p>
     <div class="grid2">
@@ -441,7 +450,7 @@
     <div id="buyPlan" style="margin-top:12px"><p class="muted" style="margin:0">Enter how much you buy in a month to see your plan.</p></div>
   </div>
 
-  <div class="card">
+  <div data-gt="stock" class="card">
     <h2>My gold</h2>
     <p class="muted" style="margin-top:0">Add the gold you're holding to see what it's worth today and exactly how much to sell when the time comes. It's saved on this phone only and never sent anywhere.</p>
     <div class="grid2">
@@ -466,7 +475,7 @@
     <p class="sub" id="blNote" style="margin-top:10px;display:none">Buying from a customer? Use the <a href="buying-log/" style="color:var(--gold2)">Buying log</a>. It records their ID and adds the gold here for you.</p>
   </div>
 
-  <div class="card" id="proCard" style="display:none">
+  <div data-gt="money" class="card" id="proCard" style="display:none">
     <h2>Make more money</h2>
     <div class="sub">What to pay today</div>
     <label>Margin you want to keep, %</label>
@@ -480,7 +489,7 @@
     <div id="laBox"></div>
   </div>
 
-  <div class="card" id="lotsCard">
+  <div data-gt="stock" class="card" id="lotsCard">
     <h2>My lots</h2>
     <div class="tabs" id="lotTabs" style="margin-bottom:10px">
       <button data-v="w">Week</button>
@@ -497,7 +506,7 @@
   </div>
 
 
-  <div class="card" id="coinCard">
+  <div data-gt="coins" class="card" id="coinCard">
     <h2>Coins: gold and silver</h2>
     <div class="tabs" id="coinTabs" style="margin-bottom:10px">
       <button class="on" data-c="look">Look up a coin</button>
@@ -521,7 +530,7 @@
     <div id="coinOut"></div>
   </div>
 
-  <div class="card">
+  <div data-gt="prices" class="card">
     <h2>Quick check: what's this worth?</h2>
     <div class="grid2">
       <div><label>Weight (grams)</label><input id="cG" type="number" inputmode="decimal" placeholder="e.g. 250"></div>
@@ -1164,6 +1173,7 @@ function renderStock(){
   $("stockList").innerHTML = renderLots(a, pay);
   renderBuy();
   try { renderWeek(); renderBackupDue(); renderCoins(); } catch(e){ console.log(e); }
+  setTimeout(() => { try { gtEmpty(); } catch(e){} }, 0);
   try { renderPro(); } catch(e){ console.log(e); }
   if (!a.length || !gbpPerGram){ $("stockSum").style.display = "none"; $("liveMine").style.display = "none"; return; }
   $("stockSum").style.display = "block";
@@ -1211,6 +1221,24 @@ function closeOn(d){
 }
 function buys(){ try { return JSON.parse(store.get("buys") || "[]"); } catch(e){ return []; } }
 
+
+
+/* =============== My gold: sections as tabs =============== */
+let gtTab = store.get("gtTab") || "week";
+function gtEmpty(){
+  const vis = id => { const el = $(id); return el && el.style.display !== "none"; };
+  $("ovEmpty").style.display = vis("weekCard") || vis("stockSum") ? "none" : "block";
+}
+function showGt(t){
+  if (t === "money" && !PRO_ON()) t = "week";
+  gtTab = t; store.set("gtTab", t);
+  $("gtMoney").style.display = PRO_ON() ? "" : "none";
+  document.querySelectorAll("#gtTabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
+  document.querySelectorAll("#p-calc [data-gt]").forEach(el => el.classList.toggle("gtHide", el.dataset.gt !== t));
+  gtEmpty();
+}
+document.querySelectorAll("#gtTabs button").forEach(b => b.onclick = () => { showGt(b.dataset.t); window.scrollTo(0, 0); });
+showGt(gtTab);
 
 /* =============== coins: look up and identify (gold and silver) =============== */
 // Official mint specs: weight g, diameter mm, fineness. p = worth more than melt?
@@ -1478,8 +1506,8 @@ function renderWeek(){
     <table>
       <tr><td><b>Bought</b><div class="muted">${b.n ? `${b.n} item${b.n === 1 ? "" : "s"}, ${b.g.toFixed(1)}g (${b.pure.toFixed(1)}g pure)` : "Nothing yet"}${b.margin != null ? ` · ${b.margin.toFixed(1)}% margin on the refiner's price that day` : ""}</div></td><td>${b.cost ? fmt(b.cost, 0) : ""}</td></tr>
       <tr><td><b>Sent to the refiner</b><div class="muted">${s.n ? `${s.g.toFixed(1)}g (${s.pure.toFixed(1)}g pure), about ${fmt(s.value, 0)}` : "Nothing sent"}</div></td><td></td></tr>
-      ${s.n && s.cost ? `<tr><td><b>Made on what you sent</b><div class="muted">About ${fmt(s.valuePaid, 0)} back on ${fmt(s.cost, 0)} paid</div></td><td class="${made >= 0 ? "pos" : "neg"}">${signed(made)}</td></tr>` : ""}
-      ${wkView === 0 ? `<tr><td><b>Still holding</b><div class="muted">${h.g.toFixed(1)}g (${h.pure.toFixed(1)}g pure)${h.cost ? `, cost ${fmt(h.cost, 0)}` : ""}${h.worth ? `, worth about ${fmt(h.worth, 0)} ${payAt((parseFloat($("cP").value) || 95) / 100)}` : ""}</div></td><td class="${h.pnl == null ? "" : h.pnl >= 0 ? "pos" : "neg"}">${h.pnl == null ? "" : signed(h.pnl)}</td></tr>` : ""}
+      ${s.n && s.cost ? `<tr><td><b>Made on what you sent</b><div class="muted">About ${fmt(s.valuePaid, 0)} back on ${fmt(s.cost, 0)} paid</div></td><td class="${made >= 0 ? "pos" : "neg"}" style="white-space:nowrap">${signed(made)}</td></tr>` : ""}
+      ${wkView === 0 ? `<tr><td><b>Still holding</b><div class="muted">${h.g.toFixed(1)}g (${h.pure.toFixed(1)}g pure)${h.cost ? `, cost ${fmt(h.cost, 0)}` : ""}${h.worth ? `, worth about ${fmt(h.worth, 0)} ${payAt((parseFloat($("cP").value) || 95) / 100)}` : ""}</div></td><td class="${h.pnl == null ? "" : h.pnl >= 0 ? "pos" : "neg"}" style="white-space:nowrap">${h.pnl == null ? "" : signed(h.pnl)}</td></tr>` : ""}
     </table>
     <p class="muted" style="margin:8px 0 0">Sent figures use the price on the day you tapped <b>I've sent this batch</b>, so they're close but not exact. Mastermelt's statement has the final payout.${wkView === 0 ? " A summary of your week comes to your phone every Sunday evening." : ""}</p>`;
 }
