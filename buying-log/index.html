@@ -141,6 +141,11 @@
 <main>
   <!-- NEW PURCHASE -->
   <section id="tab-new">
+    <div class="card hidden" id="bkNag" style="border-color:#c98a2b;background:#fff8ec">
+      <b>Back up your records</b>
+      <p class="muted" id="bkNagMsg" style="margin:6px 0 10px"></p>
+      <button class="btn navy" id="bkNagBtn">Back up now</button>
+    </div>
     <div class="card">
       <h2>Seller</h2>
       <div class="row">
@@ -306,9 +311,9 @@
     </div>
     <div class="card">
       <h2>Backup</h2>
-      <p class="muted">Records live only on this device. Back up regularly so nothing is lost if the phone is lost, reset or the browser data is cleared. The backup file contains ID photos and personal data, so keep it somewhere secure.</p>
+      <p class="muted">Records live only on this device. Back up every week so nothing is lost if the phone is lost, reset or the browser data is cleared. Back up now lets you save straight to Google Drive (best, as the file can be large) or email. The backup also includes your My gold list. It contains ID photos and personal data, so keep it somewhere secure and private.</p>
       <div class="actions">
-        <button class="btn navy" id="backupBtn">Download full backup</button>
+        <button class="btn navy" id="backupBtn">Back up now</button>
         <label class="btn ghost" style="margin:0;color:var(--ink)">Restore backup<input type="file" id="restoreIn" accept=".json,application/json" class="hidden"></label>
       </div>
       <p class="muted" id="lastBackup"></p>
@@ -656,7 +661,7 @@ $('#saveBtn').onclick = async () => {
     staff: v('#f_staff'), location: v('#f_loc'), notes: v('#f_notes'), flagged: $('#f_flag').checked,
     history: [{ at: now, what: 'Created' }]
   };
-  await putRecord(rec);
+  await putRecord(rec); checkBackupDue();
   allCache = [];
   const grams = addToMyGold(rec); logBuys(rec);
   if (v('#f_staff')!==settings.staff){ settings.staff = v('#f_staff'); await saveSettingsObj(); }
@@ -853,12 +858,41 @@ $('#clearPin').onclick = async () => {
 $('#reviewOld').onclick = () => { const c=retentionCutoff().slice(0,10); $('#q').value=''; $('#q_from').value=''; $('#q_to').value=c; showTab('records'); };
 
 /* ---------- backup / restore ---------- */
-$('#backupBtn').onclick = async () => {
+// one file holds the records and the My gold list, so a lost phone can be fully restored
+const GT_KEYS = { stock: CFG.stockKey, buys: CFG.buysKey, sent: CFG.stockKey.replace(/stock$/, 'sent') };
+const BK_MIRROR = CFG.stockKey.replace(/stock$/, 'blBackup');   // lets Gold Trader see when the last backup was
+async function saveOrShare(blob, name){
+  const file = new File([blob], name, { type: blob.type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: name }); return 'shared'; }
+    catch(e){ if (e && e.name === 'AbortError') return 'cancelled'; }
+  }
+  download(blob, name); return 'downloaded';
+}
+async function runBackup(){
   const recs = await allRecords();
-  const data = { app:'gold-buylog', version:1, exportedAt:new Date().toISOString(), settings:{...settings, pinHash:''}, records:recs };
-  download(new Blob([JSON.stringify(data)],{type:'application/json'}), `gold-buylog-backup-${new Date().toISOString().slice(0,10)}.json`);
-  await kvSet('lastBackup', new Date().toISOString()); fillSettings();
-};
+  const myGold = {};
+  Object.entries(GT_KEYS).forEach(([k, key]) => { try { myGold[k] = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e){ myGold[k] = []; } });
+  const data = { app:'gold-buylog', version:2, exportedAt:new Date().toISOString(), settings:{...settings, pinHash:''}, records:recs, myGold };
+  const how = await saveOrShare(new Blob([JSON.stringify(data)],{type:'application/json'}), `gold-buylog-backup-${new Date().toISOString().slice(0,10)}.json`);
+  if (how === 'cancelled') return toast('Backup not saved');
+  const t = new Date().toISOString();
+  await kvSet('lastBackup', t); try { localStorage.setItem(BK_MIRROR, t); } catch(e){}
+  fillSettings(); checkBackupDue();
+  toast(how === 'shared' ? 'Backup saved' : 'Backup downloaded. Move it to Google Drive or email it to yourself');
+}
+$('#backupBtn').onclick = runBackup;
+$('#bkNagBtn').onclick = runBackup;
+async function checkBackupDue(){
+  try {
+    const n = (await allRecords()).length, t = await kvGet('lastBackup');
+    if (t) { try { localStorage.setItem(BK_MIRROR, t); } catch(e){} }
+    const days = t ? Math.floor((Date.now() - new Date(t)) / 864e5) : null;
+    const due = n > 0 && (days == null || days >= 7);
+    $('#bkNag').classList.toggle('hidden', !due);
+    if (due) $('#bkNagMsg').textContent = (days == null ? `Your ${n} record${n===1?' has':'s have'} never been backed up.` : `Last backup was ${days} days ago.`) + ' They only live on this phone. Tap below and choose Google Drive or email.';
+  } catch(e){}
+}
 $('#restoreIn').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
   try {
@@ -868,7 +902,13 @@ $('#restoreIn').onchange = async e => {
     const fresh = data.records.filter(r=>!existing.has(r.id));
     if (!confirm(`Backup has ${data.records.length} records. ${fresh.length} are new to this device and will be added. Existing records are kept. Continue?`)) return;
     for (const r of fresh) await putRecord(r);
-    allCache=[]; toast(`Restored ${fresh.length} records`);
+    if (data.myGold) {   // put back the My gold list too, without doubling anything already on this phone
+      const cur = k => { try { return JSON.parse(localStorage.getItem(GT_KEYS[k]) || '[]'); } catch(e){ return []; } };
+      if (Array.isArray(data.myGold.stock) && !cur('stock').length) localStorage.setItem(GT_KEYS.stock, JSON.stringify(data.myGold.stock));
+      if (Array.isArray(data.myGold.buys)) { const b = cur('buys'), ids = new Set(b.map(x => x.id)); localStorage.setItem(GT_KEYS.buys, JSON.stringify(b.concat(data.myGold.buys.filter(x => !x.id || !ids.has(x.id))))); }
+      if (Array.isArray(data.myGold.sent) && !cur('sent').length) localStorage.setItem(GT_KEYS.sent, JSON.stringify(data.myGold.sent));
+    }
+    allCache=[]; toast(`Restored ${fresh.length} records`); checkBackupDue();
   } catch(err){ toast(err.message); }
   e.target.value='';
 };
@@ -895,6 +935,8 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) retur
   if (settings.pinHash) lockNow();
   resetForm();
   requestAnimationFrame(sizeSig);
+  checkBackupDue();
+  try { if (new URLSearchParams(location.search).get('backup')) { history.replaceState(null, '', location.pathname); showTab('new'); window.scrollTo(0, 0); } } catch(e){}
 })();
 })();
 </script>

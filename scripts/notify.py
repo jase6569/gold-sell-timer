@@ -160,6 +160,70 @@ def lot_status(cush, tier, bad):
     if tier >= 2: return "lock"
     return "safe"
 
+def money(v):
+    return f"£{abs(v):,.0f}"
+
+def week_summary(data, sent_at, to_topic, app, spot_g, pay, state, sid, now):
+    """Sunday evening: what you bought, sent and made this week, and what's still unsold."""
+    uk = now.replace(tzinfo=dt.timezone.utc).astimezone(ZoneInfo("Europe/London"))
+    if uk.weekday() != 6 or uk.hour < 18:
+        return
+    mon = (uk.date() - dt.timedelta(days=6)).isoformat()
+    done = state.setdefault("wsum", {})
+    if done.get(sid) == mon:
+        return
+    wk = data.get("wk")
+    if not wk:
+        return
+    done[sid] = mon
+    parts = []
+    fresh = wk.get("mon") == mon
+    if fresh:
+        n, g, pure, cost, margin = wk["b"]
+        if n:
+            parts.append(f"Bought {n} item{'s' if n != 1 else ''}, {g:g}g ({pure:.1f}g pure) for {money(cost)}"
+                         + (f", a margin of {margin:.1f}% on the refiner's price." if margin is not None else "."))
+        else:
+            parts.append("Nothing bought this week.")
+        sn, sg, spure, scost, svalpaid, sval = wk["s"]
+        if sn:
+            line = f"Sent {sg:g}g to the refiner, about {money(sval)}"
+            if scost:
+                made = svalpaid - scost
+                line += f", roughly {money(made)} {'more' if made >= 0 else 'less'} than you paid for it"
+            parts.append(line + ".")
+        else:
+            parts.append("Nothing sent to the refiner.")
+    else:
+        parts.append("You haven't opened Gold Trader this week, so this only covers what you're holding.")
+    hg, hpure, hpaid, hcost = wk["h"]
+    if hg:
+        worth = hpure * spot_g * pay
+        line = f"Still holding {hg:g}g ({hpure:.1f}g pure), worth about {money(worth)} at today's price"
+        if hcost:
+            pnl = hpaid * spot_g * pay - hcost
+            line += f". It cost {money(hcost)}, so you'd be {'up' if pnl >= 0 else 'down'} {money(pnl)} if you sent it all now"
+        parts.append(line + ".")
+    else:
+        parts.append("No gold left in stock.")
+    bk = data.get("bk")
+    days = (now - dt.datetime.fromisoformat(bk.replace("Z", "+00:00")).replace(tzinfo=None)).days if bk else None
+    if days is None:
+        parts.append("Your buy log has never been backed up. Open it and tap Back up now.")
+    elif days >= 7:
+        parts.append(f"Your buy log was last backed up {days} days ago. Open it and tap Back up now.")
+    if fresh and (now.timestamp() - sent_at) > 36 * 3600:
+        parts.append("Figures are from the last time you opened the app.")
+    if fresh and wk["b"][0]:
+        title = f"Your week: bought {money(wk['b'][3])}"
+        if wk["s"][0] and wk["s"][3]:
+            made = wk["s"][4] - wk["s"][3]
+            title += f", {'made' if made >= 0 else 'lost'} {money(made)}"
+    else:
+        title = "Your week in gold"
+    ntfy_post(to_topic, " ".join(parts), title, "low", "calendar", app)
+    print("week summary sent")
+
 def run_lot_alerts(code, to_topic, app, tier, daily, state, now):
     k = lot_keys(code)
     msg = ntfy_latest(k["sync"])
@@ -183,8 +247,12 @@ def run_lot_alerts(code, to_topic, app, tier, daily, state, now):
             pay = mm["pure_g"] / (on_day[-1] / OZ) if on_day else mm["pure_g"] / spot_g
     except Exception:
         pass
-    bad = bad_week(daily)
     sid = hmac.new(k["mac"], b"state", hashlib.sha256).hexdigest()[:10]
+    try:
+        week_summary(data, msg["time"], to_topic, app, spot_g, pay, state, sid, now)
+    except Exception as e:
+        print("week summary failed", e)
+    bad = bad_week(daily)
     prev = state.setdefault("lots", {}).get(sid)
     cur, news = {}, []
     for month, pure_paid, cost, by_carat in data.get("lots", []):

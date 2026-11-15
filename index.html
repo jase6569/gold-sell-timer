@@ -79,6 +79,8 @@
   .lot details summary{font-size:13px;padding:6px 0 0}
   .lot .it{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-top:1px solid var(--line)}
   .pos{color:var(--up)} .neg{color:var(--down)}
+  .bkdue{border:1px solid #8a5a20;background:rgba(227,163,59,.08);border-radius:12px;padding:12px 14px;margin:0 0 12px}
+  .bkdue .btn{margin-top:10px;padding:11px}
   .warn{border:1px solid #8a5a20;background:rgba(227,163,59,.08);border-radius:12px;padding:12px;margin-top:12px}
   .tv{border-radius:12px;overflow:hidden}
   .rng{display:flex;gap:6px;margin:0 2px 8px}
@@ -126,6 +128,7 @@
 
 <!-- ========== ADVICE ========== -->
 <section class="page on" id="p-home">
+  <div class="bkdue" id="bkDue1" style="display:none"></div>
   <div class="card" id="stale" style="display:none;border-color:var(--down);background:rgba(224,93,79,.08)">
     <h2 style="color:var(--down)">Prices haven't updated</h2>
     <p style="margin:0" id="staleMsg"></p>
@@ -413,6 +416,15 @@
 
 <!-- ========== VALUE ========== -->
 <section class="page" id="p-calc">
+  <div class="bkdue" id="bkDue2" style="display:none"></div>
+  <div class="card" id="weekCard" style="display:none">
+    <h2>Your week</h2>
+    <div class="tabs" id="wkTabs" style="margin-bottom:10px">
+      <button class="on" data-w="0">This week</button>
+      <button data-w="1">Last week</button>
+    </div>
+    <div id="wkBody"></div>
+  </div>
   <div class="card" id="stockSum" style="display:none">
     <h2>My gold today · live</h2>
     <div id="stockTotals"></div>
@@ -477,11 +489,11 @@
     </div>
     <div id="stockList"></div>
     <div class="grid2" style="margin-top:12px">
-      <button class="btn ghost" id="bkSave" style="margin-top:0">Download backup</button>
+      <button class="btn ghost" id="bkSave" style="margin-top:0">Back up</button>
       <button class="btn ghost" id="bkLoad" style="margin-top:0">Restore backup</button>
     </div>
     <input id="bkFile" type="file" accept=".json,application/json" style="display:none">
-    <p class="muted" id="bkMsg" style="margin:8px 0 0">Your gold is saved on this phone only. Download a backup now and then, and keep it somewhere safe, like your email or Google Drive.</p>
+    <p class="muted" id="bkMsg" style="margin:8px 0 0">Your gold is saved on this phone only. Tap Back up to save a copy to Google Drive or email, so nothing is lost if the phone is.</p>
   </div>
 
 
@@ -675,8 +687,18 @@ function renderBuy(){
   const btn = $("bSent");
   if (btn) btn.onclick = () => {
     if (!confirm("Take " + send.toFixed(1) + "g off your list as sent to the refiner?")) return;
-    const s = stock();
-    batch.forEach(({i, take}) => { s[i].w = Math.round((s[i].w - take) * 100) / 100; });
+    const s = stock(), rec = {d: todayISO(), by: {}, pure: 0, purePaid: 0, cost: 0, value: 0, valuePaid: 0};
+    const perPure = gbpPerGram ? gbpPerGram * pay : 0;
+    batch.forEach(({i, take}) => {
+      const x = s[i], f = Math.min(1, take / x.w), p = take * parseFloat(x.k);
+      rec.by[x.k] = +((rec.by[x.k] || 0) + take).toFixed(2); rec.pure += p; rec.value += p * perPure;
+      if (x.paid > 0){ const c = x.paid * f; rec.cost += c; rec.purePaid += p; rec.valuePaid += p * perPure;
+        if (x.paid0 == null) x.paid0 = x.paid; x.paid = Math.round((x.paid - c) * 100) / 100; }   // the rest keeps its share of the cost
+      if (x.w0 == null) x.w0 = x.w;
+      x.w = Math.round((x.w - take) * 100) / 100;
+    });
+    ["pure", "purePaid", "cost", "value", "valuePaid"].forEach(k => rec[k] = Math.round(rec[k] * 100) / 100);
+    const log = sentLog(); log.push(rec); store.set("sent", JSON.stringify(log.slice(-300)));
     saveStock(s.filter(x => x.w > 0.05));
   };
 }
@@ -1088,15 +1110,11 @@ function sellOrder(a, pay){
 }
 
 /* ---- backup ---- */
-$("bkSave").onclick = () => {
+$("bkSave").onclick = async () => {
   try {
-    const data = JSON.stringify({app: "Gold Trader", saved: new Date().toISOString(), stock: stock()}, null, 1);
-    const url = URL.createObjectURL(new Blob([data], {type: "application/json"}));
-    const link = document.createElement("a");
-    link.href = url; link.download = "gold-trader-backup-" + new Date().toISOString().slice(0, 10) + ".json";
-    document.body.appendChild(link); link.click(); link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-    $("bkMsg").textContent = "Backup downloaded (" + stock().length + " items). Keep it somewhere safe.";
+    const data = JSON.stringify({app: "Gold Trader", saved: new Date().toISOString(), stock: stock(), buys: buys(), sent: sentLog()}, null, 1);
+    const how = await saveFile(new Blob([data], {type: "application/json"}), "gold-trader-backup-" + todayISO() + ".json");
+    if (how !== "cancelled") $("bkMsg").textContent = "Backup " + (how === "shared" ? "saved" : "downloaded") + " (" + stock().length + " items). Keep it somewhere safe.";
   } catch(e){ $("bkMsg").textContent = "Couldn't create the backup on this phone."; }
 };
 $("bkLoad").onclick = () => $("bkFile").click();
@@ -1109,6 +1127,8 @@ $("bkFile").onchange = async () => {
     const key = x => [x.w, x.k, x.paid, x.d, x.n].join("|");
     const have = new Set(cur.map(key));
     const added = d.stock.filter(x => !have.has(key(x)));
+    if (Array.isArray(d.buys)){ const b = buys(), ids = new Set(b.map(x => x.id)); store.set("buys", JSON.stringify(b.concat(d.buys.filter(x => !x.id || !ids.has(x.id))))); }
+    if (Array.isArray(d.sent)){ const sl = sentLog(), kk = x => JSON.stringify([x.d, x.by, x.pure]), seen = new Set(sl.map(kk)); store.set("sent", JSON.stringify(sl.concat(d.sent.filter(x => !seen.has(kk(x)))))); }
     saveStock(cur.concat(added));
     $("bkMsg").textContent = "Restored " + added.length + " item" + (added.length === 1 ? "" : "s") + " from your backup" + (d.stock.length > added.length ? " (skipped ones you already had)." : ".");
   } catch(e){ $("bkMsg").textContent = "That file isn't a Gold Trader backup."; }
@@ -1119,6 +1139,7 @@ function renderStock(){
   const a = stock(), pay = (parseFloat($("cP").value) || 95) / 100;
   $("stockList").innerHTML = renderLots(a, pay);
   renderBuy();
+  try { renderWeek(); renderBackupDue(); } catch(e){ console.log(e); }
   try { renderPro(); } catch(e){ console.log(e); }
   if (!a.length || !gbpPerGram){ $("stockSum").style.display = "none"; $("liveMine").style.display = "none"; return; }
   $("stockSum").style.display = "block";
@@ -1165,6 +1186,77 @@ function closeOn(d){
   return ans;
 }
 function buys(){ try { return JSON.parse(store.get("buys") || "[]"); } catch(e){ return []; } }
+
+/* =============== your week: bought, sent, made, still holding =============== */
+function sentLog(){ try { return JSON.parse(store.get("sent") || "[]"); } catch(e){ return []; } }
+function todayISO(){ const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
+function addDays(iso, n){ const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+function mondayOf(iso){ const d = new Date(iso + "T12:00:00Z"); return addDays(iso, -((d.getUTCDay() + 6) % 7)); }
+function weekFigures(mon){
+  const sun = addDays(mon, 6), inW = d => !!d && d >= mon && d <= sun;
+  const pay = (parseFloat($("cP").value) || 95) / 100;
+  const bought = buys().filter(x => inW(x.d)).concat(stock().filter(x => !x.bl && inW(x.d)).map(x => ({d: x.d, w: x.w0 != null ? x.w0 : x.w, k: x.k, paid: (x.paid0 != null ? x.paid0 : x.paid) || 0})));
+  const b = {n: bought.length, g: 0, pure: 0, cost: 0, r: 0, rc: 0};
+  bought.forEach(x => { const p = x.w * parseFloat(x.k); b.g += x.w; b.pure += p; b.cost += x.paid || 0;
+    const oz = x.paid > 0 ? closeOn(x.d) : null; if (oz){ b.r += p * g(oz) * payRatio(); b.rc += x.paid; } });
+  b.margin = b.r ? (1 - b.rc / b.r) * 100 : null;
+  const s = {n: 0, g: 0, pure: 0, cost: 0, value: 0, valuePaid: 0};
+  sentLog().filter(x => inW(x.d)).forEach(x => { s.n++; s.g += Object.values(x.by).reduce((t, w) => t + w, 0); s.pure += x.pure; s.cost += x.cost; s.value += x.value; s.valuePaid += x.valuePaid; });
+  const a = stock(), h = {g: 0, pure: 0, purePaid: 0, cost: 0};
+  a.forEach(x => { const p = x.w * parseFloat(x.k); h.g += x.w; h.pure += p; if (x.paid > 0){ h.purePaid += p; h.cost += x.paid; } });
+  h.worth = gbpPerGram ? h.pure * gbpPerGram * pay : 0;
+  h.pnl = gbpPerGram && h.cost ? h.purePaid * gbpPerGram * pay - h.cost : null;
+  return {mon, sun, b, s, h};
+}
+let wkView = 0;
+document.querySelectorAll("#wkTabs button").forEach(btn => btn.onclick = () => {
+  wkView = +btn.dataset.w; document.querySelectorAll("#wkTabs button").forEach(x => x.classList.toggle("on", x === btn)); renderWeek();
+});
+function renderWeek(){
+  const any = stock().length || buys().length || sentLog().length;
+  $("weekCard").style.display = any ? "block" : "none";
+  if (!any) return;
+  const mon = addDays(mondayOf(todayISO()), -7 * wkView), f = weekFigures(mon), {b, s, h} = f;
+  const day = iso => new Date(iso + "T12:00:00Z").toLocaleDateString("en-GB", {day: "numeric", month: "short"});
+  const signed = v => (v >= 0 ? "+" : "−") + fmt(Math.abs(v), 0);
+  const made = s.valuePaid - s.cost;
+  $("wkBody").innerHTML = `<p class="muted" style="margin:0 0 8px">Monday ${day(f.mon)} to Sunday ${day(f.sun)}</p>
+    <table>
+      <tr><td><b>Bought</b><div class="muted">${b.n ? `${b.n} item${b.n === 1 ? "" : "s"}, ${b.g.toFixed(1)}g (${b.pure.toFixed(1)}g pure)` : "Nothing yet"}${b.margin != null ? ` · ${b.margin.toFixed(1)}% margin on the refiner's price that day` : ""}</div></td><td>${b.cost ? fmt(b.cost, 0) : ""}</td></tr>
+      <tr><td><b>Sent to the refiner</b><div class="muted">${s.n ? `${s.g.toFixed(1)}g (${s.pure.toFixed(1)}g pure), about ${fmt(s.value, 0)}` : "Nothing sent"}</div></td><td></td></tr>
+      ${s.n && s.cost ? `<tr><td><b>Made on what you sent</b><div class="muted">About ${fmt(s.valuePaid, 0)} back on ${fmt(s.cost, 0)} paid</div></td><td class="${made >= 0 ? "pos" : "neg"}">${signed(made)}</td></tr>` : ""}
+      ${wkView === 0 ? `<tr><td><b>Still holding</b><div class="muted">${h.g.toFixed(1)}g (${h.pure.toFixed(1)}g pure)${h.cost ? `, cost ${fmt(h.cost, 0)}` : ""}${h.worth ? `, worth about ${fmt(h.worth, 0)} ${payAt((parseFloat($("cP").value) || 95) / 100)}` : ""}</div></td><td class="${h.pnl == null ? "" : h.pnl >= 0 ? "pos" : "neg"}">${h.pnl == null ? "" : signed(h.pnl)}</td></tr>` : ""}
+    </table>
+    <p class="muted" style="margin:8px 0 0">Sent figures use the price on the day you tapped <b>I've sent this batch</b>, so they're close but not exact. Mastermelt's statement has the final payout.${wkView === 0 ? " A summary of your week comes to your phone every Sunday evening." : ""}</p>`;
+}
+function weekPayload(){
+  const f = weekFigures(mondayOf(todayISO())), r = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
+  return {mon: f.mon, b: [f.b.n, r(f.b.g, 1), r(f.b.pure), r(f.b.cost), f.b.margin == null ? null : r(f.b.margin, 1)],
+    s: [f.s.n, r(f.s.g, 1), r(f.s.pure), r(f.s.cost), r(f.s.valuePaid), r(f.s.value)], h: [r(f.h.g, 1), r(f.h.pure), r(f.h.purePaid), r(f.h.cost)]};
+}
+
+/* =============== backup reminder =============== */
+// The Buy log saves when its last full backup was taken; nag here once a week if it's overdue.
+function backupDays(){ const t = store.get("blBackup"); return t ? Math.floor((Date.now() - new Date(t)) / 864e5) : null; }
+function renderBackupDue(){
+  const has = PRO_ON() && (buys().length > 0 || stock().some(x => x.bl));
+  const d = backupDays(), due = has && (d == null || d >= 7);
+  const html = due ? `<b>Back up your buy log</b><div class="muted" style="margin-top:4px">${d == null ? "It has never been backed up." : `Last backup was ${d} days ago.`} The ID records are only on this phone, so if it's lost or reset they're gone. It takes one tap to save a copy to Google Drive or email.</div>
+    <a class="btn" href="buying-log/?backup=1">Back up now</a>` : "";
+  ["bkDue1", "bkDue2"].forEach(id => { const el = $(id); if (el){ el.innerHTML = html; el.style.display = due ? "block" : "none"; } });
+}
+// Save a file: offers the phone's share sheet (Google Drive, Gmail, Files) where it can, otherwise downloads it
+async function saveFile(blob, name){
+  const file = new File([blob], name, {type: blob.type});
+  if (navigator.canShare && navigator.canShare({files: [file]})){
+    try { await navigator.share({files: [file], title: name}); return "shared"; }
+    catch(e){ if (e && e.name === "AbortError") return "cancelled"; }
+  }
+  const url = URL.createObjectURL(blob), link = document.createElement("a");
+  link.href = url; link.download = name; document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  return "downloaded";
+}
 function renderPro(){
   if (!PRO_ON()){ $("proCard").style.display = "none"; return; }
   $("proCard").style.display = "block";
@@ -1243,12 +1335,12 @@ let laTimer = null, laBusy = false;
 function queueLotSync(){ clearTimeout(laTimer); laTimer = setTimeout(syncLots, 1500); }
 async function syncLots(force){
   const code = store.get("lotCode"); if (!code || laBusy || !PRO_ON()) return;
-  const lots = lotSummary(), body = JSON.stringify(lots), last = store.get("lotSent") || "", at = +(store.get("lotSentAt") || 0);
+  const lots = lotSummary(), wk = weekPayload(), bk = store.get("blBackup") || null, body = JSON.stringify([lots, wk, bk]), last = store.get("lotSent") || "", at = +(store.get("lotSentAt") || 0);
   if (!force && body === last && Date.now() - at < 6 * 3600e3) return;
   laBusy = true;
   try {
     const k = await lotKeys(code);
-    const r = await fetch("https://ntfy.sh/" + k.sync, {method: "POST", body: await sealLots(k, {v: 1, t: new Date().toISOString(), lots}), headers: {Priority: "min"}});
+    const r = await fetch("https://ntfy.sh/" + k.sync, {method: "POST", body: await sealLots(k, {v: 1, t: new Date().toISOString(), lots, wk, bk}), headers: {Priority: "min"}});
     if (!r.ok) throw new Error(r.status);
     store.set("lotSent", body); store.set("lotSentAt", String(Date.now())); store.del("lotErr");
   } catch(e){ store.set("lotErr", "1"); }

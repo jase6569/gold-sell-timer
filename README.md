@@ -45,6 +45,14 @@ Evidence (UK prices 2004–2026, 6 months later): from −10% to +18% against th
 
 Same rule in `index.html` (`slideFlags`, `buyModeOf`) and `scripts/notify.py` (`slide_flags`, `buy_mode_of`). The phone alerts tell you when a steep slide starts or ends, and the Friday summary includes the buying-in line.
 
+## Your week and backups
+
+The My gold tab has a **Your week** card: what you bought (with your margin on the refiner's price that day), what you sent to the refiner and roughly what you made on it, and what you're still holding. "I've sent this batch" now records each batch (`sent` in local storage) and takes the right share of the cost off part-sent items.
+
+Every Sunday evening (after 18:00 UK) `notify.py` sends the same summary to the lot alerts channel. It uses the locked summary the app already sends (`wk` and `bk` fields), so customer details still never leave the phone.
+
+The Buy log's **Back up now** saves one file with every record and the My gold list, using the phone's share sheet so it can go straight to Google Drive or email. If there's no backup in the last 7 days, both the Buy log and Gold Trader show a reminder, and the Sunday summary mentions it.
+
 ## Working on it in VS Code
 
 ```bash
