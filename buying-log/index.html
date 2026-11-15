@@ -554,13 +554,19 @@ async function checkId(){
         ${flagged?'<br><b>One or more previous sales were flagged as suspicious.</b>':''}
         ${nameMismatch?'<br><b>This ID number was used before under a different name.</b>':''}
         <div class="actions"><button class="btn ghost sm" id="fillPrev">Fill details from last visit</button></div></div>`);
-      $('#idAlerts').innerHTML = out.join('');
-      $('#fillPrev').onclick = () => fillSeller(last.seller);
+      lastSeller = last.seller;
+      setAlerts(out.join(''));
       return;
     }
   }
-  $('#idAlerts').innerHTML = out.join('');
+  setAlerts(out.join(''));
 }
+// Only redraw when the warning changes, and catch taps on the container, so a tap is never lost
+// when the ID box loses focus and the warning re-checks at the same moment.
+let lastSeller = null;
+let alertsHTML = '';
+function setAlerts(html){ if (html !== alertsHTML){ alertsHTML = html; $('#idAlerts').innerHTML = html; } }
+$('#idAlerts').addEventListener('click', e => { if (e.target.closest('#fillPrev') && lastSeller) fillSeller(lastSeller); });
 ['#f_idnum','#f_dob','#f_idexp','#f_first','#f_last'].forEach(s => $(s).addEventListener('change', checkId));
 $('#f_idnum').addEventListener('input', () => { clearTimeout(checkId._t); checkId._t = setTimeout(checkId, 400); });
 function fillSeller(s){
@@ -593,7 +599,7 @@ function resetForm(){
   $$('#tab-new input[type=checkbox]').forEach(el => el.checked=false);
   $('#f_staff').value = settings.staff||''; $('#f_loc').value = settings.loc||'';
   idPhotos=[]; lotPhotos=[]; items=[blankItem()]; renderIdPhotos(); renderLotPhotos(); renderItems();
-  $('#sigClear').click(); $('#idAlerts').innerHTML=''; $('#payAlerts').innerHTML=''; $('#formErrors').innerHTML='';
+  $('#sigClear').click(); setAlerts(''); $('#payAlerts').innerHTML=''; $('#formErrors').innerHTML='';
   $('#bankRow').classList.add('hidden');
 }
 $('#resetBtn').onclick = () => { if (confirm('Clear everything on this form?')) resetForm(); };
