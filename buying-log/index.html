@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d0d0d">
+<link rel="manifest" href="../manifest.json">
+<link rel="icon" type="image/png" href="../favicon.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Buy Log">
+<title>Dorset Jewellers · Buying Log</title>
+<style>
+  :root{
+    --navy:#0d0d0d; --navy2:#1c1a16; --gold:#d4a62a; --gold2:#f0d27a;
+    --bg:#f6f4ef; --card:#fff; --ink:#1b1b1b; --muted:#6b6b6b; --line:#e3ded2;
+    --red:#b3261e; --green:#1e7a46;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{position:sticky;top:0;z-index:10;background:var(--navy);border-bottom:1px solid #3a3120;color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;gap:10px}
+  header .logo{width:40px;height:40px;border-radius:50%;display:block}
+  header h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.2px}
+  header small{display:block;font-weight:400;color:#cfc4a4;font-size:12px}
+  header .spacer{flex:1}
+  header .back{color:var(--gold2);text-decoration:none;font-size:34px;line-height:1;padding:0 4px 4px 0}
+  header button{background:transparent;border:1px solid #6b5a2a;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px}
+  nav{display:flex;background:var(--navy2);position:sticky;top:calc(60px + env(safe-area-inset-top));z-index:9}
+  nav button{flex:1;background:none;border:0;color:#cfc4a4;padding:11px 4px;font-size:14px;border-bottom:3px solid transparent}
+  nav button.active{color:#fff;border-bottom-color:var(--gold)}
+  main{max-width:820px;margin:0 auto;padding:14px 14px 120px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+  .card h2{font-size:15px;margin:0 0 10px;color:var(--navy);text-transform:uppercase;letter-spacing:.6px}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+  input,select,textarea{width:100%;font:inherit;padding:11px 12px;border:1px solid #cfc8b8;border-radius:10px;background:#fff;color:var(--ink)}
+  textarea{min-height:70px;resize:vertical}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--gold);border-color:var(--gold)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .row3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
+  .row>*,.row3>*{min-width:0}
+  input[type=date]{min-width:0;-webkit-appearance:none;appearance:none;min-height:46px}
+  @media(max-width:520px){.row3{grid-template-columns:1fr 1fr}.row3>:first-child{grid-column:1/-1}}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:10px;padding:12px 16px;font:600 15px/1 inherit;font-family:inherit;cursor:pointer}
+  .btn.gold{background:var(--gold);color:var(--navy)}
+  .btn.navy{background:var(--navy);color:#fff}
+  .btn.ghost{background:#fff;border:1px solid #cfc8b8;color:var(--ink)}
+  .btn.red{background:#fff;border:1px solid var(--red);color:var(--red)}
+  .btn.block{width:100%}
+  .btn.sm{padding:8px 11px;font-size:13px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:8px}
+  .photos .ph{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#eee}
+  .photos img{width:100%;height:100%;object-fit:cover;display:block}
+  .photos .ph button{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#fff;font-size:15px;line-height:1}
+  .photos .ph span{position:absolute;left:0;right:0;bottom:0;background:rgba(20,33,61,.8);color:#fff;font-size:11px;padding:2px 5px}
+  .item{border:1px dashed #cfc8b8;border-radius:12px;padding:10px;margin-top:10px;position:relative}
+  .item .rm{position:absolute;top:8px;right:8px}
+  .item h3{margin:0;font-size:14px;color:var(--navy)}
+  .total{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:18px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+  .sig-wrap{border:1px solid #cfc8b8;border-radius:10px;background:#fff;position:relative;touch-action:none}
+  canvas#sig{width:100%;height:170px;display:block;border-radius:10px}
+  .sig-wrap .hint{position:absolute;left:12px;bottom:8px;color:#aaa;font-size:12px;pointer-events:none}
+  .check{display:flex;gap:10px;align-items:flex-start;margin-top:10px;font-size:14px}
+  .check input{width:22px;height:22px;flex:none;margin-top:1px}
+  .alert{border-radius:10px;padding:10px 12px;font-size:14px;margin-top:10px}
+  .alert.warn{background:#fff4d6;border:1px solid #e8c766}
+  .alert.bad{background:#fde8e6;border:1px solid #e6a39d;color:#7a1c16}
+  .alert.ok{background:#e6f4ec;border:1px solid #9fd0b2}
+  .list .rec{display:flex;gap:12px;align-items:center;padding:12px;border-bottom:1px solid var(--line);cursor:pointer}
+  .list .rec:last-child{border-bottom:0}
+  .rec .thumb{width:54px;height:54px;border-radius:10px;object-fit:cover;background:#eee;flex:none}
+  .rec .meta{flex:1;min-width:0}
+  .rec .meta b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rec .meta small{color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rec .amt{font-weight:700;color:var(--navy);white-space:nowrap}
+  .pill{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;background:#eee;color:#444;margin-left:4px;vertical-align:middle}
+  .pill.flag{background:#fde8e6;color:var(--red)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+  .stat b{display:block;font-size:18px;color:var(--navy)}
+  .stat small{color:var(--muted);font-size:12px}
+  dl.kv{display:grid;grid-template-columns:140px 1fr;gap:6px 10px;margin:0;font-size:14px}
+  dl.kv dt{color:var(--muted)}
+  dl.kv dd{margin:0;word-break:break-word}
+  table.items{width:100%;border-collapse:collapse;font-size:14px}
+  table.items th,table.items td{text-align:left;padding:6px;border-bottom:1px solid var(--line);vertical-align:top}
+  .hidden{display:none!important}
+  .muted{color:var(--muted);font-size:13px}
+  .lock{position:fixed;inset:0;background:var(--navy);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;padding:24px}
+  .lock input{max-width:240px;text-align:center;font-size:24px;letter-spacing:8px;margin:16px 0}
+  
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+  .modal .sheet{background:var(--bg);width:100%;max-width:820px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 14px calc(24px + env(safe-area-inset-bottom))}
+  .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 16px;border-radius:10px;z-index:200;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+  .viewer{position:fixed;inset:0;background:#000;z-index:300;display:flex;align-items:center;justify-content:center}
+  .viewer img{max-width:100%;max-height:100%}
+
+  /* Print: police report */
+  #print{display:none}
+  @media print{
+    body{background:#fff}
+    header,nav,main,.modal,.toast,.lock{display:none!important}
+    #print{display:block;font:11pt/1.4 Georgia,"Times New Roman",serif;color:#000}
+    #print .pr{page-break-after:always;padding:6mm}
+    #print .pr:last-child{page-break-after:auto}
+    #print h1{font-size:16pt;margin:0}
+    #print h2{font-size:11pt;margin:14px 0 4px;border-bottom:1px solid #000;text-transform:uppercase;letter-spacing:.5px}
+    #print table{width:100%;border-collapse:collapse;font-size:10pt}
+    #print td,#print th{border:1px solid #999;padding:4px 6px;text-align:left;vertical-align:top}
+    #print .imgs{display:flex;flex-wrap:wrap;gap:6px}
+    #print .imgs img{height:45mm;border:1px solid #999}
+    #print .sig{height:25mm;border-bottom:1px solid #000}
+    #print .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:6px}
+    #print .summary td{font-size:9pt}
+  }
+</style>
+</head>
+<body>
+
+<div id="lock" class="lock hidden">
+  <img src="../logo.png" alt="Dorset Jewellers" style="width:140px;height:140px;border-radius:50%">
+  <h2 style="margin:14px 0 0">Gold Buying Log</h2>
+  <div id="lockMsg" style="color:#cfc4a4;font-size:14px;margin-top:6px">Enter PIN</div>
+  <input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off">
+  <button class="btn gold" id="pinGo" style="min-width:160px">Unlock</button>
+</div>
+
+<header>
+  <a href="../" class="back" aria-label="Back to Gold Trader">‹</a>
+  <img class="logo" src="../logo.png" alt="">
+  <div><h1>Buying Log<small>Dorset Jewellers</small></h1></div>
+  <div class="spacer"></div>
+  <button id="lockBtn" title="Lock">Lock</button>
+</header>
+<nav>
+  <button data-tab="new" class="active">New purchase</button>
+  <button data-tab="records">Records</button>
+  <button data-tab="settings">Settings</button>
+</nav>
+
+<main>
+  <!-- NEW PURCHASE -->
+  <section id="tab-new">
+    <div class="card">
+      <h2>Seller</h2>
+      <div class="row">
+        <div><label>First name(s)*</label><input id="f_first" autocomplete="off"></div>
+        <div><label>Surname*</label><input id="f_last" autocomplete="off"></div>
+      </div>
+      <div class="row">
+        <div><label>Date of birth*</label><input id="f_dob" type="date"></div>
+        <div><label>Phone</label><input id="f_phone" type="tel" autocomplete="off"></div>
+      </div>
+      <label>Address*</label>
+      <textarea id="f_addr" placeholder="House number, street, town" style="min-height:56px"></textarea>
+      <div class="row">
+        <div><label>Postcode*</label><input id="f_pc" autocomplete="off" style="text-transform:uppercase"></div>
+        <div><label>Email</label><input id="f_email" type="email" autocomplete="off"></div>
+      </div>
+      <label>Vehicle reg (if seen)</label>
+      <input id="f_vrm" autocomplete="off" style="text-transform:uppercase">
+    </div>
+
+    <div class="card">
+      <h2>Identification</h2>
+      <div class="row">
+        <div><label>Photo ID type*</label>
+          <select id="f_idtype">
+            <option value="">Choose…</option>
+            <option>UK driving licence</option>
+            <option>Passport</option>
+            <option>National ID card</option>
+            <option>Biometric residence permit</option>
+            <option>Citizen card / PASS card</option>
+            <option>Other photo ID</option>
+          </select></div>
+        <div><label>ID number*</label><input id="f_idnum" autocomplete="off" style="text-transform:uppercase"></div>
+      </div>
+      <div class="row">
+        <div><label>ID expiry date</label><input id="f_idexp" type="date"></div>
+        <div><label>Proof of address</label>
+          <select id="f_poa">
+            <option value="">None taken</option>
+            <option>Address on photo ID</option>
+            <option>Utility bill</option>
+            <option>Bank statement</option>
+            <option>Council tax bill</option>
+            <option>Other</option>
+          </select></div>
+      </div>
+      <div id="idAlerts"></div>
+      <label>Photos of ID, proof of address and the seller</label>
+      <div class="actions">
+        <button class="btn ghost sm" data-shot="ID front">📷 ID front</button>
+        <button class="btn ghost sm" data-shot="ID back">📷 ID back</button>
+        <button class="btn ghost sm" data-shot="Proof of address">📷 Proof of address</button>
+        <button class="btn ghost sm" data-shot="Seller">📷 Seller</button>
+      </div>
+      <div class="photos" id="idPhotos"></div>
+    </div>
+
+    <div class="card">
+      <h2>Items bought</h2>
+      <label style="margin-top:0">Photos of everything bought*</label>
+      <p class="muted" style="margin:0">Lay all the items out together, then put them on the scales so the weight shows in the shot.</p>
+      <div class="actions">
+        <button class="btn ghost sm" data-lot="All items together">📷 All items together</button>
+        <button class="btn ghost sm" data-lot="On the scales">📷 On the scales</button>
+        <button class="btn ghost sm" data-lot="Close-up / hallmark">📷 Close-up / hallmark</button>
+        <button class="btn ghost sm" data-lotgallery>🖼 From gallery</button>
+      </div>
+      <div class="photos" id="lotPhotos"></div>
+      <div id="items"></div>
+      <div class="actions"><button class="btn ghost" id="addItem">+ Add another item</button></div>
+      <div class="total"><span>Total paid</span><span id="totalOut">£0.00</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Payment</h2>
+      <div class="row">
+        <div><label>Method*</label>
+          <select id="f_pay">
+            <option value="">Choose…</option>
+            <option>Bank transfer</option>
+            <option>Cash</option>
+            <option>Cheque</option>
+            <option>Card refund / other</option>
+          </select></div>
+        <div><label>Payment reference</label><input id="f_payref" autocomplete="off" placeholder="Bank ref, cheque no."></div>
+      </div>
+      <div class="row hidden" id="bankRow">
+        <div><label>Paid to (account name)</label><input id="f_bankname" autocomplete="off"></div>
+        <div><label>Account last 4 digits</label><input id="f_banklast4" inputmode="numeric" maxlength="4" autocomplete="off"></div>
+      </div>
+      <div id="payAlerts"></div>
+    </div>
+
+    <div class="card">
+      <h2>Declaration & signature</h2>
+      <div class="check"><input type="checkbox" id="f_decl"><label for="f_decl" style="margin:0;color:var(--ink)">I confirm I am the legal owner of the items listed, I have the right to sell them, they are not stolen or subject to any finance, and the details I have given are true. I agree to my details being kept on record and passed to the police if requested.</label></div>
+      <label>Seller signature*</label>
+      <div class="sig-wrap"><canvas id="sig"></canvas><span class="hint" id="sigHint">Sign here with your finger</span></div>
+      <div class="actions"><button class="btn ghost sm" id="sigClear">Clear signature</button></div>
+      <div class="row">
+        <div><label>Staff member*</label><input id="f_staff" autocomplete="off"></div>
+        <div><label>Location</label><input id="f_loc" autocomplete="off"></div>
+      </div>
+      <label>Notes (anything unusual about the sale)</label>
+      <textarea id="f_notes"></textarea>
+      <div class="check"><input type="checkbox" id="f_flag"><label for="f_flag" style="margin:0;color:var(--ink)">Flag this sale as suspicious</label></div>
+    </div>
+
+    <div id="formErrors"></div>
+    <button class="btn gold block" id="saveBtn" style="padding:16px;font-size:17px">Save purchase record</button>
+    <div class="actions" style="justify-content:center"><button class="btn ghost sm" id="resetBtn">Clear form</button></div>
+  </section>
+
+  <!-- RECORDS -->
+  <section id="tab-records" class="hidden">
+    <div class="stats">
+      <div class="stat"><b id="st_count">0</b><small>records</small></div>
+      <div class="stat"><b id="st_month">£0</b><small>paid this month</small></div>
+      <div class="stat"><b id="st_flag">0</b><small>flagged</small></div>
+    </div>
+    <div class="card">
+      <label style="margin-top:0">Search name, ID number, postcode, phone, item or receipt no.</label>
+      <input id="q" type="search" placeholder="e.g. Smith, BH15, ring, DJ-2026">
+      <div class="row">
+        <div><label>From</label><input id="q_from" type="date"></div>
+        <div><label>To</label><input id="q_to" type="date"></div>
+      </div>
+      <div class="actions">
+        <button class="btn navy sm" id="printList">Print police report for these results</button>
+        <button class="btn ghost sm" id="csvBtn">Export CSV</button>
+      </div>
+    </div>
+    <div class="card list" id="list" style="padding:0"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="tab-settings" class="hidden">
+    <div class="card">
+      <h2>Business details (shown on reports)</h2>
+      <label>Business name</label><input id="s_biz">
+      <label>Address</label><textarea id="s_addr" style="min-height:56px"></textarea>
+      <div class="row">
+        <div><label>Phone</label><input id="s_phone"></div>
+        <div><label>Default staff name</label><input id="s_staff"></div>
+      </div>
+      <label>Default location</label><input id="s_loc">
+      <label>Receipt prefix</label><input id="s_prefix" maxlength="6">
+      <div class="actions"><button class="btn gold" id="saveSettings">Save settings</button></div>
+    </div>
+    <div class="card">
+      <h2>PIN lock</h2>
+      <p class="muted" id="pinState"></p>
+      <label>New PIN (4 to 8 digits)</label><input id="s_pin" type="password" inputmode="numeric" maxlength="8" autocomplete="off">
+      <div class="actions">
+        <button class="btn navy" id="setPin">Set PIN</button>
+        <button class="btn red" id="clearPin">Remove PIN</button>
+      </div>
+      <label>Auto-lock after</label>
+      <select id="s_autolock">
+        <option value="0">Never</option><option value="2">2 minutes</option><option value="5">5 minutes</option><option value="15">15 minutes</option>
+      </select>
+    </div>
+    <div class="card">
+      <h2>Backup</h2>
+      <p class="muted">Records live only on this device. Back up regularly so nothing is lost if the phone is lost, reset or the browser data is cleared. The backup file contains ID photos and personal data, so keep it somewhere secure.</p>
+      <div class="actions">
+        <button class="btn navy" id="backupBtn">Download full backup</button>
+        <label class="btn ghost" style="margin:0;color:var(--ink)">Restore backup<input type="file" id="restoreIn" accept=".json,application/json" class="hidden"></label>
+      </div>
+      <p class="muted" id="lastBackup"></p>
+      <p class="muted" id="storageInfo"></p>
+    </div>
+    <div class="card">
+      <h2>Record keeping</h2>
+      <p class="muted">Records older than the retention period below are highlighted so you can review them. Nothing is ever deleted automatically.</p>
+      <label>Retention period</label>
+      <select id="s_retain"><option value="2">2 years</option><option value="5">5 years</option><option value="6">6 years</option><option value="7">7 years</option></select>
+      <div class="actions"><button class="btn ghost" id="reviewOld">Show records past retention</button></div>
+    </div>
+  </section>
+</main>
+
+<div id="print"></div>
+<input type="file" id="camIn" accept="image/*" capture="environment" class="hidden">
+<input type="file" id="itemCamIn" accept="image/*" capture="environment" class="hidden">
+<input type="file" id="lotCamIn" accept="image/*" capture="environment" class="hidden">
+<input type="file" id="galleryIn" accept="image/*" multiple class="hidden">
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- storage (IndexedDB) ---------- */
+const CFG = { biz:'Dorset Jewellers', prefix:'DJ', db:'dj-buylog', stockKey:'stock' };
+const DB_NAME = CFG.db, STORE = 'records';
+let db;
+function openDB(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE, { keyPath: 'id' });
+      if (!d.objectStoreNames.contains('kv')) d.createObjectStore('kv');
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+const tx = (store, mode='readonly') => db.transaction(store, mode).objectStore(store);
+const reqP = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const allRecords = () => reqP(tx(STORE).getAll());
+const putRecord = rec => reqP(tx(STORE,'readwrite').put(rec));
+const delRecord = id => reqP(tx(STORE,'readwrite').delete(id));
+const kvGet = k => reqP(tx('kv').get(k));
+const kvSet = (k,v) => reqP(tx('kv','readwrite').put(v,k));
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const gbp = n => '£' + (Number(n)||0).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtDate = iso => iso ? new Date(iso + (iso.length===10?'T00:00':'')).toLocaleDateString('en-GB') : '';
+const fmtDT = iso => iso ? new Date(iso).toLocaleString('en-GB',{dateStyle:'short',timeStyle:'short'}) : '';
+const norm = s => String(s||'').toUpperCase().replace(/\s+/g,'');
+function toast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
+function age(dob){ if(!dob) return null; const d=new Date(dob+'T00:00'), n=new Date(); let a=n.getFullYear()-d.getFullYear(); if(n<new Date(n.getFullYear(),d.getMonth(),d.getDate())) a--; return a; }
+async function sha(s){ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+
+function compress(file, max=1400, q=0.8){
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      let {width:w, height:h} = img;
+      const s = Math.min(1, max/Math.max(w,h)); w=Math.round(w*s); h=Math.round(h*s);
+      const c = document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg', q));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('Could not read image')); };
+    img.src = url;
+  });
+}
+function viewImage(src){ const v=document.createElement('div'); v.className='viewer'; v.innerHTML=`<img src="${src}">`; v.onclick=()=>v.remove(); document.body.appendChild(v); }
+
+/* ---------- link to Gold Trader "My gold" ---------- */
+const FINENESS = {'9ct (375)':'0.375','14ct (585)':'0.585','18ct (750)':'0.75','22ct (916)':'0.916','24ct (999)':'0.999'};
+const isGold = it => it.metal === 'Gold';
+function myGold(){ try { return JSON.parse(localStorage.getItem(CFG.stockKey) || '[]'); } catch(e){ return []; } }
+function saveMyGold(a){ localStorage.setItem(CFG.stockKey, JSON.stringify(a)); }
+function goldLines(rec){
+  return rec.items.map((it,i) => ({it,i})).filter(x => isGold(x.it) && FINENESS[x.it.purity] && parseFloat(x.it.weight) > 0);
+}
+function addToMyGold(rec){
+  const lines = goldLines(rec); if (!lines.length) return 0;
+  try {
+    const a = myGold().filter(x => !(x.bl && x.bl.startsWith(rec.id + ':')));
+    const d = rec.createdAt.slice(0,10);
+    lines.forEach(({it,i}) => a.push({ w: parseFloat(it.weight), k: FINENESS[it.purity], n: `${it.desc} (${rec.receipt})`, paid: parseFloat(it.price)||0, d, bl: rec.id + ':' + i }));
+    saveMyGold(a);
+    return lines.reduce((t,x)=>t+parseFloat(x.it.weight),0);
+  } catch(e){ toast('Could not add to My gold'); return 0; }
+}
+function removeFromMyGold(rec){
+  try { const a = myGold(), b = a.filter(x => !(x.bl && x.bl.startsWith(rec.id + ':'))); if (b.length !== a.length) saveMyGold(b); return a.length - b.length; } catch(e){ return 0; }
+}
+function inMyGold(rec){ return myGold().filter(x => x.bl && x.bl.startsWith(rec.id + ':')); }
+
+/* ---------- settings ---------- */
+let settings = { biz:CFG.biz, addr:'', phone:'', staff:'', loc:'Poole', prefix:CFG.prefix, retain:'6', autolock:'5', pinHash:'' };
+async function loadSettings(){ const s = await kvGet('settings'); if (s) settings = {...settings, ...s}; }
+async function saveSettingsObj(){ await kvSet('settings', settings); }
+
+/* ---------- tabs ---------- */
+$$('nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+function showTab(t){
+  $$('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab===t));
+  ['new','records','settings'].forEach(x => $('#tab-'+x).classList.toggle('hidden', x!==t));
+  if (t==='records') renderList();
+  if (t==='settings') fillSettings();
+  window.scrollTo(0,0);
+}
+
+/* ---------- form state ---------- */
+let idPhotos = [];          // {label, src}
+let items = [];             // {desc, metal, purity, hallmark, weight, price, photos:[]}
+let pendingShot = null, pendingItem = null;
+let sigDirty = false;
+
+function blankItem(){ return { desc:'', metal:'Gold', purity:'', hallmark:'', weight:'', price:'', photos:[] }; }
+
+$$('[data-shot]').forEach(b => b.onclick = () => { pendingShot = b.dataset.shot; $('#camIn').value=''; $('#camIn').click(); });
+$('#camIn').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try { idPhotos.push({ label: pendingShot, src: await compress(f) }); renderIdPhotos(); }
+  catch(err){ toast(err.message); }
+};
+function renderIdPhotos(){
+  $('#idPhotos').innerHTML = idPhotos.map((p,i)=>`<div class="ph"><img src="${p.src}" data-i="${i}"><button data-rm="${i}">×</button><span>${esc(p.label)}</span></div>`).join('');
+  $$('#idPhotos [data-rm]').forEach(b => b.onclick = () => { idPhotos.splice(+b.dataset.rm,1); renderIdPhotos(); });
+  $$('#idPhotos img').forEach(im => im.onclick = () => viewImage(im.src));
+}
+
+function renderItems(){
+  $('#items').innerHTML = items.map((it,i)=>`
+    <div class="item">
+      <h3>Item ${i+1}</h3>
+      ${items.length>1?`<button class="btn red sm rm" data-rmitem="${i}">Remove</button>`:''}
+      <label>Description*</label>
+      <input data-k="desc" data-i="${i}" value="${esc(it.desc)}" placeholder="e.g. 9ct yellow gold curb chain, 20in">
+      <div class="row">
+        <div><label>Metal</label>
+          <select data-k="metal" data-i="${i}">
+            ${['Gold','Silver','Platinum','Palladium','Mixed / other','Watch','Gemstone item'].map(m=>`<option ${it.metal===m?'selected':''}>${m}</option>`).join('')}
+          </select></div>
+        <div><label>Purity</label>
+          <select data-k="purity" data-i="${i}">
+            ${['','9ct (375)','14ct (585)','18ct (750)','22ct (916)','24ct (999)','Sterling (925)','Britannia (958)','Fine silver (999)','Platinum (950)','Palladium (950)','Unknown / tested','Plated / not precious'].map(m=>`<option value="${m}" ${it.purity===m?'selected':''}>${m||'Choose…'}</option>`).join('')}
+          </select></div>
+      </div>
+      <label>Hallmarks, serial numbers, engravings or distinguishing marks</label>
+      <input data-k="hallmark" data-i="${i}" value="${esc(it.hallmark)}" placeholder="e.g. Birmingham anchor 375, engraved 'Love J'">
+      <div class="row">
+        <div><label>Weight (g)</label><input data-k="weight" data-i="${i}" inputmode="decimal" value="${esc(it.weight)}"></div>
+        <div><label>Price paid (£)*</label><input data-k="price" data-i="${i}" inputmode="decimal" value="${esc(it.price)}"></div>
+      </div>
+      <div class="actions"><button class="btn ghost sm" data-itemshot="${i}">📷 Photo of this item</button><button class="btn ghost sm" data-itemgallery="${i}">🖼 From gallery</button></div>
+      <div class="photos">${it.photos.map((p,j)=>`<div class="ph"><img src="${p}"><button data-rmph="${i}:${j}">×</button></div>`).join('')}</div>
+    </div>`).join('');
+  $$('#items [data-k]').forEach(el => {
+    el.oninput = el.onchange = () => { items[+el.dataset.i][el.dataset.k] = el.value; updateTotal(); };
+  });
+  $$('#items [data-rmitem]').forEach(b => b.onclick = () => { items.splice(+b.dataset.rmitem,1); renderItems(); });
+  $$('#items [data-itemshot]').forEach(b => b.onclick = () => { pendingItem = +b.dataset.itemshot; $('#itemCamIn').value=''; $('#itemCamIn').click(); });
+  $$('#items [data-itemgallery]').forEach(b => b.onclick = () => { galleryTarget = {item:+b.dataset.itemgallery}; $('#galleryIn').value=''; $('#galleryIn').click(); });
+  $$('#items [data-rmph]').forEach(b => b.onclick = () => { const [i,j]=b.dataset.rmph.split(':').map(Number); items[i].photos.splice(j,1); renderItems(); });
+  $$('#items .photos img').forEach(im => im.onclick = () => viewImage(im.src));
+  updateTotal();
+}
+$('#itemCamIn').onchange = async e => {
+  const f = e.target.files[0]; if (!f || pendingItem===null) return;
+  try { items[pendingItem].photos.push(await compress(f, 1200)); renderItems(); } catch(err){ toast(err.message); }
+};
+/* lot photos (all items together, on scales, close-ups) */
+let lotPhotos = [], pendingLot = null, galleryTarget = null;
+$$('[data-lot]').forEach(b => b.onclick = () => { pendingLot = b.dataset.lot; $('#lotCamIn').value=''; $('#lotCamIn').click(); });
+$('[data-lotgallery]').onclick = () => { galleryTarget = {lot:true}; $('#galleryIn').value=''; $('#galleryIn').click(); };
+$('#lotCamIn').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try { lotPhotos.push({ label: pendingLot, src: await compress(f) }); renderLotPhotos(); } catch(err){ toast(err.message); }
+};
+$('#galleryIn').onchange = async e => {
+  const files = [...e.target.files]; if (!files.length || !galleryTarget) return;
+  for (const f of files) {
+    try {
+      const src = await compress(f, galleryTarget.lot ? 1400 : 1200);
+      if (galleryTarget.lot) lotPhotos.push({ label:'Items (gallery)', src });
+      else items[galleryTarget.item].photos.push(src);
+    } catch(err){ toast(err.message); }
+  }
+  galleryTarget.lot ? renderLotPhotos() : renderItems();
+};
+function renderLotPhotos(){
+  $('#lotPhotos').innerHTML = lotPhotos.map((p,i)=>`<div class="ph"><img src="${p.src}"><button data-rmlot="${i}">×</button><span>${esc(p.label)}</span></div>`).join('');
+  $$('#lotPhotos [data-rmlot]').forEach(b => b.onclick = () => { lotPhotos.splice(+b.dataset.rmlot,1); renderLotPhotos(); });
+  $$('#lotPhotos img').forEach(im => im.onclick = () => viewImage(im.src));
+}
+$('#addItem').onclick =() => { items.push(blankItem()); renderItems(); };
+function total(){ return items.reduce((s,it)=>s+(parseFloat(it.price)||0),0); }
+function updateTotal(){ $('#totalOut').textContent = gbp(total()); checkPay(); }
+
+$('#f_pay').onchange = () => { $('#bankRow').classList.toggle('hidden', $('#f_pay').value!=='Bank transfer'); checkPay(); };
+function checkPay(){
+  const out = [];
+  if ($('#f_pay').value==='Cash' && total() >= 8000) out.push(`<div class="alert warn">Large cash payment (${gbp(total())}). Check your high-value dealer and anti-money-laundering obligations before paying this much in cash.</div>`);
+  $('#payAlerts').innerHTML = out.join('');
+}
+
+/* ---------- repeat seller / ID checks ---------- */
+let allCache = [];
+async function checkId(){
+  const out = [];
+  const exp = $('#f_idexp').value;
+  if (exp && new Date(exp+'T23:59') < new Date()) out.push(`<div class="alert bad">This ID expired on ${fmtDate(exp)}.</div>`);
+  const a = age($('#f_dob').value);
+  if (a !== null && a < 18) out.push(`<div class="alert bad">Seller is ${a}, under 18.</div>`);
+  const idn = norm($('#f_idnum').value);
+  const name = (norm($('#f_first').value) + norm($('#f_last').value));
+  const dob = $('#f_dob').value;
+  if (idn.length >= 4 || (name.length > 3 && dob)) {
+    if (!allCache.length) allCache = await allRecords();
+    const hits = allCache.filter(r => (idn.length>=4 && norm(r.seller.idnum)===idn) || (dob && r.seller.dob===dob && norm(r.seller.first)+norm(r.seller.last)===name));
+    if (hits.length) {
+      const spent = hits.reduce((s,r)=>s+r.total,0);
+      const flagged = hits.some(r=>r.flagged);
+      const last = hits.sort((a,b)=>b.createdAt.localeCompare(a.createdAt))[0];
+      const nameMismatch = idn.length>=4 && hits.some(r => norm(r.seller.idnum)===idn && name.length>3 && norm(r.seller.first)+norm(r.seller.last)!==name);
+      out.push(`<div class="alert ${flagged||nameMismatch?'bad':'ok'}">
+        <b>Returning seller:</b> ${hits.length} previous sale${hits.length>1?'s':''}, ${gbp(spent)} in total. Last seen ${fmtDT(last.createdAt)}.
+        ${flagged?'<br><b>One or more previous sales were flagged as suspicious.</b>':''}
+        ${nameMismatch?'<br><b>This ID number was used before under a different name.</b>':''}
+        <div class="actions"><button class="btn ghost sm" id="fillPrev">Fill details from last visit</button></div></div>`);
+      $('#idAlerts').innerHTML = out.join('');
+      $('#fillPrev').onclick = () => fillSeller(last.seller);
+      return;
+    }
+  }
+  $('#idAlerts').innerHTML = out.join('');
+}
+['#f_idnum','#f_dob','#f_idexp','#f_first','#f_last'].forEach(s => $(s).addEventListener('change', checkId));
+$('#f_idnum').addEventListener('input', () => { clearTimeout(checkId._t); checkId._t = setTimeout(checkId, 400); });
+function fillSeller(s){
+  const map = {first:'#f_first',last:'#f_last',dob:'#f_dob',phone:'#f_phone',addr:'#f_addr',pc:'#f_pc',email:'#f_email',idtype:'#f_idtype',idnum:'#f_idnum',idexp:'#f_idexp'};
+  for (const k in map) if (s[k] && !$(map[k]).value) $(map[k]).value = s[k];
+  toast('Details filled. Check they are still correct.');
+}
+
+/* ---------- signature ---------- */
+const sig = $('#sig'), sctx = sig.getContext('2d');
+function sizeSig(){
+  const r = sig.getBoundingClientRect(), dpr = window.devicePixelRatio||1;
+  const data = sigDirty ? sig.toDataURL() : null;
+  sig.width = r.width*dpr; sig.height = r.height*dpr;
+  sctx.setTransform(dpr,0,0,dpr,0,0);
+  sctx.lineWidth = 2.4; sctx.lineCap='round'; sctx.lineJoin='round'; sctx.strokeStyle='#0b1a3a';
+  if (data){ const im=new Image(); im.onload=()=>sctx.drawImage(im,0,0,r.width,r.height); im.src=data; }
+}
+let drawing=false, lastP=null;
+const pt = e => { const r=sig.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; };
+sig.addEventListener('pointerdown', e => { drawing=true; lastP=pt(e); sig.setPointerCapture(e.pointerId); $('#sigHint').classList.add('hidden'); });
+sig.addEventListener('pointermove', e => { if(!drawing) return; const p=pt(e); sctx.beginPath(); sctx.moveTo(lastP.x,lastP.y); sctx.lineTo(p.x,p.y); sctx.stroke(); lastP=p; sigDirty=true; });
+['pointerup','pointercancel','pointerleave'].forEach(ev => sig.addEventListener(ev, ()=>drawing=false));
+$('#sigClear').onclick = () => { sctx.clearRect(0,0,sig.width,sig.height); sigDirty=false; $('#sigHint').classList.remove('hidden'); };
+window.addEventListener('resize', sizeSig);
+
+/* ---------- save ---------- */
+function resetForm(){
+  $$('#tab-new input:not([type=checkbox]):not([type=file]), #tab-new textarea, #tab-new select').forEach(el => el.value='');
+  $$('#tab-new input[type=checkbox]').forEach(el => el.checked=false);
+  $('#f_staff').value = settings.staff||''; $('#f_loc').value = settings.loc||'';
+  idPhotos=[]; lotPhotos=[]; items=[blankItem()]; renderIdPhotos(); renderLotPhotos(); renderItems();
+  $('#sigClear').click(); $('#idAlerts').innerHTML=''; $('#payAlerts').innerHTML=''; $('#formErrors').innerHTML='';
+  $('#bankRow').classList.add('hidden');
+}
+$('#resetBtn').onclick = () => { if (confirm('Clear everything on this form?')) resetForm(); };
+
+async function nextReceipt(){
+  const d = new Date(), ymd = d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+  const recs = await allRecords();
+  const today = recs.filter(r => r.receipt && r.receipt.includes('-'+ymd+'-')).length;
+  return `${(settings.prefix||CFG.prefix).toUpperCase()}-${ymd}-${String(today+1).padStart(3,'0')}`;
+}
+
+$('#saveBtn').onclick = async () => {
+  const v = id => $(id).value.trim();
+  const errs = [];
+  if (!v('#f_first') || !v('#f_last')) errs.push('Seller full name');
+  if (!v('#f_dob')) errs.push('Date of birth');
+  if (!v('#f_addr') || !v('#f_pc')) errs.push('Address and postcode');
+  if (!v('#f_idtype') || !v('#f_idnum')) errs.push('ID type and number');
+  if (!idPhotos.some(p=>p.label==='ID front')) errs.push('Photo of the ID (front)');
+  const goodItems = items.filter(it => it.desc.trim());
+  if (!goodItems.length) errs.push('At least one item with a description');
+  if (goodItems.some(it => !(parseFloat(it.price)>=0) || it.price==='')) errs.push('A price for every item');
+  if (!lotPhotos.length && !goodItems.some(it => it.photos.length)) errs.push('At least one photo of the items bought');
+  goodItems.forEach((it) => { const n = items.indexOf(it) + 1;
+    if (isGold(it) && !FINENESS[it.purity]) errs.push(`The carat for gold item ${n} (test it if unsure), so it can go into My gold`);
+    if (isGold(it) && !(parseFloat(it.weight) > 0)) errs.push(`The weight of gold item ${n}, so it can go into My gold`); });
+  if (!v('#f_pay')) errs.push('Payment method');
+  if (!$('#f_decl').checked) errs.push('Seller declaration ticked');
+  if (!sigDirty) errs.push('Seller signature');
+  if (!v('#f_staff')) errs.push('Staff member name');
+  if (errs.length){
+    $('#formErrors').innerHTML = `<div class="alert bad"><b>Still needed:</b> ${errs.join(', ')}.</div>`;
+    $('#formErrors').scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+  const a = age(v('#f_dob'));
+  if (a!==null && a<18 && !confirm(`The seller is ${a}. Save anyway?`)) return;
+
+  const now = new Date().toISOString();
+  const rec = {
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random(),
+    receipt: await nextReceipt(),
+    createdAt: now,
+    seller: { first:v('#f_first'), last:v('#f_last'), dob:v('#f_dob'), phone:v('#f_phone'), email:v('#f_email'),
+              addr:v('#f_addr'), pc:v('#f_pc').toUpperCase(), vrm:v('#f_vrm').toUpperCase(),
+              idtype:v('#f_idtype'), idnum:v('#f_idnum').toUpperCase(), idexp:v('#f_idexp'), poa:v('#f_poa') },
+    idPhotos: idPhotos.slice(),
+    lotPhotos: lotPhotos.slice(),
+    items: goodItems.map(it => ({...it, price: parseFloat(it.price)||0, weight: it.weight})),
+    total: goodItems.reduce((s,it)=>s+(parseFloat(it.price)||0),0),
+    payment: { method:v('#f_pay'), ref:v('#f_payref'), bankName:v('#f_bankname'), bankLast4:v('#f_banklast4') },
+    declaration: true,
+    signature: sig.toDataURL('image/png'),
+    staff: v('#f_staff'), location: v('#f_loc'), notes: v('#f_notes'), flagged: $('#f_flag').checked,
+    history: [{ at: now, what: 'Created' }]
+  };
+  await putRecord(rec);
+  allCache = [];
+  const grams = addToMyGold(rec);
+  if (v('#f_staff')!==settings.staff){ settings.staff = v('#f_staff'); await saveSettingsObj(); }
+  resetForm();
+  toast('Saved ' + rec.receipt + (grams ? ` · ${grams.toFixed(2)}g added to My gold` : ''));
+  openRecord(rec.id);
+};
+
+/* ---------- records list ---------- */
+['#q','#q_from','#q_to'].forEach(s => $(s).addEventListener('input', renderList));
+let lastFiltered = [];
+async function renderList(){
+  const recs = (await allRecords()).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  allCache = recs;
+  const q = $('#q').value.trim().toLowerCase(), qn = norm(q);
+  const from = $('#q_from').value, to = $('#q_to').value;
+  const filtered = recs.filter(r => {
+    const day = r.createdAt.slice(0,10);
+    if (from && day < from) return false;
+    if (to && day > to) return false;
+    if (!q) return true;
+    const s = r.seller;
+    const hay = [s.first,s.last,s.first+' '+s.last,s.addr,s.email,r.receipt,r.staff,r.notes,...r.items.map(i=>i.desc+' '+i.hallmark+' '+i.purity)].join(' ').toLowerCase();
+    return hay.includes(q) || norm(s.idnum).includes(qn) || norm(s.pc).includes(qn) || norm(s.phone).includes(qn) || norm(s.vrm).includes(qn);
+  });
+  lastFiltered = filtered;
+  const m = new Date().toISOString().slice(0,7);
+  $('#st_count').textContent = recs.length;
+  $('#st_month').textContent = '£' + Math.round(recs.filter(r=>r.createdAt.startsWith(m)).reduce((s,r)=>s+r.total,0)).toLocaleString('en-GB');
+  $('#st_flag').textContent = recs.filter(r=>r.flagged).length;
+  const cutoff = retentionCutoff();
+  $('#list').innerHTML = filtered.length ? filtered.map(r => {
+    const thumb = (r.idPhotos.find(p=>p.label==='Seller')||r.idPhotos[0]||{}).src || '';
+    const gold = ((r.lotPhotos||[])[0]||{}).src || (r.items.find(i=>i.photos.length)||{photos:[]}).photos[0] || '';
+    return `<div class="rec" data-id="${r.id}">
+      ${thumb?`<img class="thumb" src="${thumb}">`:'<div class="thumb"></div>'}
+      ${gold?`<img class="thumb" src="${gold}">`:''}
+      <div class="meta"><b>${esc(r.seller.first)} ${esc(r.seller.last)}${r.flagged?'<span class="pill flag">flagged</span>':''}${r.createdAt<cutoff?'<span class="pill">past retention</span>':''}</b>
+      <small>${esc(r.receipt)} · ${fmtDT(r.createdAt)}</small>
+      <small>${esc(r.items.map(i=>i.desc).join(', '))}</small></div>
+      <div class="amt">${gbp(r.total)}</div></div>`;
+  }).join('') : `<p class="muted" style="padding:16px;margin:0">${recs.length?'No records match.':'No records yet. Saved purchases will appear here.'}</p>`;
+  $$('#list .rec').forEach(el => el.onclick = () => openRecord(el.dataset.id));
+}
+function retentionCutoff(){ const d=new Date(); d.setFullYear(d.getFullYear()-(+settings.retain||6)); return d.toISOString(); }
+
+/* ---------- record detail ---------- */
+async function openRecord(id){
+  const r = (await allRecords()).find(x=>x.id===id); if(!r) return;
+  const s = r.seller;
+  const m = document.createElement('div'); m.className='modal';
+  m.innerHTML = `<div class="sheet">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div><b style="font-size:18px">${esc(r.receipt)}</b><div class="muted">${fmtDT(r.createdAt)} · ${esc(r.staff)}${r.location?' · '+esc(r.location):''}</div></div>
+      <button class="btn ghost sm" data-close>Close</button></div>
+    ${r.flagged?'<div class="alert bad" style="margin:0 0 12px"><b>Flagged as suspicious</b></div>':''}
+    <div class="card"><h2>Seller</h2><dl class="kv">
+      <dt>Name</dt><dd>${esc(s.first)} ${esc(s.last)}</dd>
+      <dt>Date of birth</dt><dd>${fmtDate(s.dob)}${age(s.dob)!==null?` (age ${age(s.dob)} today)`:''}</dd>
+      <dt>Address</dt><dd>${esc(s.addr).replace(/\n/g,'<br>')}<br>${esc(s.pc)}</dd>
+      <dt>Phone</dt><dd>${esc(s.phone)||'–'}</dd><dt>Email</dt><dd>${esc(s.email)||'–'}</dd>
+      <dt>Vehicle</dt><dd>${esc(s.vrm)||'–'}</dd>
+      <dt>ID</dt><dd>${esc(s.idtype)}<br><b>${esc(s.idnum)}</b>${s.idexp?'<br>Expires '+fmtDate(s.idexp):''}</dd>
+      <dt>Proof of address</dt><dd>${esc(s.poa)||'None taken'}</dd></dl>
+      <div class="photos">${r.idPhotos.map(p=>`<div class="ph"><img src="${p.src}"><span>${esc(p.label)}</span></div>`).join('')}</div></div>
+    <div class="card"><h2>Items</h2>
+      <table class="items"><tr><th>Item</th><th>Purity</th><th>g</th><th>£</th></tr>
+      ${r.items.map(i=>`<tr><td>${esc(i.desc)}${i.hallmark?`<br><span class="muted">${esc(i.hallmark)}</span>`:''}</td><td>${esc(i.purity)}</td><td>${esc(i.weight)}</td><td>${gbp(i.price)}</td></tr>`).join('')}
+      </table>
+      <div class="photos">${(r.lotPhotos||[]).map(p=>`<div class="ph"><img src="${p.src}"><span>${esc(p.label)}</span></div>`).join('')}${r.items.flatMap((i,n)=>i.photos.map(p=>`<div class="ph"><img src="${p}"><span>Item ${n+1}</span></div>`)).join('')}</div>
+      <div class="total"><span>Total paid</span><span>${gbp(r.total)}</span></div>
+      ${(()=>{ const g = inMyGold(r); return g.length ? `<div class="alert ok">In My gold: ${g.map(x=>x.w+'g '+({'0.375':'9ct','0.585':'14ct','0.75':'18ct','0.916':'22ct','0.999':'24ct'}[x.k]||'')).join(', ')}</div>` : (goldLines(r).length ? `<div class="alert warn">Not in My gold (sent to the refiner or removed there).</div>` : ''); })()}</div>
+    <div class="card"><h2>Payment & signature</h2><dl class="kv">
+      <dt>Method</dt><dd>${esc(r.payment.method)}</dd>
+      <dt>Reference</dt><dd>${esc(r.payment.ref)||'–'}</dd>
+      ${r.payment.bankName||r.payment.bankLast4?`<dt>Paid to</dt><dd>${esc(r.payment.bankName)} ${r.payment.bankLast4?'(…'+esc(r.payment.bankLast4)+')':''}</dd>`:''}
+      <dt>Declaration</dt><dd>${r.declaration?'Signed by seller':'No'}</dd>
+      <dt>Notes</dt><dd>${esc(r.notes)||'–'}</dd></dl>
+      <img src="${r.signature}" style="width:100%;max-width:360px;border:1px solid var(--line);border-radius:10px;margin-top:10px;background:#fff"></div>
+    <div class="card"><h2>Audit trail</h2>${(r.history||[]).map(h=>`<div class="muted">${fmtDT(h.at)} · ${esc(h.what)}</div>`).join('')}
+      <label>Add a note (e.g. "Details given to PC 1234, Dorset Police, ref 55/12345/26")</label>
+      <input id="addNote"><div class="actions"><button class="btn ghost sm" id="addNoteBtn">Add to audit trail</button>
+      <button class="btn ghost sm" id="toggleFlag">${r.flagged?'Remove flag':'Flag as suspicious'}</button></div></div>
+    <div class="actions">
+      <button class="btn navy" id="printOne">Print / save PDF for police</button>
+      <button class="btn red" id="delRec">Delete record</button></div>
+  </div>`;
+  document.body.appendChild(m);
+  const close = () => { m.remove(); if (!$('#tab-records').classList.contains('hidden')) renderList(); };
+  m.querySelector('[data-close]').onclick = close;
+  m.onclick = e => { if (e.target===m) close(); };
+  $$('.modal .photos img').forEach(im => im.onclick = () => viewImage(im.src));
+  $('#printOne').onclick = () => printRecords([r]);
+  $('#addNoteBtn').onclick = async () => { const t=$('#addNote').value.trim(); if(!t) return; r.history=(r.history||[]).concat({at:new Date().toISOString(), what:t}); await putRecord(r); m.remove(); openRecord(r.id); };
+  $('#toggleFlag').onclick = async () => { r.flagged=!r.flagged; r.history=(r.history||[]).concat({at:new Date().toISOString(), what:r.flagged?'Flagged as suspicious':'Flag removed'}); await putRecord(r); m.remove(); openRecord(r.id); };
+  $('#delRec').onclick = async () => {
+    if (!confirm('Delete this record permanently? Its gold is also taken out of My gold. This cannot be undone.')) return;
+    if (prompt('Type DELETE to confirm')!=='DELETE') return;
+    const n = removeFromMyGold(r); await delRecord(r.id); allCache=[]; toast('Record deleted' + (n ? ' and removed from My gold' : '')); close();
+  };
+}
+
+/* ---------- printing ---------- */
+function bizHead(title){
+  return `<div class="head"><div style="display:flex;gap:10px;align-items:center"><img src="../logo.png" style="width:20mm;height:20mm;border:0"><div><h1>${esc(settings.biz||CFG.biz)}</h1><div>${esc(settings.addr).replace(/\n/g,', ')}${settings.phone?' · '+esc(settings.phone):''}</div></div></div>
+    <div style="text-align:right"><b>${esc(title)}</b><br>Printed ${fmtDT(new Date().toISOString())}</div></div>`;
+}
+function recordHTML(r){
+  const s=r.seller;
+  return `<div class="pr">${bizHead('Purchase record '+r.receipt)}
+  ${r.flagged?'<p><b>FLAGGED AS SUSPICIOUS BY STAFF</b></p>':''}
+  <h2>Transaction</h2><table><tr><td>Receipt no.</td><td>${esc(r.receipt)}</td><td>Date and time</td><td>${fmtDT(r.createdAt)}</td></tr>
+  <tr><td>Staff</td><td>${esc(r.staff)}</td><td>Location</td><td>${esc(r.location)}</td></tr></table>
+  <h2>Seller</h2><table>
+  <tr><td style="width:22%">Name</td><td>${esc(s.first)} ${esc(s.last)}</td><td style="width:18%">Date of birth</td><td>${fmtDate(s.dob)}</td></tr>
+  <tr><td>Address</td><td colspan="3">${esc(s.addr).replace(/\n/g,', ')}, ${esc(s.pc)}</td></tr>
+  <tr><td>Phone</td><td>${esc(s.phone)}</td><td>Email</td><td>${esc(s.email)}</td></tr>
+  <tr><td>ID type</td><td>${esc(s.idtype)}</td><td>ID number</td><td><b>${esc(s.idnum)}</b></td></tr>
+  <tr><td>ID expiry</td><td>${fmtDate(s.idexp)}</td><td>Proof of address</td><td>${esc(s.poa)||'None'}</td></tr>
+  <tr><td>Vehicle reg</td><td colspan="3">${esc(s.vrm)}</td></tr></table>
+  <div class="imgs" style="margin-top:6px">${r.idPhotos.map(p=>`<div><img src="${p.src}"><div style="font-size:8pt">${esc(p.label)}</div></div>`).join('')}</div>
+  <h2>Items</h2><table><tr><th>#</th><th>Description</th><th>Metal / purity</th><th>Marks</th><th>Weight g</th><th>Paid</th></tr>
+  ${r.items.map((i,n)=>`<tr><td>${n+1}</td><td>${esc(i.desc)}</td><td>${esc(i.metal)} ${esc(i.purity)}</td><td>${esc(i.hallmark)}</td><td>${esc(i.weight)}</td><td>${gbp(i.price)}</td></tr>`).join('')}
+  <tr><td colspan="5" style="text-align:right"><b>Total</b></td><td><b>${gbp(r.total)}</b></td></tr></table>
+  <h2>Photos of items</h2>
+  <div class="imgs" style="margin-top:6px">${(r.lotPhotos||[]).map(p=>`<div><img src="${p.src}"><div style="font-size:8pt">${esc(p.label)}</div></div>`).join('')}${r.items.flatMap((i,n)=>i.photos.map(p=>`<div><img src="${p}"><div style="font-size:8pt">Item ${n+1}: ${esc(i.desc)}</div></div>`)).join('')}</div>
+  <h2>Payment</h2><table><tr><td>Method</td><td>${esc(r.payment.method)}</td><td>Reference</td><td>${esc(r.payment.ref)}</td></tr>
+  ${r.payment.bankName||r.payment.bankLast4?`<tr><td>Paid to</td><td colspan="3">${esc(r.payment.bankName)} ${r.payment.bankLast4?'account ending '+esc(r.payment.bankLast4):''}</td></tr>`:''}</table>
+  <h2>Seller declaration</h2><p style="font-size:9.5pt">I confirm I am the legal owner of the items listed, I have the right to sell them, they are not stolen or subject to any finance, and the details I have given are true. I agree to my details being kept on record and passed to the police if requested.</p>
+  <img src="${r.signature}" style="height:25mm;border-bottom:1px solid #000">
+  ${r.notes?`<h2>Staff notes</h2><p>${esc(r.notes)}</p>`:''}
+  ${(r.history||[]).length>1?`<h2>Audit trail</h2>${r.history.map(h=>`<div style="font-size:9pt">${fmtDT(h.at)} · ${esc(h.what)}</div>`).join('')}`:''}
+  </div>`;
+}
+function printRecords(recs){
+  if (!recs.length) return toast('Nothing to print');
+  let html = '';
+  if (recs.length>1){
+    html += `<div class="pr">${bizHead('Purchase records summary')}
+      <p>${recs.length} records${$('#q_from').value||$('#q_to').value?`, ${fmtDate($('#q_from').value)||'start'} to ${fmtDate($('#q_to').value)||'today'}`:''}${$('#q').value?`, matching "${esc($('#q').value)}"`:''}. Full records follow.</p>
+      <table class="summary"><tr><th>Receipt</th><th>Date</th><th>Seller</th><th>DOB</th><th>ID</th><th>Postcode</th><th>Items</th><th>Paid</th></tr>
+      ${recs.map(r=>`<tr><td>${esc(r.receipt)}</td><td>${fmtDT(r.createdAt)}</td><td>${esc(r.seller.first)} ${esc(r.seller.last)}</td><td>${fmtDate(r.seller.dob)}</td><td>${esc(r.seller.idnum)}</td><td>${esc(r.seller.pc)}</td><td>${esc(r.items.map(i=>i.desc).join('; '))}</td><td>${gbp(r.total)}</td></tr>`).join('')}
+      </table></div>`;
+  }
+  html += recs.map(recordHTML).join('');
+  $('#print').innerHTML = html;
+  const imgs = [...$('#print').querySelectorAll('img')];
+  Promise.all(imgs.map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; }))).then(() => setTimeout(() => window.print(), 100));
+}
+$('#printList').onclick = () => printRecords(lastFiltered);
+
+/* ---------- CSV ---------- */
+$('#csvBtn').onclick = () => {
+  const rows = [['Receipt','Date','Time','First name','Surname','DOB','Address','Postcode','Phone','Email','Vehicle','ID type','ID number','ID expiry','Proof of address','Items','Total weight g','Total paid','Payment method','Payment ref','Staff','Location','Flagged','Notes']];
+  lastFiltered.forEach(r => { const s=r.seller, d=new Date(r.createdAt);
+    rows.push([r.receipt,d.toLocaleDateString('en-GB'),d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),s.first,s.last,fmtDate(s.dob),s.addr.replace(/\n/g,', '),s.pc,s.phone,s.email,s.vrm,s.idtype,s.idnum,fmtDate(s.idexp),s.poa,
+      r.items.map(i=>`${i.desc} [${i.purity}${i.hallmark?'; '+i.hallmark:''}] ${i.weight?i.weight+'g':''} £${i.price.toFixed(2)}`).join(' | '),
+      r.items.reduce((t,i)=>t+(parseFloat(i.weight)||0),0).toFixed(2), r.total.toFixed(2), r.payment.method, r.payment.ref, r.staff, r.location, r.flagged?'Yes':'No', r.notes]); });
+  const csv = rows.map(r => r.map(c => `"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  download(new Blob(['﻿'+csv],{type:'text/csv'}), `gold-purchases-${new Date().toISOString().slice(0,10)}.csv`);
+};
+function download(blob, name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},500); }
+
+/* ---------- settings UI ---------- */
+function fillSettings(){
+  $('#s_biz').value=settings.biz; $('#s_addr').value=settings.addr; $('#s_phone').value=settings.phone;
+  $('#s_staff').value=settings.staff; $('#s_loc').value=settings.loc; $('#s_prefix').value=settings.prefix;
+  $('#s_retain').value=settings.retain; $('#s_autolock').value=settings.autolock;
+  $('#pinState').textContent = settings.pinHash ? 'A PIN is set. The app asks for it when opened.' : 'No PIN set. Anyone with this phone can open the records. Setting a PIN is strongly recommended.';
+  kvGet('lastBackup').then(t => $('#lastBackup').textContent = t ? 'Last backup: '+fmtDT(t) : 'No backup taken yet.');
+  if (navigator.storage && navigator.storage.estimate) navigator.storage.estimate().then(e => {
+    $('#storageInfo').textContent = `Using ${(e.usage/1048576).toFixed(1)} MB on this device.`;
+  });
+}
+$('#saveSettings').onclick = async () => {
+  Object.assign(settings, { biz:$('#s_biz').value.trim(), addr:$('#s_addr').value.trim(), phone:$('#s_phone').value.trim(),
+    staff:$('#s_staff').value.trim(), loc:$('#s_loc').value.trim(), prefix:($('#s_prefix').value.trim()||CFG.prefix).toUpperCase(),
+    retain:$('#s_retain').value, autolock:$('#s_autolock').value });
+  await saveSettingsObj(); toast('Settings saved');
+};
+$('#s_autolock').onchange = $('#saveSettings').onclick;
+$('#setPin').onclick = async () => {
+  const p = $('#s_pin').value.trim();
+  if (!/^\d{4,8}$/.test(p)) return toast('PIN must be 4 to 8 digits');
+  if (prompt('Enter the new PIN again to confirm') !== p) return toast('PINs did not match');
+  settings.pinHash = await sha('gl-salt:'+p); await saveSettingsObj(); $('#s_pin').value=''; fillSettings(); toast('PIN set');
+};
+$('#clearPin').onclick = async () => {
+  if (!settings.pinHash) return;
+  const p = prompt('Enter current PIN to remove it'); if (p===null) return;
+  if (await sha('gl-salt:'+p) !== settings.pinHash) return toast('Wrong PIN');
+  settings.pinHash=''; await saveSettingsObj(); fillSettings(); toast('PIN removed');
+};
+$('#reviewOld').onclick = () => { const c=retentionCutoff().slice(0,10); $('#q').value=''; $('#q_from').value=''; $('#q_to').value=c; showTab('records'); };
+
+/* ---------- backup / restore ---------- */
+$('#backupBtn').onclick = async () => {
+  const recs = await allRecords();
+  const data = { app:'gold-buylog', version:1, exportedAt:new Date().toISOString(), settings:{...settings, pinHash:''}, records:recs };
+  download(new Blob([JSON.stringify(data)],{type:'application/json'}), `gold-buylog-backup-${new Date().toISOString().slice(0,10)}.json`);
+  await kvSet('lastBackup', new Date().toISOString()); fillSettings();
+};
+$('#restoreIn').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (data.app!=='gold-buylog' || !Array.isArray(data.records)) throw new Error('Not a Gold Buying Log backup');
+    const existing = new Set((await allRecords()).map(r=>r.id));
+    const fresh = data.records.filter(r=>!existing.has(r.id));
+    if (!confirm(`Backup has ${data.records.length} records. ${fresh.length} are new to this device and will be added. Existing records are kept. Continue?`)) return;
+    for (const r of fresh) await putRecord(r);
+    allCache=[]; toast(`Restored ${fresh.length} records`);
+  } catch(err){ toast(err.message); }
+  e.target.value='';
+};
+
+/* ---------- lock ---------- */
+let lastActive = Date.now();
+['pointerdown','keydown'].forEach(ev => document.addEventListener(ev, () => lastActive = Date.now(), true));
+function lockNow(){ if (!settings.pinHash) return toast('Set a PIN in Settings first'); $('#lock').classList.remove('hidden'); $('#pinIn').value=''; $('#lockMsg').textContent='Enter PIN'; setTimeout(()=>$('#pinIn').focus(),50); }
+$('#lockBtn').onclick = lockNow;
+async function tryUnlock(){
+  if (await sha('gl-salt:'+$('#pinIn').value) === settings.pinHash){ $('#lock').classList.add('hidden'); lastActive=Date.now(); }
+  else { $('#lockMsg').textContent='Wrong PIN'; $('#pinIn').value=''; }
+}
+$('#pinGo').onclick = tryUnlock;
+$('#pinIn').onkeydown = e => { if (e.key==='Enter') tryUnlock(); };
+setInterval(() => { const m=+settings.autolock; if (m && settings.pinHash && $('#lock').classList.contains('hidden') && Date.now()-lastActive > m*60000) lockNow(); }, 15000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) return; const m=+settings.autolock; if (m && settings.pinHash && Date.now()-lastActive > m*60000) lockNow(); });
+
+/* ---------- init ---------- */
+(async () => {
+  try { db = await openDB(); } catch(e){ document.body.innerHTML='<p style="padding:20px">This browser cannot store records (private browsing may be on).</p>'; return; }
+  await loadSettings();
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+  if (settings.pinHash) lockNow();
+  resetForm();
+  requestAnimationFrame(sizeSig);
+})();
+})();
+</script>
+</body>
+</html>
