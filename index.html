@@ -1167,9 +1167,10 @@ function renderPro(){
   if (!PRO_ON()){ $("proCard").style.display = "none"; return; }
   $("proCard").style.display = "block";
   if (!gbpPerGram){ $("pmPay").innerHTML = '<p class="muted">Waiting for the live price…</p>'; return; }
-  if (!$("pmM").value) $("pmM").value = store.get("pmM") || "20";
-  const m = Math.min(90, Math.max(0, parseFloat($("pmM").value) || 0)) / 100;
-  store.set("pmM", $("pmM").value);
+  if (!renderPro.init){ renderPro.init = true; $("pmM").value = store.get("pmM") || "20"; }
+  const raw = $("pmM").value.trim();   // the box can be empty while typing; keep using the last saved number until a new one is typed
+  if (raw !== "" && !isNaN(parseFloat(raw))) store.set("pmM", raw);
+  const m = Math.min(90, Math.max(0, parseFloat(raw !== "" ? raw : (store.get("pmM") || "20")) || 0)) / 100;
   const src = mmOn() ? `Mastermelt's price (${mmDay()})` : `${Math.round(payRatio() * 100)}% of the live price`;
   $("pmPay").innerHTML = `<table><tr><td class="muted">Carat</td><td class="muted">Refiner pays</td><td class="muted">Pay up to</td></tr>
     ${Object.keys(CT).map(k => { const r = refinerG(k); return `<tr><td>${CT[k]}</td><td>${fmt(r)}/g</td><td><b>${fmt(r * (1 - m))}/g</b></td></tr>`; }).join("")}</table>
