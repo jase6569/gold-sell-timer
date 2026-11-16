@@ -1,11 +1,11 @@
 // Gold Trader coin scanner: a small Cloudflare Worker that keeps the AI key secret.
-// The app sends 1 to 4 photos plus its list of known coins; this asks Claude what coins are in them
-// and returns a short JSON answer. It only answers the Gold Trader apps (jase6569.github.io) and only
-// ever runs this one fixed coin question, so it can't be used as a general AI.
-// Needs one secret in Cloudflare: ANTHROPIC_API_KEY.
+// The app sends 1 to 4 photos plus its list of known coins; this asks the AI what coins are in them
+// and returns a short JSON answer, using OpenAI. It only answers the Gold Trader apps (jase6569.github.io)
+// and only ever runs this one fixed coin question, so it can't be used as a general AI.
+// Needs one secret in Cloudflare: OPENAI_API_KEY. Optional variable OPENAI_MODEL to change the model.
 
 const ALLOWED = ["https://jase6569.github.io"];
-const MODEL = "claude-sonnet-5-5";
+const DEFAULT_MODEL = "gpt-6-astra";
 const MAX_PHOTOS = 4, MAX_PHOTO_CHARS = 2_000_000;
 
 const SYSTEM = `You identify coins for a UK gold and silver dealer from photos taken at the counter.
@@ -35,7 +35,7 @@ export default {
     if (!ALLOWED.includes(origin)) return new Response("Not allowed", {status: 403});
     if (req.method === "OPTIONS") return new Response(null, {status: 204, headers: cors(origin)});
     if (req.method !== "POST") return reply({error: "POST only"}, 405, origin);
-    if (!env.ANTHROPIC_API_KEY) return reply({error: "The scanner's AI key isn't set up yet."}, 500, origin);
+    if (!env.OPENAI_API_KEY) return reply({error: "The scanner's AI key isn't set up yet."}, 500, origin);
 
     let body;
     try { body = await req.json(); } catch(e){ return reply({error: "Bad request"}, 400, origin); }
@@ -46,21 +46,22 @@ export default {
     }
     const catalogue = (Array.isArray(body.catalogue) ? body.catalogue : []).slice(0, 300).map(s => String(s).slice(0, 160));
 
-    const content = photos.map(data => ({type: "image", source: {type: "base64", media_type: "image/jpeg", data}}));
+    const content = photos.map(data => ({type: "image_url", image_url: {url: "data:image/jpeg;base64," + data, detail: "high"}}));
     content.push({type: "text", text: "Catalogue list (use these exact names in the catalogue fields):\n" + catalogue.join("\n") + "\n\nIdentify the coins in the photo" + (photos.length > 1 ? "s" : "") + "."});
 
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
+    const r = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
-      headers: {"x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-      body: JSON.stringify({model: MODEL, max_tokens: 1500, system: SYSTEM, messages: [{role: "user", content}]})
+      headers: {"Authorization": "Bearer " + env.OPENAI_API_KEY, "Content-Type": "application/json"},
+      body: JSON.stringify({model: env.OPENAI_MODEL || DEFAULT_MODEL, max_completion_tokens: 4000, response_format: {type: "json_object"},
+        messages: [{role: "system", content: SYSTEM}, {role: "user", content}]})
     });
     if (!r.ok){
       const t = await r.text();
-      const why = r.status === 401 ? "The AI key is wrong." : r.status === 429 ? "Too many scans just now, try again in a minute." : /credit|billing/i.test(t) ? "The AI account is out of credit." : "The AI service had a problem.";
+      const why = r.status === 401 ? "The AI key is wrong." : r.status === 429 ? "Too many scans just now, try again in a minute." : /quota|credit|billing/i.test(t) ? "The AI account is out of credit." : /model/i.test(t) ? "The AI model name isn't right: set OPENAI_MODEL in Cloudflare." : "The AI service had a problem.";
       return reply({error: why}, 502, origin);
     }
     const out = await r.json();
-    const text = (out.content || []).filter(c => c.type === "text").map(c => c.text).join("");
+    const text = ((out.choices || [])[0] || {}).message?.content || "";
     const a = text.indexOf("{"), b = text.lastIndexOf("}");
     try { return reply({result: JSON.parse(text.slice(a, b + 1))}, 200, origin); }
     catch(e){ return reply({error: "Couldn't read the answer, please try again."}, 502, origin); }
