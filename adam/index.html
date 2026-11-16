@@ -79,6 +79,8 @@
   .lot details summary{font-size:13px;padding:6px 0 0}
   .lot .it{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-top:1px solid var(--line)}
   .pos{color:var(--up)} .neg{color:var(--down)}
+  .bkdue{border:1px solid #8a5a20;background:rgba(227,163,59,.08);border-radius:12px;padding:12px 14px;margin:0 0 12px}
+  .bkdue .btn{margin-top:10px;padding:11px}
   .warn{border:1px solid #8a5a20;background:rgba(227,163,59,.08);border-radius:12px;padding:12px;margin-top:12px}
   .tv{border-radius:12px;overflow:hidden}
   .rng{display:flex;gap:6px;margin:0 2px 8px}
@@ -87,6 +89,11 @@
   .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin:10px 4px 2px}
   .legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
   #zTip{position:absolute;top:6px;left:8px;z-index:3;font-size:12px;background:rgba(15,14,12,.85);border:1px solid var(--line);border-radius:8px;padding:6px 8px;pointer-events:none}
+  .gtabs{position:sticky;top:0;z-index:5;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;background:var(--bg);padding:8px 0 10px;margin:-4px 0 6px}
+  .gtabs::-webkit-scrollbar{display:none}
+  .gtabs button{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--muted);padding:9px 14px;border-radius:999px;font-size:14px;font-weight:600}
+  .gtabs button.on{background:var(--gold);border-color:var(--gold);color:#1a1408}
+  .gtHide{display:none!important}
   .tabs{display:flex;background:#12110f;border-radius:12px;padding:4px;margin-bottom:12px}
   .tabs button{flex:1;border:0;background:none;color:var(--muted);padding:10px;border-radius:9px;font-size:15px;font-weight:600}
   .tabs button.on{background:var(--gold);color:#1a1408}
@@ -126,6 +133,7 @@
 
 <!-- ========== ADVICE ========== -->
 <section class="page on" id="p-home">
+  <div class="bkdue" id="bkDue1" style="display:none"></div>
   <div class="card" id="stale" style="display:none;border-color:var(--down);background:rgba(224,93,79,.08)">
     <h2 style="color:var(--down)">Prices haven't updated</h2>
     <p style="margin:0" id="staleMsg"></p>
@@ -413,13 +421,26 @@
 
 <!-- ========== VALUE ========== -->
 <section class="page" id="p-calc">
-  <div class="card" id="stockSum" style="display:none">
+  <div class="gtabs" id="gtTabs">
+    <button data-t="week">Overview</button><button data-t="stock">My stock</button><button data-t="send">Send</button><button data-t="money" id="gtMoney">Make money</button><button data-t="coins">Coins</button><button data-t="prices">Prices</button>
+  </div>
+  <div class="card" data-gt="week" id="ovEmpty" style="display:none"><h2>Nothing here yet</h2><p class="muted" style="margin:0">Add the gold you hold in <b>My stock</b>, or buy through the Buy log, and your week and live totals show here.</p></div>
+  <div data-gt="week" class="bkdue" id="bkDue2" style="display:none"></div>
+  <div data-gt="week" class="card" id="weekCard" style="display:none">
+    <h2>Your week</h2>
+    <div class="tabs" id="wkTabs" style="margin-bottom:10px">
+      <button class="on" data-w="0">This week</button>
+      <button data-w="1">Last week</button>
+    </div>
+    <div id="wkBody"></div>
+  </div>
+  <div data-gt="week" class="card" id="stockSum" style="display:none">
     <h2>My gold today · live</h2>
     <div id="stockTotals"></div>
     <div id="stockPlan"></div>
   </div>
 
-  <div class="card" id="buyCard">
+  <div data-gt="send" class="card" id="buyCard">
     <h2>Buying in: what to send to the refiner</h2>
     <p class="muted" style="margin-top:0">For a shop that buys gold in all the time. Your profit is the gap between what you pay and what the refiner pays, and you only lock it in when you sell. This works out how much stock to keep and how much to send off this week, oldest gold first.</p>
     <div class="grid2">
@@ -429,7 +450,7 @@
     <div id="buyPlan" style="margin-top:12px"><p class="muted" style="margin:0">Enter how much you buy in a month to see your plan.</p></div>
   </div>
 
-  <div class="card">
+  <div data-gt="stock" class="card">
     <h2>My gold</h2>
     <p class="muted" style="margin-top:0">Add the gold you're holding to see what it's worth today and exactly how much to sell when the time comes. It's saved on this phone only and never sent anywhere.</p>
     <div class="grid2">
@@ -451,10 +472,24 @@
     <label>Date bought</label>
     <input id="sD" type="date">
     <button class="btn" id="sAdd">Add to my gold</button>
+    <p class="sub" id="blNote" style="margin-top:10px;display:none">Buying from a customer? Use the <a href="buying-log/" style="color:var(--gold2)">Buying log</a>. It records their ID and adds the gold here for you.</p>
   </div>
 
+  <div data-gt="money" class="card" id="proCard" style="display:none">
+    <h2>Make more money</h2>
+    <div class="sub">What to pay today</div>
+    <label>Margin you want to keep, %</label>
+    <input id="pmM" type="number" inputmode="decimal" placeholder="e.g. 20">
+    <div id="pmPay"></div>
+    <div class="sub" style="margin-top:14px">Lots to send now</div>
+    <div id="pmLots"></div>
+    <div class="sub" style="margin-top:14px">How well you're buying, month by month</div>
+    <div id="pmMonths"></div>
+    <div class="sub" style="margin-top:14px">Lot alerts on your phone</div>
+    <div id="laBox"></div>
+  </div>
 
-  <div class="card" id="lotsCard">
+  <div data-gt="stock" class="card" id="lotsCard">
     <h2>My lots</h2>
     <div class="tabs" id="lotTabs" style="margin-bottom:10px">
       <button data-v="w">Week</button>
@@ -463,15 +498,39 @@
     </div>
     <div id="stockList"></div>
     <div class="grid2" style="margin-top:12px">
-      <button class="btn ghost" id="bkSave" style="margin-top:0">Download backup</button>
+      <button class="btn ghost" id="bkSave" style="margin-top:0">Back up</button>
       <button class="btn ghost" id="bkLoad" style="margin-top:0">Restore backup</button>
     </div>
     <input id="bkFile" type="file" accept=".json,application/json" style="display:none">
-    <p class="muted" id="bkMsg" style="margin:8px 0 0">Your gold is saved on this phone only. Download a backup now and then, and keep it somewhere safe, like your email or Google Drive.</p>
+    <p class="muted" id="bkMsg" style="margin:8px 0 0">Your gold is saved on this phone only. Tap Back up to save a copy to Google Drive or email, so nothing is lost if the phone is.</p>
   </div>
 
 
-  <div class="card">
+  <div data-gt="coins" class="card" id="coinCard">
+    <h2>Coins: gold and silver</h2>
+    <div class="tabs" id="coinTabs" style="margin-bottom:10px">
+      <button class="on" data-c="look">Look up a coin</button>
+      <button data-c="id">Identify a coin</button>
+    </div>
+    <div id="coinLook">
+      <label>Coin</label>
+      <select id="coinSel"></select>
+      <label>How many</label>
+      <input id="coinQty" type="number" inputmode="numeric" value="1" min="1">
+    </div>
+    <div id="coinId" style="display:none">
+      <p class="muted" style="margin-top:0">Weigh it on your scales and, if you can, measure across it with callipers. It's matched against the official mint specs for the gold and silver coins you're most likely to see.</p>
+      <div class="grid2">
+        <div><label>Weight (grams)</label><input id="coinW" type="number" inputmode="decimal" step="0.01" placeholder="e.g. 7.98"></div>
+        <div><label>Diameter (mm, optional)</label><input id="coinD" type="number" inputmode="decimal" step="0.01" placeholder="e.g. 22.05"></div>
+      </div>
+      <label>Colour</label>
+      <select id="coinM"><option value="any">Not sure</option><option value="au">Gold coloured</option><option value="ag">Silver coloured</option></select>
+    </div>
+    <div id="coinOut"></div>
+  </div>
+
+  <div data-gt="prices" class="card">
     <h2>Quick check: what's this worth?</h2>
     <div class="grid2">
       <div><label>Weight (grams)</label><input id="cG" type="number" inputmode="decimal" placeholder="e.g. 250"></div>
@@ -512,6 +571,7 @@
   <button data-p="chart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M6 16l4-5 3 3 5-7"/></svg>Chart</button>
   <button data-p="calc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/></svg>My gold</button>
   <button data-p="help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.7-2.5 2-2.5 4M12 17h.01"/></svg>Guide</button>
+  <a href="buying-log/" class="navlink" id="blNav" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16c.6-1.4 1.7-2 3-2s2.4.6 3 2M14 10h4M14 13h3"/></svg>Buy log</a>
 </nav>
 
 <script>
@@ -665,8 +725,18 @@ function renderBuy(){
   const btn = $("bSent");
   if (btn) btn.onclick = () => {
     if (!confirm("Take " + send.toFixed(1) + "g off your list as sent to the refiner?")) return;
-    const s = stock();
-    batch.forEach(({i, take}) => { s[i].w = Math.round((s[i].w - take) * 100) / 100; });
+    const s = stock(), rec = {d: todayISO(), by: {}, pure: 0, purePaid: 0, cost: 0, value: 0, valuePaid: 0};
+    const perPure = gbpPerGram ? gbpPerGram * pay : 0;
+    batch.forEach(({i, take}) => {
+      const x = s[i], f = Math.min(1, take / x.w), p = take * parseFloat(x.k);
+      rec.by[x.k] = +((rec.by[x.k] || 0) + take).toFixed(2); rec.pure += p; rec.value += p * perPure;
+      if (x.paid > 0){ const c = x.paid * f; rec.cost += c; rec.purePaid += p; rec.valuePaid += p * perPure;
+        if (x.paid0 == null) x.paid0 = x.paid; x.paid = Math.round((x.paid - c) * 100) / 100; }   // the rest keeps its share of the cost
+      if (x.w0 == null) x.w0 = x.w;
+      x.w = Math.round((x.w - take) * 100) / 100;
+    });
+    ["pure", "purePaid", "cost", "value", "valuePaid"].forEach(k => rec[k] = Math.round(rec[k] * 100) / 100);
+    const log = sentLog(); log.push(rec); store.set("sent", JSON.stringify(log.slice(-300)));
     saveStock(s.filter(x => x.w > 0.05));
   };
 }
@@ -1078,15 +1148,11 @@ function sellOrder(a, pay){
 }
 
 /* ---- backup ---- */
-$("bkSave").onclick = () => {
+$("bkSave").onclick = async () => {
   try {
-    const data = JSON.stringify({app: "Gold Trader", saved: new Date().toISOString(), stock: stock()}, null, 1);
-    const url = URL.createObjectURL(new Blob([data], {type: "application/json"}));
-    const link = document.createElement("a");
-    link.href = url; link.download = "gold-trader-backup-" + new Date().toISOString().slice(0, 10) + ".json";
-    document.body.appendChild(link); link.click(); link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-    $("bkMsg").textContent = "Backup downloaded (" + stock().length + " items). Keep it somewhere safe.";
+    const data = JSON.stringify({app: "Gold Trader", saved: new Date().toISOString(), stock: stock(), buys: buys(), sent: sentLog()}, null, 1);
+    const how = await saveFile(new Blob([data], {type: "application/json"}), "gold-trader-backup-" + todayISO() + ".json");
+    if (how !== "cancelled") $("bkMsg").textContent = "Backup " + (how === "shared" ? "saved" : "downloaded") + " (" + stock().length + " items). Keep it somewhere safe.";
   } catch(e){ $("bkMsg").textContent = "Couldn't create the backup on this phone."; }
 };
 $("bkLoad").onclick = () => $("bkFile").click();
@@ -1099,6 +1165,8 @@ $("bkFile").onchange = async () => {
     const key = x => [x.w, x.k, x.paid, x.d, x.n].join("|");
     const have = new Set(cur.map(key));
     const added = d.stock.filter(x => !have.has(key(x)));
+    if (Array.isArray(d.buys)){ const b = buys(), ids = new Set(b.map(x => x.id)); store.set("buys", JSON.stringify(b.concat(d.buys.filter(x => !x.id || !ids.has(x.id))))); }
+    if (Array.isArray(d.sent)){ const sl = sentLog(), kk = x => JSON.stringify([x.d, x.by, x.pure]), seen = new Set(sl.map(kk)); store.set("sent", JSON.stringify(sl.concat(d.sent.filter(x => !seen.has(kk(x)))))); }
     saveStock(cur.concat(added));
     $("bkMsg").textContent = "Restored " + added.length + " item" + (added.length === 1 ? "" : "s") + " from your backup" + (d.stock.length > added.length ? " (skipped ones you already had)." : ".");
   } catch(e){ $("bkMsg").textContent = "That file isn't a Gold Trader backup."; }
@@ -1109,6 +1177,9 @@ function renderStock(){
   const a = stock(), pay = (parseFloat($("cP").value) || 95) / 100;
   $("stockList").innerHTML = renderLots(a, pay);
   renderBuy();
+  try { renderWeek(); renderBackupDue(); renderCoins(); } catch(e){ console.log(e); }
+  setTimeout(() => { try { gtEmpty(); } catch(e){} }, 0);
+  try { renderPro(); } catch(e){ console.log(e); }
   if (!a.length || !gbpPerGram){ $("stockSum").style.display = "none"; $("liveMine").style.display = "none"; return; }
   $("stockSum").style.display = "block";
   const pure = a.reduce((s, x) => s + x.w * parseFloat(x.k), 0);
@@ -1136,6 +1207,461 @@ function renderStock(){
 }
 $("cP").addEventListener("input", renderStock);
 ["bM","bC"].forEach(id => $(id).addEventListener("input", () => { store.set("buyin", JSON.stringify({m: $("bM").value, c: $("bC").value})); renderBuy(); }));
+
+/* =============== make more money (Buy log owners only) =============== */
+const PRO_ON = () => false;
+function payRatio(){ return mmOn() ? mm.pure_g / gbpPerGram : (parseFloat($("cP").value) || 95) / 100; }
+function refinerG(k){ return (mmOn() && mm.prices[CT[k]]) ? mm.prices[CT[k]] : gbpPerGram * parseFloat(k) * payRatio(); }
+// How far gold falls in a bad week: the 80th percentile of 5-day moves over the last year
+function badWeek(){
+  if (daily.length < 270) return 4;
+  const c = daily.slice(-265).map(x => x[1]), r = [];
+  for (let i = 5; i < c.length; i++) r.push(Math.abs(c[i] / c[i - 5] - 1) * 100);
+  r.sort((x, y) => x - y); return r[Math.floor(r.length * 0.8)];
+}
+function closeOn(d){
+  let lo = 0, hi = daily.length - 1, ans = null;
+  while (lo <= hi){ const m = (lo + hi) >> 1; if (daily[m][0] <= d){ ans = daily[m][1]; lo = m + 1; } else hi = m - 1; }
+  return ans;
+}
+function buys(){ try { return JSON.parse(store.get("buys") || "[]"); } catch(e){ return []; } }
+
+
+
+/* =============== My gold: sections as tabs =============== */
+let gtTab = store.get("gtTab") || "week";
+function gtEmpty(){
+  const vis = id => { const el = $(id); return el && el.style.display !== "none"; };
+  $("ovEmpty").style.display = vis("weekCard") || vis("stockSum") ? "none" : "block";
+}
+function showGt(t){
+  if (t === "money" && !PRO_ON()) t = "week";
+  gtTab = t; store.set("gtTab", t);
+  $("gtMoney").style.display = PRO_ON() ? "" : "none";
+  document.querySelectorAll("#gtTabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
+  document.querySelectorAll("#p-calc [data-gt]").forEach(el => el.classList.toggle("gtHide", el.dataset.gt !== t));
+  gtEmpty();
+}
+document.querySelectorAll("#gtTabs button").forEach(b => b.onclick = () => { showGt(b.dataset.t); window.scrollTo(0, 0); });
+showGt(gtTab);
+
+/* =============== coins: look up and identify (gold and silver) =============== */
+// Official mint specs: weight g, diameter mm, fineness. p = worth more than melt?
+//   0 melt only · 1 bullion: coin dealers often pay a little over melt · 2 depends on date/condition: look it up · 3 usually well over melt: don't scrap
+// fam groups coins that weigh the same but differ in metal by date, so the identifier can ask for the date.
+const SV = (n, w, d, era, f, p, y, fam) => ({m: f ? "ag" : "cn", g: "UK silver (pre-1947)", n: `${n} (${era})`, w, d, f, p, y, fam});
+const COINS = [
+  // ---- UK gold ----
+  {m: "au", g: "UK gold", n: "Sovereign (full)", w: 7.98805, d: 22.05, f: 0.9167, p: 2, y: "1817 to today"},
+  {m: "au", g: "UK gold", n: "Half sovereign", w: 3.99405, d: 19.30, f: 0.9167, p: 2, y: "1817 to today"},
+  {m: "au", g: "UK gold", n: "Quarter sovereign", w: 1.997, d: 13.50, f: 0.9167, p: 1, y: "2009 to today"},
+  {m: "au", g: "UK gold", n: "Double sovereign (£2)", w: 15.976, d: 28.40, f: 0.9167, p: 2, y: "mostly 1980 onwards"},
+  {m: "au", g: "UK gold", n: "Five sovereign piece (£5)", w: 39.94, d: 36.00, f: 0.9167, p: 2, y: "mostly 1980 onwards"},
+  {m: "au", g: "UK gold", n: "Britannia 1oz (22ct, 1987–2012)", w: 34.05, d: 32.69, f: 0.9167, p: 1, y: "1987 to 2012"},
+  {m: "au", g: "UK gold", n: "Britannia 1/2oz (22ct, 1987–2012)", w: 17.025, d: 27.00, f: 0.9167, p: 1, y: "1987 to 2012"},
+  {m: "au", g: "UK gold", n: "Britannia 1/4oz (22ct, 1987–2012)", w: 8.5125, d: 22.00, f: 0.9167, p: 1, y: "1987 to 2012"},
+  {m: "au", g: "UK gold", n: "Britannia 1/10oz (22ct, 1987–2012)", w: 3.405, d: 16.50, f: 0.9167, p: 1, y: "1987 to 2012"},
+  {m: "au", g: "UK gold", n: "Britannia 1oz (24ct, 2013 only)", w: 31.21, d: 38.61, f: 0.9999, p: 1, y: "2013"},
+  {m: "au", g: "UK gold", n: "Royal Mint 1oz 24ct (Britannia 2014+, Queen's Beasts, Lunar, Tudor Beasts, Myths & Legends)", w: 31.21, d: 32.69, f: 0.9999, p: 1, y: "2014 to today"},
+  {m: "au", g: "UK gold", n: "Britannia 1/2oz (24ct)", w: 15.60, d: 27.00, f: 0.9999, p: 1, y: "2013 to today"},
+  {m: "au", g: "UK gold", n: "Britannia 1/4oz (24ct)", w: 7.86, d: 22.00, f: 0.9999, p: 1, y: "2013 to today"},
+  {m: "au", g: "UK gold", n: "Britannia 1/10oz (24ct)", w: 3.13, d: 16.50, f: 0.9999, p: 1, y: "2013 to today"},
+  {m: "au", g: "UK gold", n: "Guinea (pre-1814)", w: 8.385, d: 24.5, f: 0.9167, p: 3, y: "1663 to 1814"},
+  {m: "au", g: "UK gold", n: "Half guinea (pre-1814)", w: 4.19, d: 21.0, f: 0.9167, p: 3, y: "1669 to 1813"},
+  // ---- world gold ----
+  {m: "au", g: "World gold", n: "Krugerrand 1oz", w: 33.93, d: 32.77, f: 0.9167, p: 1, y: "1967 to today"},
+  {m: "au", g: "World gold", n: "Krugerrand 1/2oz", w: 16.965, d: 27.07, f: 0.9167, p: 1, y: "1980 to today"},
+  {m: "au", g: "World gold", n: "Krugerrand 1/4oz", w: 8.482, d: 22.06, f: 0.9167, p: 1, y: "1980 to today"},
+  {m: "au", g: "World gold", n: "Krugerrand 1/10oz", w: 3.393, d: 16.55, f: 0.9167, p: 1, y: "1980 to today"},
+  {m: "au", g: "World gold", n: "American Eagle 1oz", w: 33.93, d: 32.70, f: 0.9167, p: 1, y: "1986 to today"},
+  {m: "au", g: "World gold", n: "American Eagle 1/2oz", w: 16.97, d: 27.00, f: 0.9167, p: 1, y: "1986 to today"},
+  {m: "au", g: "World gold", n: "American Eagle 1/4oz", w: 8.48, d: 22.00, f: 0.9167, p: 1, y: "1986 to today"},
+  {m: "au", g: "World gold", n: "American Eagle 1/10oz", w: 3.39, d: 16.50, f: 0.9167, p: 1, y: "1986 to today"},
+  {m: "au", g: "World gold", n: "American Buffalo 1oz", w: 31.10, d: 32.70, f: 0.9999, p: 1, y: "2006 to today"},
+  {m: "au", g: "World gold", n: "US $20 Double Eagle (pre-1934)", w: 33.436, d: 34.00, f: 0.900, p: 2, y: "1850 to 1933"},
+  {m: "au", g: "World gold", n: "US $10 Eagle (pre-1934)", w: 16.718, d: 27.00, f: 0.900, p: 2, y: "1838 to 1933"},
+  {m: "au", g: "World gold", n: "US $5 Half Eagle (pre-1930)", w: 8.359, d: 21.60, f: 0.900, p: 2, y: "1839 to 1929"},
+  {m: "au", g: "World gold", n: "Maple Leaf 1oz", w: 31.11, d: 30.00, f: 0.9999, p: 1, y: "1979 to today"},
+  {m: "au", g: "World gold", n: "Maple Leaf 1/2oz", w: 15.55, d: 25.00, f: 0.9999, p: 1, y: "1986 to today"},
+  {m: "au", g: "World gold", n: "Maple Leaf 1/4oz", w: 7.78, d: 20.00, f: 0.9999, p: 1, y: "1986 to today"},
+  {m: "au", g: "World gold", n: "Maple Leaf 1/10oz", w: 3.13, d: 16.00, f: 0.9999, p: 1, y: "1982 to today"},
+  {m: "au", g: "World gold", n: "Philharmonic 1oz", w: 31.10, d: 37.00, f: 0.9999, p: 1, y: "1989 to today"},
+  {m: "au", g: "World gold", n: "Philharmonic 1/4oz", w: 7.78, d: 22.00, f: 0.9999, p: 1, y: "1989 to today"},
+  {m: "au", g: "World gold", n: "Philharmonic 1/10oz", w: 3.12, d: 16.00, f: 0.9999, p: 1, y: "1991 to today"},
+  {m: "au", g: "World gold", n: "Austria 100 Corona (1915 restrike)", w: 33.875, d: 37.00, f: 0.900, p: 1, y: "dated 1915"},
+  {m: "au", g: "World gold", n: "Austria 20 Corona (1915 restrike)", w: 6.775, d: 21.00, f: 0.900, p: 1, y: "dated 1915"},
+  {m: "au", g: "World gold", n: "Austria 4 Ducat (1915 restrike)", w: 13.964, d: 39.50, f: 0.986, p: 1, y: "dated 1915"},
+  {m: "au", g: "World gold", n: "Austria 1 Ducat (1915 restrike)", w: 3.4909, d: 19.75, f: 0.986, p: 1, y: "dated 1915"},
+  {m: "au", g: "World gold", n: "Kangaroo / Nugget 1oz", w: 31.11, d: 32.10, f: 0.9999, p: 1, y: "1987 to today"},
+  {m: "au", g: "World gold", n: "China Panda 30g", w: 30.00, d: 32.00, f: 0.999, p: 1, y: "2016 to today"},
+  {m: "au", g: "World gold", n: "China Panda 1oz", w: 31.10, d: 32.00, f: 0.999, p: 1, y: "1982 to 2015"},
+  {m: "au", g: "World gold", n: "Mexico 50 Pesos", w: 41.666, d: 37.00, f: 0.900, p: 1, y: "1921 to 1947 and restrikes"},
+  {m: "au", g: "World gold", n: "Mexico 20 Pesos", w: 16.666, d: 27.50, f: 0.900, p: 1, y: "1917 to 1959"},
+  {m: "au", g: "World gold", n: "20 Francs / 20 Lire (French Napoleon, Swiss Vreneli, Belgian, Italian)", w: 6.4516, d: 21.00, f: 0.900, p: 2, y: "1800s to 1930s"},
+  {m: "au", g: "World gold", n: "Germany 20 Mark", w: 7.965, d: 22.50, f: 0.900, p: 2, y: "1871 to 1915"},
+  {m: "au", g: "World gold", n: "Netherlands 10 Guilder", w: 6.729, d: 22.50, f: 0.900, p: 1, y: "1875 to 1933"},
+  {m: "au", g: "World gold", n: "Turkey 100 Kurush (Ata / Monogram)", w: 7.216, d: 22.00, f: 0.9167, p: 1, y: "1920s to today"},
+  {m: "au", g: "World gold", n: "Turkey 50 Kurush", w: 3.608, d: 18.00, f: 0.9167, p: 1, y: "1920s to today"},
+  {m: "au", g: "World gold", n: "Turkey 25 Kurush", w: 1.804, d: 15.00, f: 0.9167, p: 1, y: "1920s to today"},
+  // ---- UK silver: same coin, different metal by date ----
+  SV("Crown", 28.276, 38.61, "to 1919, 92.5% silver", 0.925, 2, "1818 to 1902", "crown"),
+  SV("Crown", 28.276, 38.61, "1927–1937, 50% silver", 0.500, 2, "1927 to 1937", "crown"),
+  SV("Crown", 28.276, 38.61, "1951–1965 and later £5 crowns, no silver", 0, 0, "1951 to today", "crown"),
+  SV("Double florin", 22.62, 36.00, "1887–1890, 92.5% silver", 0.925, 2, "1887 to 1890"),
+  SV("Halfcrown", 14.138, 32.31, "to 1919, 92.5% silver", 0.925, 2, "1816 to 1919", "halfcrown"),
+  SV("Halfcrown", 14.138, 32.31, "1920–1946, 50% silver", 0.500, 0, "1920 to 1946", "halfcrown"),
+  SV("Halfcrown", 14.138, 32.31, "1947–1967, no silver", 0, 0, "1947 to 1967", "halfcrown"),
+  SV("Florin (two shillings)", 11.31, 28.30, "to 1919, 92.5% silver", 0.925, 2, "1849 to 1919", "florin"),
+  SV("Florin (two shillings)", 11.31, 28.30, "1920–1946, 50% silver", 0.500, 0, "1920 to 1946", "florin"),
+  SV("Florin (two shillings)", 11.31, 28.30, "1947–1970, no silver", 0, 0, "1947 to 1970", "florin"),
+  SV("Shilling", 5.655, 23.60, "to 1919, 92.5% silver", 0.925, 2, "1816 to 1919", "shilling"),
+  SV("Shilling", 5.655, 23.60, "1920–1946, 50% silver", 0.500, 0, "1920 to 1946", "shilling"),
+  SV("Shilling", 5.655, 23.60, "1947–1970, no silver", 0, 0, "1947 to 1970", "shilling"),
+  SV("Sixpence", 2.83, 19.41, "to 1919, 92.5% silver", 0.925, 2, "1816 to 1919", "sixpence"),
+  SV("Sixpence", 2.83, 19.41, "1920–1946, 50% silver", 0.500, 0, "1920 to 1946", "sixpence"),
+  SV("Sixpence", 2.83, 19.41, "1947–1970, no silver", 0, 0, "1947 to 1970", "sixpence"),
+  SV("Silver threepence", 1.41, 16.20, "to 1919, 92.5% silver", 0.925, 2, "1834 to 1919", "threep"),
+  SV("Silver threepence", 1.41, 16.20, "1920–1945, 50% silver", 0.500, 2, "1920 to 1945", "threep"),
+  {m: "ag", g: "UK silver (pre-1947)", n: "Maundy fourpence", w: 1.885, d: 17.60, f: 0.925, p: 3, y: "1822 to today"},
+  {m: "ag", g: "UK silver (pre-1947)", n: "Maundy threepence", w: 1.414, d: 16.30, f: 0.925, p: 3, y: "1822 to today", fam: "threep"},
+  {m: "ag", g: "UK silver (pre-1947)", n: "Maundy twopence", w: 0.943, d: 13.40, f: 0.925, p: 3, y: "1822 to today"},
+  {m: "ag", g: "UK silver (pre-1947)", n: "Maundy penny", w: 0.471, d: 11.10, f: 0.925, p: 3, y: "1822 to today"},
+  // ---- silver bullion and world silver ----
+  {m: "ag", g: "Silver bullion & world silver", n: "Britannia silver 1oz (1997–2012, 95.8%)", w: 32.45, d: 40.00, f: 0.958, p: 1, y: "1997 to 2012"},
+  {m: "ag", g: "Silver bullion & world silver", n: "Britannia silver 1oz (2013 onwards)", w: 31.21, d: 38.61, f: 0.999, p: 1, y: "2013 to today"},
+  {m: "ag", g: "Silver bullion & world silver", n: "Maple Leaf silver 1oz", w: 31.11, d: 38.00, f: 0.9999, p: 1, y: "1988 to today"},
+  {m: "ag", g: "Silver bullion & world silver", n: "American Silver Eagle 1oz", w: 31.10, d: 40.60, f: 0.999, p: 1, y: "1986 to today"},
+  {m: "ag", g: "Silver bullion & world silver", n: "Philharmonic silver 1oz", w: 31.10, d: 37.00, f: 0.999, p: 1, y: "2008 to today"},
+  {m: "ag", g: "Silver bullion & world silver", n: "Krugerrand silver 1oz", w: 31.10, d: 38.725, f: 0.999, p: 1, y: "2017 to today"},
+  {m: "ag", g: "Silver bullion & world silver", n: "Kookaburra silver 1oz", w: 31.10, d: 40.60, f: 0.999, p: 1, y: "1990 to today"},
+  {m: "ag", g: "Silver bullion & world silver", n: "Mexican Libertad silver 1oz", w: 31.10, d: 40.00, f: 0.999, p: 1, y: "1982 to today"},
+  {m: "ag", g: "Silver bullion & world silver", n: "Maria Theresa thaler (1780 restrike)", w: 28.0668, d: 39.50, f: 0.8333, p: 0, y: "dated 1780, struck since"},
+  {m: "ag", g: "Silver bullion & world silver", n: "US Morgan / Peace dollar", w: 26.73, d: 38.10, f: 0.900, p: 2, y: "1878 to 1935"},
+  {m: "ag", g: "Silver bullion & world silver", n: "US half dollar (pre-1965)", w: 12.50, d: 30.60, f: 0.900, p: 1, y: "to 1964"},
+  {m: "ag", g: "Silver bullion & world silver", n: "US quarter (pre-1965)", w: 6.25, d: 24.26, f: 0.900, p: 0, y: "to 1964"},
+];
+// Sets: boxed proof sets usually sell for well over melt, so the advice is to keep them together.
+const COIN_SETS = [
+  {n: "Sovereign 3-coin set (full, half, quarter)", parts: ["Sovereign (full)", "Half sovereign", "Quarter sovereign"]},
+  {n: "Sovereign 3-coin set (double, full, half)", parts: ["Double sovereign (£2)", "Sovereign (full)", "Half sovereign"]},
+  {n: "Sovereign 4-coin set (double, full, half, quarter)", parts: ["Double sovereign (£2)", "Sovereign (full)", "Half sovereign", "Quarter sovereign"]},
+  {n: "Sovereign 5-coin set (£5, double, full, half, quarter)", parts: ["Five sovereign piece (£5)", "Double sovereign (£2)", "Sovereign (full)", "Half sovereign", "Quarter sovereign"]},
+  {n: "Britannia 4-coin set (22ct, 1987–2012)", parts: ["Britannia 1oz (22ct, 1987–2012)", "Britannia 1/2oz (22ct, 1987–2012)", "Britannia 1/4oz (22ct, 1987–2012)", "Britannia 1/10oz (22ct, 1987–2012)"]},
+  {n: "Krugerrand 4-coin set", parts: ["Krugerrand 1oz", "Krugerrand 1/2oz", "Krugerrand 1/4oz", "Krugerrand 1/10oz"]},
+  {n: "Maundy set (4d, 3d, 2d, 1d)", parts: ["Maundy fourpence", "Maundy threepence", "Maundy twopence", "Maundy penny"]},
+].map(st => Object.assign({set: true, g: "Sets", p: 3}, st, {items: st.parts.map(n => COINS.find(c => c.n === n))}));
+const COIN_ALL = COINS.concat(COIN_SETS);
+const PREM = {
+  0: ["Melt value only", "Coins like this trade on their metal."],
+  1: ["A little over melt", "Bullion coin. Coin dealers usually pay a little over melt for good, unscratched ones, so selling to one can beat scrapping."],
+  2: ["Check the date: could be worth more", "Common dates go for about melt, but older, rarer dates, mint marks and coins in very good condition can be worth much more. Look the date up in a catalogue such as Spink's Coins of England before melting it."],
+  3: ["Usually worth more than melt: don't scrap", "Collectors pay more than the metal is worth. Get it valued by a coin dealer or auction house before doing anything else."]
+};
+let agGbpPerGram = null;
+async function loadSilver(){
+  try {
+    const [xag, fx] = await Promise.all([fetchJSON("https://api.gold-api.com/price/XAG").then(d => d.price),
+      fetchJSON("https://open.er-api.com/v6/latest/GBP").then(d => d.rates.USD).catch(() => fetchJSON("https://api.frankfurter.app/latest?from=GBP&to=USD").then(d => d.rates.USD))]);
+    if (xag > 0 && fx > 0){ agGbpPerGram = xag / fx / OZ; store.set("agG", String(agGbpPerGram)); }
+  } catch(e){ const c = parseFloat(store.get("agG")); if (c > 0) agGbpPerGram = c; }
+  try { renderCoins(); } catch(e){}
+}
+function coinMargin(){ return Math.min(90, Math.max(0, parseFloat(store.get("pmM") || "20") || 0)) / 100; }
+function coinVal(c, wt){   // {melt, pays} for one coin; pays = what a refiner pays (gold only)
+  wt = wt || c.w;
+  if (c.m === "au"){
+    if (!gbpPerGram) return null;
+    const pays = c.f > 0.91 && c.f < 0.92 ? refinerG("0.916") : c.f >= 0.999 ? refinerG("0.999") : gbpPerGram * c.f * payRatio();
+    return {melt: wt * c.f * gbpPerGram, pays: wt * pays};
+  }
+  if (c.m === "ag") return agGbpPerGram ? {melt: wt * c.f * agGbpPerGram, pays: null} : null;
+  return {melt: 0, pays: null};
+}
+const metalWord = c => c.m === "au" ? "gold" : c.m === "ag" ? "silver" : "silver";
+function purity(c){
+  if (c.m === "cn") return "None (cupronickel)";
+  const pc = (c.f * 100).toFixed(2).replace(/\.?0+$/, "") + "%";
+  if (c.m === "au") return (c.f > 0.91 && c.f < 0.92 ? "22ct" : c.f >= 0.999 ? "24ct" : c.f >= 0.98 ? "23.6ct" : "21.6ct") + " gold (" + pc + ")";
+  return pc + " silver";
+}
+function premHTML(p){ return `<div class="warn" style="margin-top:8px;${p >= 2 ? "" : "border-color:var(--line);background:none"}"><strong>${PREM[p][0]}.</strong> ${PREM[p][1]}</div>`; }
+function coinHTML(c, weight, qty){
+  const n = qty || 1, m = coinMargin();
+  if (c.set){
+    const au = c.items.filter(x => x.m === "au"), ag = c.items.filter(x => x.m === "ag");
+    const vals = c.items.map(x => coinVal(x)), have = vals.every(v => v);
+    const melt = have ? vals.reduce((t, v) => t + v.melt, 0) : 0;
+    const pays = have && au.length === c.items.length ? vals.reduce((t, v) => t + v.pays, 0) : null;
+    return `<div class="result"><div class="muted">Set of ${c.items.length}</div><b style="font-size:19px">${esc(c.n)}</b>
+      <table style="margin-top:8px">
+        ${c.items.map(x => `<tr><td>${esc(x.n)}</td><td>${(x.w * x.f).toFixed(3)} g ${metalWord(x)}</td></tr>`).join("")}
+        <tr><td><strong>Total pure ${au.length ? "gold" : "silver"}</strong></td><td><strong>${c.items.reduce((t, x) => t + x.w * x.f, 0).toFixed(3)} g</strong></td></tr>
+        ${have ? `<tr><td>Melt value${n > 1 ? ` × ${n}` : ""}</td><td>${fmt(melt * n, 0)}</td></tr>` : ""}
+        ${pays ? `<tr><td>Refiner pays${n > 1 ? ` × ${n}` : ""}</td><td>${fmt(pays * n, 0)}</td></tr>` : ""}
+      </table>
+      ${premHTML(3)}
+      <p class="muted" style="margin:6px 0 0">A complete set in its original box with the certificate is worth the most, so keep the coins, box and paperwork together. Proof sets from the Royal Mint usually resell well above melt to coin dealers.</p></div>`;
+  }
+  const wt = weight || c.w, v = coinVal(c, wt), pure = wt * c.f;
+  return `<div class="result">
+    <div class="muted">${esc(c.g)} · ${esc(c.y)}</div><b style="font-size:19px">${esc(c.n)}</b>
+    <table style="margin-top:8px">
+      <tr><td>Weight</td><td>${+c.w.toFixed(3)} g${weight ? ` (yours ${weight.toFixed(2)} g)` : ""}</td></tr>
+      <tr><td>Diameter</td><td>${c.d.toFixed(2)} mm</td></tr>
+      <tr><td>Metal</td><td>${purity(c)}</td></tr>
+      ${c.m !== "cn" ? `<tr><td>Pure ${metalWord(c)} in it</td><td><strong>${pure.toFixed(3)} g</strong> (${(pure / OZ).toFixed(4)} oz)</td></tr>` : ""}
+      ${v && c.m !== "cn" ? `<tr><td>Melt value${n > 1 ? ` × ${n}` : ""}</td><td>${fmt(v.melt * n, v.melt < 20 ? 2 : 0)}</td></tr>
+      ${v.pays ? `<tr><td>Refiner pays${n > 1 ? ` × ${n}` : ""}</td><td>${fmt(v.pays * n, 0)}</td></tr>` : ""}
+      <tr><td>Pay up to${n > 1 ? ` × ${n}` : ""}</td><td><strong>${fmt((v.pays || v.melt) * (1 - m) * n, v.melt < 20 ? 2 : 0)}</strong></td></tr>` : ""}
+      ${c.m === "ag" && !v ? `<tr><td colspan="2" class="muted">Waiting for the live silver price…</td></tr>` : ""}
+    </table>
+    ${v && c.m !== "cn" ? `<p class="muted" style="margin:6px 0 0">Pay up to keeps your ${Math.round(m * 100)}% margin on ${v.pays ? "the refiner price" : "the silver melt value"}.</p>` : ""}
+    ${c.m === "cn" ? `<p class="muted" style="margin:6px 0 0">No precious metal, so it's only worth face value unless it's rare or in a special proof box. Silver proof versions of modern £5 crowns exist: they come boxed with a certificate.</p>` : premHTML(c.p)}
+    ${c.p >= 1 && c.m !== "cn" && /Britannia|Sovereign|Guinea|Maundy/i.test(c.n) && c.m === "au" ? `<p class="muted" style="margin:6px 0 0">UK sovereigns and Britannias are legal tender, so they're free of capital gains tax for private buyers, which keeps demand for them strong.</p>` : ""}
+  </div>`;
+}
+function renderCoins(){
+  if (!$("coinSel").options.length){
+    let html = "", grp = "";
+    COIN_ALL.forEach((c, i) => { if (c.g !== grp){ if (grp) html += "</optgroup>"; grp = c.g; html += `<optgroup label="${esc(grp)}">`; } html += `<option value="${i}">${esc(c.n)}</option>`; });
+    $("coinSel").innerHTML = html + "</optgroup>";
+    const saved = store.get("coinSel"); $("coinSel").value = saved && COIN_ALL[+saved] ? saved : "0";
+  }
+  const mode = document.querySelector("#coinTabs .on").dataset.c;
+  if (mode === "look"){ $("coinOut").innerHTML = coinHTML(COIN_ALL[+$("coinSel").value], null, Math.max(1, parseInt($("coinQty").value) || 1)); return; }
+  const w = parseFloat($("coinW").value), d = parseFloat($("coinD").value), metal = $("coinM").value;
+  if (!(w > 0)){ $("coinOut").innerHTML = '<p class="muted" style="margin:10px 0 0">Enter the weight to see what it is.</p>'; return; }
+  // coins lose weight with wear but never gain it, so being heavy counts against a match more than being light
+  const pool = COINS.filter(c => metal === "any" || (metal === "au" ? c.m === "au" : c.m !== "au"));
+  const seen = new Set();
+  const ranked = pool.map(c => {
+    const dw = (w - c.w) / c.w * 100, dd = d > 0 ? d - c.d : null;
+    // UK coins are far more common over a UK counter, so they win a near tie
+    return {c, dw, dd, score: ((dw > 0 ? dw * 3 : -dw * 0.7) + (dd == null ? 0 : Math.abs(dd) / c.d * 100 * 2)) * (c.g.startsWith("UK") ? 0.6 : 1)};
+  }).sort((a, b) => a.score - b.score).filter(r => { const k = r.c.fam || r.c.n; if (seen.has(k)) return false; seen.add(k); return true; });
+  const best = ranked[0];
+  if (!best || Math.abs(best.dw) > 6 || (best.dd != null && Math.abs(best.dd) > 1)){
+    $("coinOut").innerHTML = `<div class="warn"><b>No match.</b> Nothing in the list is ${w.toFixed(2)} g${d > 0 ? ` and ${d.toFixed(2)} mm` : ""}. It may be a coin that isn't listed, a medal, or a fake.${best ? ` Closest is the ${esc(best.c.n)} (${best.c.w.toFixed(2)} g, ${best.c.d.toFixed(2)} mm).` : ""}</div>`;
+    return;
+  }
+  const notes = [];
+  if (best.dw > 0.6) notes.push(`It's ${best.dw.toFixed(1)}% <b>heavier</b> than a real one should be. Genuine coins don't gain weight, so check your scales and treat it as a possible fake.`);
+  else if (best.dw < -2) notes.push(`It's ${Math.abs(best.dw).toFixed(1)}% <b>light</b>. Heavy wear can take off a little, but this much is a warning sign for a fake or a clipped coin.`);
+  else if (best.dw < -0.6) notes.push(`It's ${Math.abs(best.dw).toFixed(1)}% light, which is normal for a worn coin. Value it on its actual weight.`);
+  if (best.dd != null && Math.abs(best.dd) > 0.25) notes.push(`The diameter is ${Math.abs(best.dd).toFixed(2)} mm ${best.dd > 0 ? "too wide" : "too small"}. Right weight but wrong size is a classic sign of a fake.`);
+  if (best.dd == null) notes.push("Measure the diameter too. Weight alone can't tell coins of similar weight apart, and it's the best check against fakes.");
+  const close = ranked.slice(1, 4).filter(r => (best.dd == null ? Math.abs(r.dw) < 2.5 : Math.abs(r.dw) < 1.5 && Math.abs(r.dd) < 0.3));
+  const mixed = metal === "any" && close.some(r => (r.c.m === "au") !== (best.c.m === "au"));
+  if (mixed) notes.unshift(`<b>Gold and silver versions of this size exist.</b> Pick its colour above before you price it, as the gold one is worth many times more.`);
+  const ok = !mixed && Math.abs(best.dw) <= 0.6 && (best.dd == null || Math.abs(best.dd) <= 0.25);
+  const fam = best.c.fam ? COIN_ALL.filter(c => c.fam === best.c.fam) : null;
+  const famName = fam ? best.c.n.replace(/ \(.*\)$/, "") : best.c.n;
+  $("coinOut").innerHTML = `<div class="verdict ${ok ? "t1" : "t2"}" style="margin:12px 0 0"><div class="call" style="font-size:18px">${ok ? "Matches" : "Check this one"}: ${esc(famName)}</div>
+      ${notes.length ? `<div>${notes.join(" ")}</div>` : `<div>Weight${best.dd != null ? " and size match" : " matches"} the official spec.</div>`}</div>
+    ${close.length ? `<p class="muted" style="margin:8px 0 0">Could also be: ${close.map(r => esc(r.c.fam ? r.c.n.replace(/ \(.*\)$/, "") : r.c.n)).join(", ")}. Check the design and wording on it.</p>` : ""}
+    ${fam ? `<div class="warn"><b>Look at the date.</b> These weigh the same whatever they're made of, so the date decides how much silver is in it.
+        <table style="margin-top:6px">${fam.map(c => { const v = coinVal(c, w); return `<tr><td>${esc(c.n.replace(/^.*\((.*)\)$/, "$1"))}${/Maundy/.test(c.n) ? " (Maundy)" : ""}</td><td>${c.m === "cn" ? "face value" : v ? fmt(v.melt, 2) + " melt" : ""}</td></tr>`; }).join("")}</table></div>
+        ${fam.filter(c => c.m !== "cn").slice(0, 1).map(c => coinHTML(c, w, 1)).join("")}`
+      : coinHTML(best.c, w, 1)}
+    <p class="muted" style="margin:8px 0 0">Quick extra checks: gold and silver aren't magnetic, so a coin that sticks to a strong magnet is fake. Real gold and silver coins also ring for a long time when balanced on a fingertip and tapped.</p>`;
+}
+document.querySelectorAll("#coinTabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#coinTabs button").forEach(x => x.classList.toggle("on", x === b));
+  $("coinLook").style.display = b.dataset.c === "look" ? "" : "none"; $("coinId").style.display = b.dataset.c === "id" ? "" : "none"; renderCoins();
+});
+$("coinSel").addEventListener("change", () => { store.set("coinSel", $("coinSel").value); renderCoins(); });
+["coinQty", "coinW", "coinD"].forEach(id => $(id).addEventListener("input", renderCoins));
+$("coinM").addEventListener("change", renderCoins);
+loadSilver(); setInterval(loadSilver, 15 * 60000);
+
+/* =============== your week: bought, sent, made, still holding =============== */
+function sentLog(){ try { return JSON.parse(store.get("sent") || "[]"); } catch(e){ return []; } }
+function todayISO(){ const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
+function addDays(iso, n){ const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+function mondayOf(iso){ const d = new Date(iso + "T12:00:00Z"); return addDays(iso, -((d.getUTCDay() + 6) % 7)); }
+function weekFigures(mon){
+  const sun = addDays(mon, 6), inW = d => !!d && d >= mon && d <= sun;
+  const pay = (parseFloat($("cP").value) || 95) / 100;
+  const bought = buys().filter(x => inW(x.d)).concat(stock().filter(x => !x.bl && inW(x.d)).map(x => ({d: x.d, w: x.w0 != null ? x.w0 : x.w, k: x.k, paid: (x.paid0 != null ? x.paid0 : x.paid) || 0})));
+  const b = {n: bought.length, g: 0, pure: 0, cost: 0, r: 0, rc: 0};
+  bought.forEach(x => { const p = x.w * parseFloat(x.k); b.g += x.w; b.pure += p; b.cost += x.paid || 0;
+    const oz = x.paid > 0 ? closeOn(x.d) : null; if (oz){ b.r += p * g(oz) * payRatio(); b.rc += x.paid; } });
+  b.margin = b.r ? (1 - b.rc / b.r) * 100 : null;
+  const s = {n: 0, g: 0, pure: 0, cost: 0, value: 0, valuePaid: 0};
+  sentLog().filter(x => inW(x.d)).forEach(x => { s.n++; s.g += Object.values(x.by).reduce((t, w) => t + w, 0); s.pure += x.pure; s.cost += x.cost; s.value += x.value; s.valuePaid += x.valuePaid; });
+  const a = stock(), h = {g: 0, pure: 0, purePaid: 0, cost: 0};
+  a.forEach(x => { const p = x.w * parseFloat(x.k); h.g += x.w; h.pure += p; if (x.paid > 0){ h.purePaid += p; h.cost += x.paid; } });
+  h.worth = gbpPerGram ? h.pure * gbpPerGram * pay : 0;
+  h.pnl = gbpPerGram && h.cost ? h.purePaid * gbpPerGram * pay - h.cost : null;
+  return {mon, sun, b, s, h};
+}
+let wkView = 0;
+document.querySelectorAll("#wkTabs button").forEach(btn => btn.onclick = () => {
+  wkView = +btn.dataset.w; document.querySelectorAll("#wkTabs button").forEach(x => x.classList.toggle("on", x === btn)); renderWeek();
+});
+function renderWeek(){
+  const any = stock().length || buys().length || sentLog().length;
+  $("weekCard").style.display = any ? "block" : "none";
+  if (!any) return;
+  const mon = addDays(mondayOf(todayISO()), -7 * wkView), f = weekFigures(mon), {b, s, h} = f;
+  const day = iso => new Date(iso + "T12:00:00Z").toLocaleDateString("en-GB", {day: "numeric", month: "short"});
+  const signed = v => (v >= 0 ? "+" : "−") + fmt(Math.abs(v), 0);
+  const made = s.valuePaid - s.cost;
+  $("wkBody").innerHTML = `<p class="muted" style="margin:0 0 8px">Monday ${day(f.mon)} to Sunday ${day(f.sun)}</p>
+    <table>
+      <tr><td><b>Bought</b><div class="muted">${b.n ? `${b.n} item${b.n === 1 ? "" : "s"}, ${b.g.toFixed(1)}g (${b.pure.toFixed(1)}g pure)` : "Nothing yet"}${b.margin != null ? ` · ${b.margin.toFixed(1)}% margin on the refiner's price that day` : ""}</div></td><td>${b.cost ? fmt(b.cost, 0) : ""}</td></tr>
+      <tr><td><b>Sent to the refiner</b><div class="muted">${s.n ? `${s.g.toFixed(1)}g (${s.pure.toFixed(1)}g pure), about ${fmt(s.value, 0)}` : "Nothing sent"}</div></td><td></td></tr>
+      ${s.n && s.cost ? `<tr><td><b>Made on what you sent</b><div class="muted">About ${fmt(s.valuePaid, 0)} back on ${fmt(s.cost, 0)} paid</div></td><td class="${made >= 0 ? "pos" : "neg"}" style="white-space:nowrap">${signed(made)}</td></tr>` : ""}
+      ${wkView === 0 ? `<tr><td><b>Still holding</b><div class="muted">${h.g.toFixed(1)}g (${h.pure.toFixed(1)}g pure)${h.cost ? `, cost ${fmt(h.cost, 0)}` : ""}${h.worth ? `, worth about ${fmt(h.worth, 0)} ${payAt((parseFloat($("cP").value) || 95) / 100)}` : ""}</div></td><td class="${h.pnl == null ? "" : h.pnl >= 0 ? "pos" : "neg"}" style="white-space:nowrap">${h.pnl == null ? "" : signed(h.pnl)}</td></tr>` : ""}
+    </table>
+    <p class="muted" style="margin:8px 0 0">Sent figures use the price on the day you tapped <b>I've sent this batch</b>, so they're close but not exact. Mastermelt's statement has the final payout.${wkView === 0 ? " A summary of your week comes to your phone every Sunday evening." : ""}</p>`;
+}
+function weekPayload(){
+  const f = weekFigures(mondayOf(todayISO())), r = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
+  return {mon: f.mon, b: [f.b.n, r(f.b.g, 1), r(f.b.pure), r(f.b.cost), f.b.margin == null ? null : r(f.b.margin, 1)],
+    s: [f.s.n, r(f.s.g, 1), r(f.s.pure), r(f.s.cost), r(f.s.valuePaid), r(f.s.value)], h: [r(f.h.g, 1), r(f.h.pure), r(f.h.purePaid), r(f.h.cost)]};
+}
+
+/* =============== backup reminder =============== */
+// The Buy log saves when its last full backup was taken; nag here once a week if it's overdue.
+function backupDays(){ const t = store.get("blBackup"); return t ? Math.floor((Date.now() - new Date(t)) / 864e5) : null; }
+function renderBackupDue(){
+  const has = PRO_ON() && (buys().length > 0 || stock().some(x => x.bl));
+  const d = backupDays(), due = has && (d == null || d >= 7);
+  const html = due ? `<b>Back up your buy log</b><div class="muted" style="margin-top:4px">${d == null ? "It has never been backed up." : `Last backup was ${d} days ago.`} The ID records are only on this phone, so if it's lost or reset they're gone. It takes one tap to save a copy to Google Drive or email.</div>
+    <a class="btn" href="buying-log/?backup=1">Back up now</a>` : "";
+  ["bkDue1", "bkDue2"].forEach(id => { const el = $(id); if (el){ el.innerHTML = html; el.style.display = due ? "block" : "none"; } });
+}
+// Save a file: offers the phone's share sheet (Google Drive, Gmail, Files) where it can, otherwise downloads it
+async function saveFile(blob, name){
+  const file = new File([blob], name, {type: blob.type});
+  if (navigator.canShare && navigator.canShare({files: [file]})){
+    try { await navigator.share({files: [file], title: name}); return "shared"; }
+    catch(e){ if (e && e.name === "AbortError") return "cancelled"; }
+  }
+  const url = URL.createObjectURL(blob), link = document.createElement("a");
+  link.href = url; link.download = name; document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  return "downloaded";
+}
+function renderPro(){
+  if (!PRO_ON()){ $("proCard").style.display = "none"; return; }
+  $("proCard").style.display = "block";
+  if (!gbpPerGram){ $("pmPay").innerHTML = '<p class="muted">Waiting for the live price…</p>'; return; }
+  if (!renderPro.init){ renderPro.init = true; $("pmM").value = store.get("pmM") || "20"; renderLotAlerts(); }
+  queueLotSync();
+  const raw = $("pmM").value.trim();   // the box can be empty while typing; keep using the last saved number until a new one is typed
+  if (raw !== "" && !isNaN(parseFloat(raw))) store.set("pmM", raw);
+  const m = Math.min(90, Math.max(0, parseFloat(raw !== "" ? raw : (store.get("pmM") || "20")) || 0)) / 100;
+  const src = mmOn() ? `Mastermelt's price (${mmDay()})` : `${Math.round(payRatio() * 100)}% of the live price`;
+  $("pmPay").innerHTML = `<table><tr><td class="muted">Carat</td><td class="muted">Refiner pays</td><td class="muted">Pay up to</td></tr>
+    ${Object.keys(CT).map(k => { const r = refinerG(k); return `<tr><td>${CT[k]}</td><td>${fmt(r)}/g</td><td><b>${fmt(r * (1 - m))}/g</b></td></tr>`; }).join("")}</table>
+    <p class="muted" style="margin:6px 0 0">To keep ${Math.round(m * 100)}% of what the refiner pays, based on ${src}. The live price moves every minute, so check this before each purchase, especially while gold is falling.</p>`;
+
+  // lots: which to send now
+  const a = stock(), pay = (parseFloat($("cP").value) || 95) / 100, risk = badWeek(), tier = sig ? sig.cur.tier : 0;
+  const groups = new Map();
+  a.forEach(x => { const [k, label] = lotKey(x.d, lotView === "a" ? "m" : lotView); if (!groups.has(k)) groups.set(k, {label, items: []}); groups.get(k).items.push(x); });
+  const rows = [...groups.values()].map(g2 => Object.assign({label: g2.label}, lotStats(g2.items, pay))).filter(r => r.be);
+  if (!rows.length){ $("pmLots").innerHTML = '<p class="muted" style="margin:0">Add what you paid for your gold, or buy through the Buy log, and each lot will show here.</p>'; }
+  else {
+    const out = rows.map(r => {
+      const cush = (gbpPerGram / r.be - 1) * 100, gain = r.pnl;
+      if (cush < 0) return {o: 1, html: `<tr><td><b>At a loss:</b> ${r.label}<div class="muted">${caratText(r.byCarat)}. Sending now loses ${fmt(-gain, 0)}. It breaks even if gold gets back to ${fmt(r.be)}/g.</div></td><td class="neg">${pc(r.pnlPct, 1)}</td></tr>`};
+      if (cush < risk) return {o: 0, html: `<tr><td><b>Send now:</b> ${r.label}<div class="muted">${caratText(r.byCarat)}. Only ${cush.toFixed(1)}% above break-even. In a bad week gold falls about ${risk.toFixed(1)}%, which would turn this +${fmt(gain, 0)} into a loss.</div></td><td class="pos">${pc(r.pnlPct, 1)}</td></tr>`};
+      if (tier >= 2) return {o: 0, html: `<tr><td><b>Lock it in:</b> ${r.label}<div class="muted">${caratText(r.byCarat)}. +${fmt(gain, 0)} and gold is in the sell zone.</div></td><td class="pos">${pc(r.pnlPct, 1)}</td></tr>`};
+      return {o: 2, html: `<tr><td>Safe for now: ${r.label}<div class="muted">${caratText(r.byCarat)}. ${cush.toFixed(1)}% above break-even, more than a bad week's fall (${risk.toFixed(1)}%).</div></td><td class="pos">${pc(r.pnlPct, 1)}</td></tr>`};
+    }).sort((x, y) => x.o - y.o);
+    $("pmLots").innerHTML = `<table>${out.map(x => x.html).join("")}</table>`;
+  }
+
+  // buying margin by month: what you paid vs what the refiner was paying that day
+  const entries = buys().concat(a.filter(x => !x.bl).map(x => ({d: x.d, w: x.w, k: x.k, paid: x.paid}))).filter(x => x.paid > 0 && x.d && x.w > 0);
+  const months = new Map();
+  entries.forEach(x => { const oz = closeOn(x.d); if (!oz) return; const r = x.w * parseFloat(x.k) * g(oz) * payRatio(); const key = x.d.slice(0, 7);
+    const t = months.get(key) || {r: 0, paid: 0, w: 0}; t.r += r; t.paid += x.paid; t.w += x.w; months.set(key, t); });
+  const list = [...months.entries()].sort((p, q) => q[0].localeCompare(p[0])).slice(0, 12);
+  $("pmMonths").innerHTML = list.length ? `<table><tr><td class="muted">Month</td><td class="muted">Paid</td><td class="muted">Margin</td></tr>
+    ${list.map(([k, t]) => { const mg = (1 - t.paid / t.r) * 100; return `<tr><td>${new Date(k + "-15").toLocaleDateString("en-GB", {month: "short", year: "numeric"})}<div class="muted">${t.w.toFixed(1)}g</div></td><td>${fmt(t.paid, 0)}</td><td class="${mg >= m * 100 ? "pos" : "neg"}">${mg.toFixed(1)}%</td></tr>`; }).join("")}</table>
+    <p class="muted" style="margin:6px 0 0">What you paid against what the refiner was paying on the day you bought, so it shows how well you bought, whatever gold did afterwards. Green means you hit your ${Math.round(m * 100)}% target.</p>`
+    : '<p class="muted" style="margin:0">Fills in as you buy gold, through the Buy log or by adding it with what you paid.</p>';
+}
+$("pmM").addEventListener("input", renderPro);
+/* ---- lot alerts: send a locked summary of the lots to the hourly alert check ---- */
+// Only month, pure grams paid for, cost and grams per carat are sent, locked with a key made from your
+// private alert code. Customer details never leave the phone.
+const LOT_TO_MAIN = false;
+const te8 = new TextEncoder();
+const sha8 = async b => new Uint8Array(await crypto.subtle.digest("SHA-256", b));
+const hex8 = b => [...b].map(x => x.toString(16).padStart(2, "0")).join("");
+async function lotKeys(code){
+  const h = s2 => sha8(te8.encode(s2));
+  return {sync: "gts" + hex8(await h("sync|" + code)).slice(0, 28), lots: "gtl" + hex8(await h("lots|" + code)).slice(0, 28), enc: await h("enc|" + code), mac: await h("mac|" + code)};
+}
+async function sealLots(k, obj){
+  const pt = te8.encode(JSON.stringify(obj)), n = crypto.getRandomValues(new Uint8Array(16)), ct = new Uint8Array(pt.length);
+  for (let i = 0; i * 32 < pt.length; i++){
+    const blk = new Uint8Array(52); blk.set(k.enc, 0); blk.set(n, 32); new DataView(blk.buffer).setUint32(48, i);
+    const ks = await sha8(blk);
+    for (let j = 0; j < 32 && i * 32 + j < pt.length; j++) ct[i * 32 + j] = pt[i * 32 + j] ^ ks[j];
+  }
+  const nc = new Uint8Array(16 + ct.length); nc.set(n); nc.set(ct, 16);
+  const mk = await crypto.subtle.importKey("raw", k.mac, {name: "HMAC", hash: "SHA-256"}, false, ["sign"]);
+  const tag = new Uint8Array(await crypto.subtle.sign("HMAC", mk, nc));
+  const all = new Uint8Array(nc.length + 32); all.set(nc); all.set(tag, nc.length);
+  let bin = ""; all.forEach(b => bin += String.fromCharCode(b));
+  return "v1:" + btoa(bin);
+}
+function lotSummary(){
+  const months = new Map();
+  stock().forEach(x => { if (!(x.paid > 0) || !x.d) return; const m = x.d.slice(0, 7);
+    const t = months.get(m) || [m, 0, 0, {}]; t[1] += x.w * parseFloat(x.k); t[2] += x.paid; t[3][x.k] = +((t[3][x.k] || 0) + x.w).toFixed(2); months.set(m, t); });
+  return [...months.values()].sort((a2, b2) => b2[0].localeCompare(a2[0])).slice(0, 30).map(t => [t[0], +t[1].toFixed(3), +t[2].toFixed(2), t[3]]);
+}
+let laTimer = null, laBusy = false;
+function queueLotSync(){ clearTimeout(laTimer); laTimer = setTimeout(syncLots, 1500); }
+async function syncLots(force){
+  const code = store.get("lotCode"); if (!code || laBusy || !PRO_ON()) return;
+  const lots = lotSummary(), wk = weekPayload(), bk = store.get("blBackup") || null, body = JSON.stringify([lots, wk, bk]), last = store.get("lotSent") || "", at = +(store.get("lotSentAt") || 0);
+  if (!force && body === last && Date.now() - at < 6 * 3600e3) return;
+  laBusy = true;
+  try {
+    const k = await lotKeys(code);
+    const r = await fetch("https://ntfy.sh/" + k.sync, {method: "POST", body: await sealLots(k, {v: 1, t: new Date().toISOString(), lots, wk, bk}), headers: {Priority: "min"}});
+    if (!r.ok) throw new Error(r.status);
+    store.set("lotSent", body); store.set("lotSentAt", String(Date.now())); store.del("lotErr");
+  } catch(e){ store.set("lotErr", "1"); }
+  laBusy = false; renderLotAlerts();
+}
+async function renderLotAlerts(){
+  if (!$("laBox")) return;
+  const code = store.get("lotCode");
+  if (!code){
+    $("laBox").innerHTML = `<p class="muted" style="margin:0 0 8px">Get a ping when one of your lots should be sent to the refiner. Type in your Gold Trader alert code, the one you subscribed to in ntfy (it starts <b>gt-</b>).</p>
+      <input id="laCode" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="gt-…">
+      <button class="btn" id="laOn" style="margin-top:8px">Turn on lot alerts</button><p class="muted" id="laMsg" style="margin:6px 0 0"></p>`;
+    $("laOn").onclick = () => {
+      const c = $("laCode").value.trim();
+      if (!/^(gt|dg)-[0-9a-f]{24}$/.test(c)){ $("laMsg").textContent = c.length && /^(gt|dg)-[0-9a-f]+$/.test(c) ? `That code is ${c.length - 3} characters after the dash, but it should be 24. Check you copied all of it.` : "That doesn't look like your alert code. It starts gt- or dg- followed by 24 letters and numbers. Copy it from the ntfy app."; return; }
+      store.set("lotCode", c); store.del("lotSent"); renderLotAlerts(); syncLots(true);
+    };
+    return;
+  }
+  const k = await lotKeys(code), at = +(store.get("lotSentAt") || 0);
+  const when = at ? new Date(at).toLocaleString("en-GB", {weekday: "short", hour: "2-digit", minute: "2-digit"}) : "not yet";
+  $("laBox").innerHTML = `<p style="margin:0 0 6px"><b>On.</b> <span class="muted">Your lots were last sent to your alert check: ${when}${store.get("lotErr") ? ". <span class='neg'>The last send failed, it will retry next time you open the app.</span>" : ""}</span></p>
+    ${LOT_TO_MAIN ? `<p class="muted" style="margin:0 0 8px">Lot alerts come to your usual Gold Trader alerts in ntfy. The hourly check looks at your lots and pings you when one should be sent, locked in, or slips into a loss.</p>`
+      : `<p class="muted" style="margin:0 0 6px">Your lot alerts come on their own private channel, so nobody else on your main alerts gets them. In ntfy, tap <b>+</b> and subscribe to:</p>
+         <code id="laTopic" style="display:inline-block;word-break:break-all">${k.lots}</code> <button class="btn" id="laCopy" style="margin-top:8px">Copy code</button>`}
+    <p class="muted" style="margin:8px 0">Only the month, grams, carats and what you paid are sent, locked so that only your own alert check can read them. Customer details never leave this phone. The lots update whenever you open the app.</p>
+    <button class="btn" id="laOff" style="background:none;border:1px solid var(--line);color:var(--muted)">Turn off lot alerts</button>`;
+  if ($("laCopy")) $("laCopy").onclick = async () => { try { await navigator.clipboard.writeText(k.lots); $("laCopy").textContent = "Copied"; } catch(e){ $("laCopy").textContent = "Press and hold the code to copy"; } };
+  $("laOff").onclick = async () => {
+    try { await fetch("https://ntfy.sh/" + k.sync, {method: "POST", body: await sealLots(k, {v: 1, t: new Date().toISOString(), lots: []}), headers: {Priority: "min"}}); } catch(e){}
+    ["lotCode", "lotSent", "lotSentAt", "lotErr"].forEach(x => store.del(x)); renderLotAlerts();
+  };
+}
+
 
 /* =============== health check =============== */
 let dataUpdated = null;

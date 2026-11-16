@@ -1790,7 +1790,7 @@ function loadChart(){
 /* =============== navigation =============== */
 /* Buying log: only shown on phones where it has been switched on (open the app once with ?buyinglog=on) */
 try { const q = new URLSearchParams(location.search).get("buyinglog"); if (q === "on") store.set("buyingLog", "1"); if (q === "off") store.del("buyingLog"); if (q) history.replaceState(null, "", location.pathname); } catch(e){}
-if (store.get("buyingLog") === "1") { $("blNav").style.display = ""; $("blNote").style.display = ""; }
+if (store.get("buyingLog") === "1") { $("blNav").style.display = ""; $("blNote").style.display = ""; try { showGt(gtTab); renderPro(); } catch(e){} }
 function go(page){ const b = document.querySelector('nav button[data-p="' + page + '"]'); if (b) b.click(); if (page === "help") store.set("seenGuide", "1"); }
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
   document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x === b));
