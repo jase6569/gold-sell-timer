@@ -1481,7 +1481,7 @@ $("coinM").addEventListener("change", renderCoins);
 loadSilver(); setInterval(loadSilver, 15 * 60000);
 
 /* ---- scan with camera: an AI reads the photos, the app does the sums from the official coin specs ---- */
-const SCAN_URL = "";   // the Gold Trader coin scanner (Cloudflare Worker), see scan-worker/
+const SCAN_URL = "https://gold-coin-scan.maximus6569.workers.dev/";   // the Gold Trader coin scanner (Cloudflare Worker), see scan-worker/
 let scPhotos = [], scResult = null, scBusy = false, scErr = "";
 function shrinkPhoto(file){
   return new Promise((ok, bad) => {
