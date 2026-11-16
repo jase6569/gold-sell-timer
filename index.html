@@ -511,6 +511,15 @@
     <div class="tabs" id="coinTabs" style="margin-bottom:10px">
       <button class="on" data-c="look">Look up a coin</button>
       <button data-c="id">Identify a coin</button>
+      <button data-c="scan">Scan with camera</button>
+    </div>
+    <div id="coinScan" style="display:none">
+      <p class="muted" style="margin-top:0">Photograph a coin, a handful of coins or a whole set in its case. For a set, get the certificate in the shot if there is one. Up to 4 photos, e.g. front and back.</p>
+      <input id="scFile" type="file" accept="image/*" capture="environment" style="display:none">
+      <button class="btn" id="scTake">📷 Take a photo</button>
+      <div id="scThumbs" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"></div>
+      <button class="btn" id="scGo" style="display:none">Scan these photos</button>
+      <button class="btn" id="scClear" style="display:none;background:none;border:1px solid var(--line);color:var(--muted)">Start again</button>
     </div>
     <div id="coinLook">
       <label>Coin</label>
@@ -1423,6 +1432,7 @@ function renderCoins(){
     const saved = store.get("coinSel"); $("coinSel").value = saved && COIN_ALL[+saved] ? saved : "0";
   }
   const mode = document.querySelector("#coinTabs .on").dataset.c;
+  if (mode === "scan"){ renderScan(); return; }
   if (mode === "look"){ $("coinOut").innerHTML = coinHTML(COIN_ALL[+$("coinSel").value], null, Math.max(1, parseInt($("coinQty").value) || 1)); return; }
   const w = parseFloat($("coinW").value), d = parseFloat($("coinD").value), metal = $("coinM").value;
   if (!(w > 0)){ $("coinOut").innerHTML = '<p class="muted" style="margin:10px 0 0">Enter the weight to see what it is.</p>'; return; }
@@ -1462,12 +1472,106 @@ function renderCoins(){
 }
 document.querySelectorAll("#coinTabs button").forEach(b => b.onclick = () => {
   document.querySelectorAll("#coinTabs button").forEach(x => x.classList.toggle("on", x === b));
-  $("coinLook").style.display = b.dataset.c === "look" ? "" : "none"; $("coinId").style.display = b.dataset.c === "id" ? "" : "none"; renderCoins();
+  $("coinLook").style.display = b.dataset.c === "look" ? "" : "none"; $("coinId").style.display = b.dataset.c === "id" ? "" : "none";
+  $("coinScan").style.display = b.dataset.c === "scan" ? "" : "none"; renderCoins();
 });
 $("coinSel").addEventListener("change", () => { store.set("coinSel", $("coinSel").value); renderCoins(); });
 ["coinQty", "coinW", "coinD"].forEach(id => $(id).addEventListener("input", renderCoins));
 $("coinM").addEventListener("change", renderCoins);
 loadSilver(); setInterval(loadSilver, 15 * 60000);
+
+/* ---- scan with camera: an AI reads the photos, the app does the sums from the official coin specs ---- */
+const SCAN_URL = "";   // the Gold Trader coin scanner (Cloudflare Worker), see scan-worker/
+let scPhotos = [], scResult = null, scBusy = false, scErr = "";
+function shrinkPhoto(file){
+  return new Promise((ok, bad) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => { const k = Math.min(1, 1600 / Math.max(img.width, img.height)), c = document.createElement("canvas");
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); ok(c.toDataURL("image/jpeg", 0.85)); };
+    img.onerror = () => { URL.revokeObjectURL(url); bad(new Error("photo")); };
+    img.src = url;
+  });
+}
+$("scTake").onclick = () => $("scFile").click();
+$("scFile").addEventListener("change", async () => {
+  const f = $("scFile").files[0]; $("scFile").value = ""; if (!f) return;
+  try { scPhotos.push(await shrinkPhoto(f)); scPhotos = scPhotos.slice(-4); scResult = null; scErr = ""; } catch(e){ scErr = "Couldn't open that photo. Try taking it again."; }
+  renderScan();
+});
+$("scClear").onclick = () => { scPhotos = []; scResult = null; scErr = ""; renderScan(); };
+$("scGo").onclick = async () => {
+  if (scBusy || !scPhotos.length) return;
+  if (!SCAN_URL){ scErr = "The camera scan isn't switched on yet. It needs its AI service set up first."; renderScan(); return; }
+  scBusy = true; scErr = ""; scResult = null; renderScan();
+  try {
+    const r = await fetch(SCAN_URL, {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({photos: scPhotos.map(d => d.split(",")[1]), catalogue: COIN_ALL.map(c => c.n)})});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.result) throw new Error(j.error || "The scan didn't work. Check your signal and try again.");
+    scResult = j.result;
+  } catch(e){ scErr = e.message || "The scan didn't work. Check your signal and try again."; }
+  scBusy = false; renderScan();
+};
+function renderScan(){
+  $("scThumbs").innerHTML = scPhotos.map((d, i) => `<div style="position:relative"><img src="${d}" style="width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid var(--line)">
+    <button onclick="scPhotos.splice(${i},1);scResult=null;renderScan()" style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:0;background:#000;color:#fff;font-size:13px">×</button></div>`).join("");
+  $("scTake").textContent = scPhotos.length ? (scPhotos.length < 4 ? "📷 Add another photo" : "📷 Replace the last photo") : "📷 Take a photo";
+  $("scGo").style.display = scPhotos.length ? "" : "none";
+  $("scGo").textContent = scBusy ? "Scanning…" : scResult ? "Scan again" : "Scan these photos";
+  $("scClear").style.display = scPhotos.length ? "" : "none";
+  if (scErr){ $("coinOut").innerHTML = `<div class="warn">${esc(scErr)}</div>`; return; }
+  if (!scResult){ $("coinOut").innerHTML = scBusy ? '<p class="muted" style="margin:10px 0 0">Reading the coins, this takes a few seconds…</p>' : ""; return; }
+  $("coinOut").innerHTML = scanHTML(scResult);
+  const w = $("scW"); if (w) w.oninput = () => { store.set("scW", w.value); scanCheck(); };
+  scanCheck();
+}
+let scExpected = 0;
+function scanHTML(res){
+  const m = coinMargin(), rows = [], unpriced = [];
+  let pureAu = 0, pureAg = 0, melt = 0, pays = 0, allPaid = true, prem = 0, wt = 0;
+  if (!res.photo_ok) return `<div class="warn"><b>Couldn't read the coins.</b> ${esc(res.photo_tip || "Take the photo closer, in good light, with the coins flat.")}</div>`;
+  (res.coins || []).forEach(x => {
+    const n = Math.max(1, parseInt(x.count) || 1), c = COIN_ALL.find(c2 => c2.n === x.catalogue);
+    const items = !c ? [] : c.set ? c.items.filter(Boolean) : [c];
+    if (!items.length){ unpriced.push(`${n > 1 ? n + " × " : ""}${esc(x.name || "Unknown coin")}${x.note ? ` <span class="muted">(${esc(x.note)})</span>` : ""}`); return; }
+    let rMelt = 0, rPays = 0, rPure = 0, ok = true;
+    items.forEach(it => { const v = coinVal(it); if (!v){ ok = false; return; } rMelt += v.melt; if (v.pays) rPays += v.pays; else if (it.m === "au") ok = false;
+      if (it.m === "au") pureAu += it.w * it.f * n; else if (it.m === "ag") pureAg += it.w * it.f * n; rPure += it.w * it.f; wt += it.w * n; if (it.m !== "au") allPaid = false; });
+    melt += rMelt * n; pays += rPays * n; prem = Math.max(prem, x.proof ? 3 : (c.p || 0));
+    rows.push(`<tr><td>${n > 1 ? `<b>${n} ×</b> ` : ""}${esc(x.name || c.n)}${x.year ? "" : ""}<div class="muted">${esc(c.n)}${x.proof ? " · proof" : ""}${x.confidence && x.confidence !== "high" ? ` · <span class="neg">${x.confidence} confidence, check it</span>` : ""}${x.note ? " · " + esc(x.note) : ""}</div></td>
+      <td>${(rPure * n).toFixed(2)} g<div class="muted">${ok ? fmt(rMelt * n, 0) : "…"}</div></td></tr>`);
+  });
+  scExpected = wt;
+  if (!rows.length && !unpriced.length) return `<div class="warn"><b>No coins found.</b> Try again with the coins flat, close up and in good light.</div>`;
+  const set = res.set;
+  return `<div class="result">
+    ${set ? `<div class="muted">Set${set.complete === false ? " (not complete)" : set.complete ? " (complete)" : ""}</div><b style="font-size:19px">${esc(set.name || "Coin set")}</b>${set.certificate ? `<div class="muted">Certificate: ${esc(set.certificate)}</div>` : ""}` : `<b style="font-size:19px">${rows.length + unpriced.length === 1 ? "Found 1 coin type" : `Found ${rows.length + unpriced.length} coin types`}</b>`}
+    ${rows.length ? `<table style="margin-top:8px"><tr><td class="muted">Coin</td><td class="muted">Pure metal · melt</td></tr>${rows.join("")}
+      ${pureAu ? `<tr><td><strong>Total pure gold</strong></td><td><strong>${pureAu.toFixed(3)} g</strong></td></tr>` : ""}
+      ${pureAg ? `<tr><td><strong>Total pure silver</strong></td><td><strong>${pureAg.toFixed(2)} g</strong></td></tr>` : ""}
+      <tr><td>Melt value</td><td>${fmt(melt, 0)}</td></tr>
+      ${allPaid && pays ? `<tr><td>${mmOn() ? "Mastermelt pays" : "Refiner pays"}</td><td>${fmt(pays, 0)}</td></tr>` : ""}
+      <tr><td>Pay up to</td><td><strong>${fmt((allPaid && pays ? pays : melt) * (1 - m), 0)}</strong></td></tr></table>
+      <p class="muted" style="margin:6px 0 0">From the official weights of each coin, at today's price. Pay up to keeps your ${Math.round(m * 100)}% margin.</p>` : ""}
+    ${unpriced.length ? `<div class="warn"><b>Not priced:</b> ${unpriced.join(", ")}. These aren't in the coin list, so weigh them and use Identify a coin or Quick check.</div>` : ""}
+    ${(res.warnings || []).length ? `<div class="warn"><b>Watch out:</b> ${res.warnings.map(esc).join(" ")}</div>` : ""}
+    ${rows.length ? `<div class="sub" style="margin-top:14px">Check it's real: weigh it</div>
+      <label>Weight of ${unpriced.length ? "the priced coins" : "all the coins"} together, grams${set ? " (out of the case, or weigh the case on its own and take it off)" : ""}</label>
+      <input id="scW" type="number" inputmode="decimal" step="0.01" placeholder="should be about ${wt.toFixed(2)}" value="${esc(store.get("scW") || "")}">
+      <div id="scWOut"></div>` : ""}
+    ${prem >= 2 ? premHTML(prem) : ""}
+    <p class="muted" style="margin:8px 0 0">The AI reads the coins from the photo. It can't tell real gold from a good fake, so always weigh before you buy. Check anything marked low confidence by hand.</p>
+  </div>`;
+}
+function scanCheck(){
+  const out = $("scWOut"), w = parseFloat(($("scW") || {}).value); if (!out) return;
+  if (!(w > 0) || !scExpected){ out.innerHTML = ""; return; }
+  const d = (w - scExpected) / scExpected * 100;
+  out.innerHTML = d > 0.6 ? `<div class="warn">It's ${d.toFixed(1)}% <b>heavier</b> than these coins should be (${scExpected.toFixed(2)} g). Genuine coins don't gain weight. Check the count, your scales, or for something extra on the scales.</div>`
+    : d < -2 ? `<div class="warn">It's ${Math.abs(d).toFixed(1)}% <b>light</b> (should be ${scExpected.toFixed(2)} g). That's more than wear explains: check for a missing coin or a fake.</div>`
+    : `<div class="verdict t1" style="margin:8px 0 0"><div class="call" style="font-size:17px">Weight matches</div><div>${w.toFixed(2)} g against ${scExpected.toFixed(2)} g expected${d < -0.6 ? ", a little light, which is normal for worn coins" : ""}.</div></div>`;
+}
 
 /* =============== your week: bought, sent, made, still holding =============== */
 function sentLog(){ try { return JSON.parse(store.get("sent") || "[]"); } catch(e){ return []; } }
