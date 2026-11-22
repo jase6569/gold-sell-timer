@@ -34,13 +34,16 @@ function renderShare(){
       <select id="tmWho">${["Jase", "Mike"].map(p => `<option>${p}</option>`).join("")}<option value="">Someone else…</option></select>
       <input id="tmWhoOther" placeholder="Your first name" style="display:none;margin-top:8px">
       <label>Business passphrase</label>
-      <input id="tmPass" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="The words you agreed between you">
+      <input id="tmPass" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="The words you agreed between you">
+      <label style="display:flex;gap:8px;align-items:center;color:var(--text);font-size:15px"><input type="checkbox" id="tmShow" style="width:20px;height:20px"> Show what I'm typing</label>
+      <p class="muted" style="margin:4px 0 0">Capitals and spaces don't matter, but every word must be the same.</p>
       <label style="display:flex;gap:8px;align-items:center;color:var(--text);font-size:15px"><input type="checkbox" id="tmImport" style="width:20px;height:20px" checked> Bring in anything saved on this phone from the old Dorset Gold app</label>
       <button class="btn" id="tmJoin">Join the team</button>
       <p class="muted" id="tmMsg" style="margin:8px 0 0"></p>
       <details style="margin-top:10px"><summary>Setting up the team server?</summary>
         <p class="muted">Type the passphrase above, then tap below. Copy the code it shows into Cloudflare as the <b>AUTH_HASH</b> secret. The passphrase itself is never sent anywhere.</p>
         <button class="btn ghost" id="tmCode">Show the server code</button><p id="tmCodeOut" style="word-break:break-all"></p></details>`;
+    $("tmShow").onchange = e => { $("tmPass").type = e.target.checked ? "text" : "password"; };
     $("tmWho").onchange = () => { $("tmWhoOther").style.display = $("tmWho").value ? "none" : ""; };
     $("tmCode").onclick = async () => { const p = $("tmPass").value; if (p.length < 12){ $("tmCodeOut").textContent = "Type a passphrase of at least 12 characters first."; return; } $("tmCodeOut").innerHTML = "<code>" + await S.serverCode(p) + "</code>"; };
     $("tmJoin").onclick = async () => {

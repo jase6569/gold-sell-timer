@@ -50,11 +50,14 @@ const bDelRec = async id => rq((await bdb()).transaction("records", "readwrite")
 const bPutKV = async (k, v) => rq((await bdb()).transaction("kv", "readwrite").objectStore("kv").put(v, k));
 
 /* ---------- keys and encryption ---------- */
+// Capitals, extra spaces and a stray space at the end don't matter, so phones that auto-capitalise still match
+const normPass = p => String(p || "").normalize("NFKC").replace(/[\u2018\u2019]/g, "'").trim().replace(/\s+/g, " ").toLowerCase();
 async function deriveKey(pass){
+  pass = normPass(pass);
   const base = await crypto.subtle.importKey("raw", enc.encode(pass), "PBKDF2", false, ["deriveKey"]);
   return crypto.subtle.deriveKey({name: "PBKDF2", salt: enc.encode("dgj-enc-v1"), iterations: 210000, hash: "SHA-256"}, base, {name: "AES-GCM", length: 256}, false, ["encrypt", "decrypt"]);
 }
-const tokenFor = pass => sha("dgj-auth|" + pass);
+const tokenFor = pass => sha("dgj-auth|" + normPass(pass));
 let keyCache = null;
 const theKey = async () => keyCache || (keyCache = await sGet("kv", "key"));
 async function seal(obj){
@@ -237,7 +240,7 @@ async function syncNow(){
 async function serverCode(pass){ return sha(await tokenFor(pass)); }
 async function join(pass, who, importOld){
   if (!SYNC_URL) throw new Error("The team server address hasn't been added to the app yet.");
-  pass = String(pass || ""); who = String(who || "").trim();
+  pass = normPass(pass); who = String(who || "").trim();
   if (pass.length < 12) throw new Error("The passphrase needs to be at least 12 characters. Use four or five random words.");
   if (!who) throw new Error("Choose who you are.");
   const tok = await tokenFor(pass);
