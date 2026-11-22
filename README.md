@@ -1,4 +1,4 @@
-# Gold Trader · Dorset Jewellers
+# Gold Trader · Dorset Gold & Jewellery
 
 A phone app that tells you when to sell gold, using UK prices only.
 
@@ -93,3 +93,7 @@ The Buy log can ask customers for a Google review. Requests always go out as **D
 * **Each record:** Show QR code (for the customer to scan at the visit), Ask by text, WhatsApp or email, then "They've left a review". Every step goes in the audit trail.
 * **Records:** shows how many customers have reviewed, and "Show who to ask" lists customers from the last 30 days who haven't been asked.
 * A customer who has already reviewed (matched by phone number or ID number) is never offered another request.
+
+## Branding
+
+This app is branded Dorset Gold & Jewellery (renamed from Dorset Jewellers in November 2026). The Buy log database keeps its old internal name (`dj-buylog`) so no records are lost, and older receipts keep their DJ- numbers. New receipts start DG-. Adam's app in `adam/` keeps the Dorset Jewellers look with its own copies of the logo and icons. The Android widget still shows the old logo until it's rebuilt.

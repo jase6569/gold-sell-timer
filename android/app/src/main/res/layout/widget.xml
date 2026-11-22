@@ -14,7 +14,7 @@
         android:layout_height="64dp"
         android:layout_marginEnd="12dp"
         android:src="@drawable/logo"
-        android:contentDescription="Dorset Jewellers" />
+        android:contentDescription="Dorset Gold &amp; Jewellery" />
 
     <LinearLayout
         android:layout_width="0dp"
