@@ -122,7 +122,7 @@ function visitForm(v){
     <button class="btn ghost" id="vCancel">Cancel</button></div>`;
 }
 function visitCard(v){
-  const st = {done: `<span class="pos">Bought${v.receipt ? " · " + esc(v.receipt) : ""}${v.total ? " · " + money(v.total) : ""}</span>`, nosale: '<span class="muted">No sale</span>', cancelled: '<span class="muted">Cancelled</span>'}[v.status] || "";
+  const st = {done: `<span class="pos">Bought${v.receipt ? " · " + esc(v.receipt) : ""}${v.total ? " · " + money(v.total) : ""}</span>`, nosale: `<span class="muted">No sale${v.offered ? " · offered " + money(v.offered) : ""}</span>`, cancelled: '<span class="muted">Cancelled</span>'}[v.status] || "";
   const open = !v.status || v.status === "booked";
   return `<div class="lot" data-v="${v._id}">
     <div class="hd"><span>${esc(v.time || "Any time")} · ${esc(v.name || "No name")}</span><span style="color:var(--gold2)">${esc(v.who || "Either")}</span></div>
@@ -135,12 +135,23 @@ function visitCard(v){
       ${v.address || v.postcode ? `<a class="btn ghost" style="margin:0;padding:9px;font-size:14px" href="${mapUrl(v)}" target="_blank" rel="noopener">Map</a>` : ""}
       ${v.phone ? `<button class="btn ghost" style="margin:0;padding:9px;font-size:14px" data-act="remind">Remind</button>` : ""}
     </div>
-    <a class="btn" style="padding:11px" href="buying-log/?visit=${encodeURIComponent(v._id)}">Start the purchase</a>` : ""}
+    <button class="btn" style="padding:11px" data-act="offer">Make an offer</button>
+    <a class="btn ghost" style="padding:11px;margin-top:8px" href="buying-log/?visit=${encodeURIComponent(v._id)}">Start the purchase without an offer</a>` : ""}
     <details><summary>More</summary><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
       <button class="btn ghost" style="margin:0;padding:9px;font-size:14px" data-act="edit">Edit</button>
       ${open ? `<button class="btn ghost" style="margin:0;padding:9px;font-size:14px" data-act="nosale">No sale</button>
       <button class="btn ghost" style="margin:0;padding:9px;font-size:14px" data-act="cancel">Cancelled</button>` : `<button class="btn ghost" style="margin:0;padding:9px;font-size:14px" data-act="reopen">Back to booked</button>`}
       <button class="btn ghost" style="margin:0;padding:9px;font-size:14px" data-act="delete">Delete</button></div></details></div>`;
+}
+// Your visits for one day, in appointment order, as a single Google Maps route from where you are now
+function routeUrl(vs){
+  const stops = vs.filter(v => (!v.who || v.who === me()) && (v.address || v.postcode))
+    .sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99")).slice(0, 10);
+  if (!stops.length) return null;
+  const place = v => [v.address, (v.postcode || "").toUpperCase()].filter(Boolean).join(", ");
+  const dest = stops[stops.length - 1], ways = stops.slice(0, -1).map(place);
+  const url = "https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=" + encodeURIComponent(place(dest)) + (ways.length ? "&waypoints=" + encodeURIComponent(ways.join("|")) : "");
+  return {url, label: stops.length === 1 ? "Directions to your visit" : `Route for your ${stops.length} visits, in time order`};
 }
 const reminderText = v => `Hi ${String(v.name || "").split(" ")[0]}, just confirming your free home valuation with ${BIZ} ${dayName(v.date).toLowerCase() === "tomorrow" ? "tomorrow" : "on " + dayName(v.date)}${v.time ? " at " + v.time : ""}. Have everything you might sell ready, plus photo ID in case you decide to sell. Any questions, call ${SHOP_PHONE}. ${v.who || ""}`.trim();
 function renderDiary(){
@@ -155,8 +166,10 @@ function renderDiary(){
     ${editing !== null ? visitForm(editing === "new" ? null : visits().find(v => v._id === editing)) : `<button class="btn" id="vAdd" style="margin-top:0">Add a visit</button>`}
     ${me() ? `<label style="display:flex;gap:8px;align-items:center;color:var(--text);font-size:15px;margin-top:12px"><input type="checkbox" id="vMine" style="width:20px;height:20px" ${mineOnly ? "checked" : ""}> Only show my visits</label>` : ""}
     ${toRemind.length && new Date().getHours() >= 15 ? `<div class="warn">${toRemind.length} of tomorrow's customer${toRemind.length === 1 ? " hasn't" : "s haven't"} had a reminder text yet. Tap <b>Remind</b> on each one below.</div>` : ""}
-    ${[...groups.entries()].map(([d, vs]) => `<div class="sub">${dayName(d)}</div>${vs.map(visitCard).join("")}`).join("") || '<p class="muted">No visits booked. Add one when a customer calls.</p>'}
+    ${[...groups.entries()].map(([d, vs]) => { const r = routeUrl(vs); return `<div class="sub">${dayName(d)}</div>${r ? `<a class="btn ghost" style="margin:6px 0 4px" href="${r.url}" target="_blank" rel="noopener">🗺 ${esc(r.label)}</a>` : ""}${vs.map(visitCard).join("")}`; }).join("") || '<p class="muted">No visits booked. Add one when a customer calls.</p>'}
+    <button class="btn ghost" id="vOffer" style="margin-top:12px">Make an offer without a booking</button>
     ${recent.length ? `<details style="margin-top:10px"><summary>Last two weeks (${recent.length})</summary>${recent.map(v => `<div class="sub">${dayName(v.date)}</div>` + visitCard(v)).join("")}</details>` : ""}`;
+  if ($("vOffer")) $("vOffer").onclick = () => { if (window.OfferScreen) OfferScreen.open(null); };
   if ($("vAdd")) $("vAdd").onclick = () => { editing = "new"; renderDiary(); $("vName").focus(); };
   if ($("vMine")) $("vMine").onchange = e => { mineOnly = e.target.checked; localStorage.setItem("tmMine", mineOnly ? "1" : "0"); renderDiary(); };
   if ($("vForm")){
@@ -174,6 +187,7 @@ function renderDiary(){
   box.querySelectorAll("[data-act]").forEach(b => b.onclick = () => {
     const id = b.closest("[data-v]").dataset.v, a = visits(), v = a.find(x => x._id === id); if (!v) return;
     const act = b.dataset.act;
+    if (act === "offer"){ if (window.OfferScreen) OfferScreen.open(id); return; }
     if (act === "edit"){ editing = id; renderDiary(); $("vForm").scrollIntoView({behavior: "smooth"}); return; }
     if (act === "remind"){ v.reminded = new Date().toISOString(); saveVisits(a); location.href = sms(v.phone, reminderText(v)); return; }
     if (act === "nosale") v.status = "nosale";

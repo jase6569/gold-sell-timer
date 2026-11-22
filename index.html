@@ -513,7 +513,7 @@
     <h2>6. The Buy log</h2>
     <p style="margin-top:0">Tap <b>Buy log</b> in the bottom bar to record every purchase from a customer. It appears once you've joined the team. Every purchase either of you makes is shared, so you can both look up any customer. Each phone has its own PIN lock in <b>Settings</b>.</p>
     <ol>
-      <li><b>New purchase.</b> The seller's details, their photo ID and proof of address (with photos), each item (description, carat, weight, price, photos on the scales and of the hallmark), how you paid, and the seller's signature on the declaration. Saving it gives a receipt number and adds the gold to My gold for you.</li>
+      <li><b>New purchase.</b> Take the <b>ID front</b> photo, then tap <b>Fill in the details from the ID photo</b>: the app reads the name, date of birth, ID number, expiry and address into any empty boxes. Always check them against the ID. Then the seller's details, their photo ID and proof of address (with photos), each item (description, carat, weight, price, photos on the scales and of the hallmark), how you paid, and the seller's signature on the declaration. Saving it gives a receipt number and adds the gold to My gold for you.</li>
       <li><b>Records.</b> Search by name, ID number, postcode, phone, item or receipt number. Open a record to <b>email the receipt to the customer</b>. You can print a police report for a date range, or export a spreadsheet (CSV). Receipt numbers carry the buyer's initial, for example DG-20261122-J001 for Jase and DG-20261122-M001 for Mike.</li>
       <li><b>Google reviews.</b> Each record has a <b>Google review</b> card: show the customer a QR code to scan while you're with them, or ask by text, WhatsApp or email, then tap <b>They've left a review</b>. The Records page shows who's still to ask, and nobody is asked twice once they've reviewed. Add the review link once, in Settings.</li>
       <li><b>Settings.</b> The business details for receipts and reports, the Google review link (both shared), plus your own staff name, PIN lock and backups.</li>
@@ -524,7 +524,7 @@
   <div class="card">
     <h2>7. The Team page</h2>
     <p style="margin-top:0">Tap <b>Team</b> in the bottom bar. Everything here is shared between you.</p>
-    <p><b>Diary.</b> Tap <b>Add a visit</b> when a customer calls: the day and time, their name, phone, address, what they've got, and which of you is going. Each visit has <b>Call</b>, <b>Map</b> (opens directions) and <b>Remind</b>, which opens a text confirming the visit and asking them to have photo ID ready. From 3pm, the diary flags any of tomorrow's customers who haven't had a reminder. At the visit, tap <b>Start the purchase</b>: the Buy log opens with their details filled in, and once you save, the visit is marked as bought. Use <b>More</b> to edit a visit, or mark it as no sale or cancelled. Tick <b>Only show my visits</b> to hide the other person's.</p>
+    <p><b>Diary.</b> Tap <b>Add a visit</b> when a customer calls: the day and time, their name, phone, address, what they've got, and which of you is going. Each visit has <b>Call</b>, <b>Map</b> (opens directions) and <b>Remind</b>, which opens a text confirming the visit and asking them to have photo ID ready. From 3pm, the diary flags any of tomorrow's customers who haven't had a reminder. Each day with visits has a <b>Route</b> button: your visits in appointment order as one Google Maps route from where you are. At the visit, tap <b>Make an offer</b>: type each piece's carat and weight and it works out the offer from today's refiner price and your shared margin (you can type your own price instead, and use <b>Other</b> for silver or anything else). Tap <b>Show the customer</b> for a clean offer with no margin or refiner figures on it. If they accept, the Buy log opens with their details and every item and price filled in. If they say no, the visit is marked no sale with what you offered. <b>Start the purchase without an offer</b> goes straight to the Buy log. Use <b>More</b> to edit a visit, or mark it as no sale or cancelled. Tick <b>Only show my visits</b> to hide the other person's.</p>
     <p><b>Cash.</b> Shows what each of you should be holding. Add cash when you take it out, pay it back in, or hand it to the other person. Cash payments to customers come off automatically from the Buy log. A negative figure means cash was paid out that was never booked out.</p>
     <p><b>Figures.</b> Stock held now, split by who bought it, with the business total at today's refiner price. Then month by month: what each of you bought and paid, your margins, and what went to the refiner with a rough profit. <b>Export for the accountant</b> saves it all as a spreadsheet.</p>
     <p><b>Sharing.</b> Who you're signed in as, when the phone last shared, and any changes still waiting to go up (they go as soon as there's signal). Everything is locked with the team passphrase before it leaves the phone.</p>
@@ -2085,7 +2085,8 @@ if (!store.get("seenGuide")) $("welcome").style.display = "block";
   }, 30 * 60000);
 })();
 </script>
-<script src="team.js?v=3"></script>
+<script src="team.js?v=4"></script>
+<script src="offer.js?v=1"></script>
 <!-- TEAM SETUP SCRIPT START -->
 <style>
   .setup-bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:4px 0 12px}

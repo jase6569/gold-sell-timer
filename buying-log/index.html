@@ -206,6 +206,7 @@
         <button class="btn ghost sm" data-shot="Seller">📷 Seller</button>
       </div>
       <div class="photos" id="idPhotos"></div>
+      <div id="idScanBox" class="hidden"><button class="btn gold" id="idScanBtn" style="width:100%">✨ Fill in the details from the ID photo</button><div id="idScanMsg"></div></div>
     </div>
 
     <div class="card">
@@ -472,6 +473,7 @@ $('#camIn').onchange = async e => {
   catch(err){ toast(err.message); }
 };
 function renderIdPhotos(){
+  $('#idScanBox').classList.toggle('hidden', !idPhotos.some(p => p.label === 'ID front'));
   $('#idPhotos').innerHTML = idPhotos.map((p,i)=>`<div class="ph"><img src="${p.src}" data-i="${i}"><button data-rm="${i}">×</button><span>${esc(p.label)}</span></div>`).join('');
   $$('#idPhotos [data-rm]').forEach(b => b.onclick = () => { idPhotos.splice(+b.dataset.rm,1); renderIdPhotos(); });
   $$('#idPhotos img').forEach(im => im.onclick = () => viewImage(im.src));
@@ -621,7 +623,7 @@ function resetForm(){
   $$('#tab-new input:not([type=checkbox]):not([type=file]), #tab-new textarea, #tab-new select').forEach(el => el.value='');
   $$('#tab-new input[type=checkbox]').forEach(el => el.checked=false);
   $('#f_staff').value = settings.staff||''; $('#f_loc').value = settings.loc||'';
-  idPhotos=[]; lotPhotos=[]; items=[blankItem()]; renderIdPhotos(); renderLotPhotos(); renderItems();
+  idPhotos=[]; lotPhotos=[]; items=[blankItem()]; $('#idScanMsg').innerHTML=''; renderIdPhotos(); renderLotPhotos(); renderItems();
   $('#sigClear').click(); setAlerts(''); $('#payAlerts').innerHTML=''; $('#formErrors').innerHTML='';
   $('#bankRow').classList.add('hidden');
 }
@@ -909,6 +911,32 @@ $('#saveRev').onclick = async () => {
 };
 $('#testQR').onclick = () => { const l = $('#s_revlink').value.trim(); /^https:\/\/\S+\.\S+/.test(l) ? showQR('Your review QR code', l) : toast('Paste your Google review link first'); };
 
+/* ---------- ID scanner: the camera AI reads the ID front photo and fills in anything still empty ---------- */
+const SCAN_URL = "https://gold-coin-scan.maximus6569.workers.dev/";   // the same AI service as the coin scanner (scan-worker/)
+const ID_TYPES = ['UK driving licence','Passport','National ID card','Biometric residence permit','Citizen card / PASS card','Other photo ID'];
+$('#idScanBtn').onclick = async () => {
+  const ph = idPhotos.find(p => p.label === 'ID front'); if (!ph) return;
+  const btn = $('#idScanBtn'); btn.disabled = true; btn.textContent = 'Reading the ID…'; $('#idScanMsg').innerHTML = '';
+  try {
+    const r = await fetch(SCAN_URL, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({mode: 'id', photos: [ph.src.split(',')[1]]})});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.result) throw new Error(j.error || "Couldn't read the ID. Check your signal and try again.");
+    const d = j.result;
+    if (d.photo_ok === false){ $('#idScanMsg').innerHTML = `<div class="alert warn">${esc(d.photo_tip || 'The photo is hard to read. Retake it flat, in good light, filling the frame.')}</div>`; return; }
+    const filled = [];
+    const set = (sel, val, label) => { val = String(val || '').trim(); if (val && !$(sel).value.trim()){ $(sel).value = val; filled.push(label); } };
+    const date = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? v : '';
+    set('#f_first', d.first, 'first name'); set('#f_last', d.last, 'surname'); set('#f_dob', date(d.dob), 'date of birth');
+    set('#f_idnum', String(d.idnum || '').toUpperCase().replace(/\s+/g, ''), 'ID number'); set('#f_idexp', date(d.idexp), 'expiry');
+    set('#f_addr', d.address, 'address'); set('#f_pc', String(d.postcode || '').toUpperCase(), 'postcode');
+    if (ID_TYPES.includes(d.idtype) && !$('#f_idtype').value){ $('#f_idtype').value = d.idtype; filled.push('ID type'); }
+    const warn = (Array.isArray(d.warnings) ? d.warnings : []).map(w => esc(String(w).slice(0, 160))).filter(Boolean);
+    $('#idScanMsg').innerHTML = `<div class="alert ${warn.length ? 'warn' : 'ok'}">${filled.length ? `Filled in: ${filled.join(', ')}. <b>Check every detail against the ID before saving.</b>` : 'Nothing new to fill in: those boxes already have something in them.'}${warn.length ? '<br>' + warn.join('<br>') : ''}</div>`;
+    checkId();
+  } catch(e){ $('#idScanMsg').innerHTML = `<div class="alert bad">${esc(e.message)}</div>`; }
+  finally { btn.disabled = false; btn.textContent = '✨ Fill in the details from the ID photo'; }
+};
+
 /* ---------- team: start a purchase from a diary visit, and show changes from the other phones ---------- */
 let visitId = null;
 function prefillFromVisit(){
@@ -920,6 +948,16 @@ function prefillFromVisit(){
   set('#f_first', parts.slice(0, -1).join(' ') || parts[0]); if (parts.length > 1) set('#f_last', parts[parts.length - 1]);
   set('#f_phone', v.phone); set('#f_addr', v.address); set('#f_pc', (v.postcode || '').toUpperCase());
   toast('Details filled in from the diary visit. Check them against the ID.');
+}
+// an offer the customer accepted on the offer screen: put its items straight into the form
+function prefillFromOffer(){
+  if (!new URLSearchParams(location.search).get('offer')) return;
+  let o; try { o = JSON.parse(localStorage.getItem('offerAccepted') || 'null'); } catch(e){}
+  if (!o || !Array.isArray(o.items) || !o.items.length) return;
+  items = o.items.map(it => Object.assign(blankItem(), it, {photos: []}));
+  renderItems(); updateTotal();
+  localStorage.removeItem('offerAccepted');
+  toast('Items and prices filled in from the offer. Add the photos, ID and signature.');
 }
 window.addEventListener('dgsync-applied', async e => {
   allCache = [];
@@ -1116,6 +1154,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) retur
   if (settings.pinHash) lockNow();
   resetForm();
   prefillFromVisit();
+  prefillFromOffer();
   requestAnimationFrame(sizeSig);
   checkBackupDue();
   try { if (new URLSearchParams(location.search).get('backup')) { history.replaceState(null, '', location.pathname); showTab('new'); window.scrollTo(0, 0); } } catch(e){}
