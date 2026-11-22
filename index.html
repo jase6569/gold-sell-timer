@@ -108,9 +108,9 @@
   code{background:#12110f;border:1px solid var(--line);border-radius:6px;padding:2px 6px;font-size:15px;color:var(--gold2)}
   ol{margin:6px 0 0;padding-left:20px} ol li{margin:7px 0}
   nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:rgba(15,14,12,.97);border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
-  nav button{flex:1;border:0;background:none;color:var(--muted);font-size:12px;padding:6px 2px}
+  nav button{flex:1;min-width:0;border:0;background:none;color:var(--muted);font-size:11px;padding:6px 1px;white-space:nowrap}
   nav button svg{display:block;margin:0 auto 3px;width:22px;height:22px}
-  nav a.navlink{flex:1;color:var(--muted);font-size:12px;padding:6px 2px;text-align:center;text-decoration:none}
+  nav a.navlink{flex:1;min-width:0;color:var(--muted);font-size:11px;padding:6px 1px;text-align:center;text-decoration:none;white-space:nowrap}
   nav a.navlink svg{display:block;margin:0 auto 3px;width:22px;height:22px}
   nav button.on{color:var(--gold2)}
   .page{display:none}.page.on{display:block}
@@ -291,8 +291,128 @@
   </div>
 </section>
 
+<!-- ========== TEAM ========== -->
+<section class="page" id="p-team">
+  <div class="gtabs" id="tmTabs">
+    <button data-t="diary">Diary</button><button data-t="cash">Cash</button><button data-t="figures">Figures</button><button data-t="share">Sharing</button>
+  </div>
+  <div class="card" id="tmShare"></div>
+  <div class="card" id="tmDiary"></div>
+  <div class="card" id="tmCash" style="display:none"></div>
+  <div class="card" id="tmFigures" style="display:none"></div>
+</section>
+
 <!-- ========== GUIDE ========== -->
 <section class="page" id="p-help">
+  <!-- TEAM SETUP START -->
+  <div class="card" id="setupGuide" style="border-color:var(--gold)">
+    <h2>Start here: set up your app</h2>
+    <p style="margin-top:0">Each of you does these once, in order, on your own phone. It takes about 15 minutes. Tick each step as you finish it and the app keeps track for you. Anything marked <b>once for the business</b> only needs doing by one of you, because the app shares it.</p>
+    <p class="muted" style="margin:0 0 6px" id="setupCount"></p>
+    <div class="setup-bar"><i id="setupBar"></i></div>
+    <p class="muted"><b>Before you start you need two things from Jase:</b> the business <b>alert code</b> (it starts <b>gt-</b> followed by 24 letters and numbers) and the <b>team passphrase</b>. Both are private and never shown in the app, so send them by text or WhatsApp, and keep them somewhere safe.</p>
+
+    <div class="setup-step" data-s="home">
+      <label class="setup-tick"><input type="checkbox"> <b>1. Put the app on your home screen</b></label>
+      <ol>
+        <li><b>iPhone:</b> open this page in <b>Safari</b>, tap the <b>Share</b> button (the square with an arrow pointing up), scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+        <li><b>Android:</b> open this page in <b>Chrome</b>, tap <b>⋮</b> at the top right, then <b>Add to Home screen</b> (or <b>Install app</b>).</li>
+        <li>From now on, open the app from the Dorset Gold icon on your home screen.</li>
+      </ol>
+    </div>
+
+    <div class="setup-step" data-s="ntfy">
+      <label class="setup-tick"><input type="checkbox"> <b>2. Turn on the phone alerts</b></label>
+      <ol>
+        <li>Install the free <b>ntfy</b> app: <a style="color:var(--gold2)" href="https://apps.apple.com/app/ntfy/id1625396347">iPhone</a> or <a style="color:var(--gold2)" href="https://play.google.com/store/apps/details?id=io.heckel.ntfy">Android</a>.</li>
+        <li>Open ntfy. When it asks to send you notifications, tap <b>Allow</b>. This matters: without it the alerts arrive silently.</li>
+        <li>Tap <b>+</b> at the top right.</li>
+        <li>Type the business alert code exactly, starting <b>gt-</b>. Leave "Use another server" switched off.</li>
+        <li>Tap <b>Subscribe</b>.</li>
+      </ol>
+    </div>
+
+    <div class="setup-step" data-s="notif">
+      <label class="setup-tick"><input type="checkbox"> <b>3. Make sure the alerts can reach you</b></label>
+      <ol>
+        <li><b>iPhone:</b> open <b>Settings</b>, then <b>Notifications</b>, then <b>ntfy</b>. Check <b>Allow Notifications</b> is on with Lock Screen, Notification Centre and Banners ticked, and turn on <b>Time Sensitive Notifications</b> if you see it.</li>
+        <li><b>Android:</b> open <b>Settings</b>, then <b>Apps</b>, then <b>ntfy</b>, then <b>Notifications</b>, and check they're allowed. If your phone has battery saving for apps, set ntfy to <b>Unrestricted</b> so alerts aren't held back.</li>
+        <li>If you use <b>Focus</b> or Do Not Disturb, add ntfy to the allowed apps.</li>
+      </ol>
+    </div>
+
+    <div class="setup-step" data-s="test">
+      <label class="setup-tick"><input type="checkbox"> <b>4. Send yourself a test alert</b></label>
+      <p style="margin:6px 0">Type the business alert code and tap the button. A test message should pop up on your phone within a few seconds. If it doesn't, go back over steps 2 and 3.</p>
+      <input id="stCode" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="gt-…">
+      <button class="btn" id="stTest" style="margin-top:8px">Send me a test alert</button>
+      <p class="muted" id="stMsg" style="margin:6px 0 0"></p>
+    </div>
+
+    <div class="setup-step" data-s="team">
+      <label class="setup-tick"><input type="checkbox"> <b>5. Join the team</b></label>
+      <ol>
+        <li>Tap <b>Team</b> in the bottom bar.</li>
+        <li>Choose who you are, type the team passphrase, and tap <b>Join the team</b>.</li>
+        <li>That's it: stock, the Buy log, the diary, cash and prices are now shared between you. Everything is locked with the passphrase before it leaves your phone.</li>
+      </ol>
+      <button class="btn ghost" onclick="go('team')">Open Team</button>
+    </div>
+
+    <div class="setup-step" data-s="lots">
+      <label class="setup-tick"><input type="checkbox"> <b>6. Turn on lot alerts</b></label>
+      <ol>
+        <li>Tap <b>My gold</b> in the bottom bar, then the <b>Make money</b> tab.</li>
+        <li>Scroll to <b>Lot alerts</b>, type the same business alert code and tap <b>Turn on lot alerts</b>.</li>
+        <li>If it shows a <b>lot channel code</b>, subscribe to that in ntfy too (tap <b>+</b> again). You'll then get a ping when a batch of gold should go to the refiner, plus a summary of the week every Sunday evening.</li>
+      </ol>
+      <button class="btn ghost" onclick="go('calc')">Open My gold</button>
+    </div>
+
+    <div class="setup-step" data-s="stock">
+      <label class="setup-tick"><input type="checkbox"> <b>7. Tell it about your buying and stock</b> <span class="muted">(once for the business)</span></label>
+      <ol>
+        <li>In <b>My gold</b>, open the <b>Send</b> tab. Under <b>Buying in</b>, enter roughly how many grams you buy in a month, and the most stock you want to hold. Start with <b>2 months</b>.</li>
+        <li>Open the <b>My stock</b> tab and add the gold you're holding now: weight, carat, what you paid and the date. Gold you buy through the Buy log from now on is added for you.</li>
+        <li>Open the <b>Prices</b> tab. It uses Mastermelt's trade counter price unless you change it. If you get a different rate, choose <b>My own %</b> and type it in.</li>
+        <li>Open <b>Make money</b> and set the margin you want to keep (for example 20%). It then shows the most to pay per gram each day.</li>
+      </ol>
+    </div>
+
+    <div class="setup-step" data-s="buylog">
+      <label class="setup-tick"><input type="checkbox"> <b>8. Set up the Buy log</b></label>
+      <ol>
+        <li>Tap <b>Buy log</b> in the bottom bar, then <b>Settings</b>.</li>
+        <li>Put your own name as the <b>Default staff name</b> and tap <b>Save settings</b>. The business name, address and phone (01202 117896) are shared, so only one of you needs to fill those in.</li>
+        <li>Set your own <b>PIN</b>. The Buy log holds customers' ID photos, so every phone needs locking.</li>
+      </ol>
+      <a class="btn ghost" href="buying-log/">Open the Buy log</a>
+    </div>
+
+    <div class="setup-step" data-s="reviews">
+      <label class="setup-tick"><input type="checkbox"> <b>9. Add the Google review link</b> <span class="muted">(once for the business)</span></label>
+      <ol>
+        <li>On your phone, search Google for <b>Dorset Gold &amp; Jewellery</b> while signed in to the Google account that manages your business listing.</li>
+        <li>On your business panel, tap <b>Ask for reviews</b> (or <b>Get more reviews</b>) and copy the link. It usually starts https://g.page/r/</li>
+        <li>In the Buy log, open <b>Settings</b>, find <b>Google reviews</b>, paste the link and tap <b>Save</b>.</li>
+        <li>Tap <b>Show my QR code</b> and scan it with another phone to check it opens your review page.</li>
+      </ol>
+      <p class="muted">After each purchase, the record shows a QR code for the customer to scan, or you can ask by text, WhatsApp or email.</p>
+    </div>
+
+    <div class="setup-step" data-s="backup">
+      <label class="setup-tick"><input type="checkbox"> <b>10. Take your first backup</b></label>
+      <ol>
+        <li>In the Buy log, open <b>Settings</b> and tap <b>Back up now</b>.</li>
+        <li>Choose <b>Google Drive</b> (or email it to yourself).</li>
+        <li>Do this every week. Your records are also shared with the team, but a backup is still your own copy if anything goes wrong. The app reminds you after 7 days.</li>
+      </ol>
+    </div>
+
+    <div class="sub">What happens next</div>
+    <p style="margin-top:0">Book visits in <b>Team, Diary</b>, start each purchase from the visit, and log cash in <b>Team, Cash</b>. You don't need to keep the app open for alerts. It checks gold every hour, day and night, and messages you when the call on your stock changes, plus a summary every Friday evening. Days with no message are normal. If even the Friday summary doesn't arrive, check step 3 again. The rest of this guide explains every page in detail.</p>
+  </div>
+  <!-- TEAM SETUP END -->
   <div class="card">
     <h2>How to use Gold Trader</h2>
     <p style="margin-top:0">Gold Trader is built for a gold dealer. You buy gold in every day, and your profit is the gap between what you pay the customer and what the refiner pays you. Every gram sitting in the safe is a bet on the gold price, so the app answers three questions: <b>how much stock should I keep, what should I send to the refiner this week, and what should I pay today?</b> When the answer changes, it pings your phone.</p>
@@ -583,10 +703,12 @@
   <button data-p="alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 21h4"/></svg>Alerts</button>
   <button data-p="chart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M6 16l4-5 3 3 5-7"/></svg>Chart</button>
   <button data-p="calc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/></svg>My gold</button>
+  <button data-p="team"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.5-3.4 3-5.5 6-5.5s5.5 2.1 6 5.5"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14.6c2.4.3 4 2.1 4.5 4.9"/></svg>Team</button>
   <button data-p="help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.7-2.5 2-2.5 4M12 17h.01"/></svg>Guide</button>
   <a href="buying-log/" class="navlink" id="blNav" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16c.6-1.4 1.7-2 3-2s2.4.6 3 2M14 10h4M14 13h3"/></svg>Buy log</a>
 </nav>
 
+<script src="sync.js"></script>
 <script>
 const OZ = 31.1034768;
 const CARATS = [["9ct",0.375],["14ct",0.585],["18ct",0.75],["22ct",0.916],["24ct",0.999]];
@@ -1911,7 +2033,15 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
   document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x === b));
   document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "p-" + b.dataset.p));
   if (b.dataset.p === "chart") loadZoneChart();
+  if (b.dataset.p === "team" && window.TeamPage) TeamPage.render();
   window.scrollTo(0, 0);
+});
+
+/* =============== team sharing: show changes from the other phones =============== */
+window.addEventListener("dgsync-applied", () => {
+  try { const b = buySettings(); $("bM").value = b.m || ""; $("bC").value = b.c || ""; } catch(e){}
+  try { if (store.get("pmM") && document.activeElement !== $("pmM")) $("pmM").value = store.get("pmM"); } catch(e){}
+  [applyRefiner, calc, renderStock, () => renderBuy(), renderPro].forEach(safe);
 });
 
 /* =============== start =============== */
@@ -1937,5 +2067,60 @@ if (!store.get("seenGuide")) $("welcome").style.display = "block";
   }, 30 * 60000);
 })();
 </script>
+<script src="team.js"></script>
+<!-- TEAM SETUP SCRIPT START -->
+<style>
+  .setup-bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:4px 0 12px}
+  .setup-bar i{display:block;height:100%;width:0;background:var(--gold);transition:width .3s}
+  .setup-step{border-top:1px solid var(--line);padding:12px 0 4px}
+  .setup-step ol{margin:8px 0 6px;padding-left:22px}
+  .setup-step li{margin:4px 0}
+  .setup-tick{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:16px}
+  .setup-tick input{width:22px;height:22px;accent-color:var(--gold);flex:none;margin:0}
+  .setup-step.done ol,.setup-step.done p,.setup-step.done .btn,.setup-step.done input[type=text]{display:none}
+  .setup-step.done .setup-tick b{color:var(--muted);text-decoration:line-through}
+</style>
+<script>
+(function(){
+  const steps = [...document.querySelectorAll("#setupGuide .setup-step")];
+  if (!steps.length) return;
+  const KEY = "setupDone";
+  const done = () => { try { return JSON.parse(store.get(KEY) || "[]"); } catch(e){ return []; } };
+  function paint(){
+    const d = done(), n = steps.filter(s => d.includes(s.dataset.s)).length;
+    steps.forEach(s => { const on = d.includes(s.dataset.s); s.classList.toggle("done", on); s.querySelector(".setup-tick input").checked = on; });
+    document.getElementById("setupCount").textContent = n === steps.length ? "All done. You're set up." : `${n} of ${steps.length} steps done.`;
+    document.getElementById("setupBar").style.width = (n / steps.length * 100) + "%";
+    const w = document.getElementById("welcome");
+    if (w){
+      w.innerHTML = n === steps.length ? "" : `<h2>Finish setting up your app</h2>
+        <p style="margin:0 0 6px">${n ? `${n} of ${steps.length} steps done.` : "About 15 minutes, once."} Turn on your alerts and join the team so you're sharing stock, the Buy log and the diary.</p>
+        <div class="setup-bar"><i style="width:${n / steps.length * 100}%"></i></div>
+        <button class="btn" style="margin-top:0" onclick="go('help');document.getElementById('setupGuide').scrollIntoView()">${n ? "Carry on setting up" : "Start setting up"}</button>`;
+      w.style.display = n === steps.length ? "none" : "block";
+    }
+  }
+  steps.forEach(s => s.querySelector(".setup-tick input").addEventListener("change", e => {
+    const d = done().filter(x => x !== s.dataset.s);
+    if (e.target.checked) d.push(s.dataset.s);
+    store.set(KEY, JSON.stringify(d)); paint();
+  }));
+  // Test alert: posts straight to the code the person types. The code stays on this phone.
+  const code = document.getElementById("stCode"), msg = document.getElementById("stMsg");
+  if (store.get("lotCode")) code.value = store.get("lotCode");
+  document.getElementById("stTest").onclick = async () => {
+    const c = code.value.trim();
+    if (!/^(dg|gt)-[0-9a-f]{24}$/.test(c)){ msg.textContent = "That doesn't look right. The business alert code starts gt- followed by 24 letters and numbers. Check you've typed all of it."; return; }
+    msg.textContent = "Sending…";
+    try {
+      const r = await fetch("https://ntfy.sh/" + c, {method: "POST", body: "This is a test from your Gold Trader app. If you can see this, your alerts are working.", headers: {Title: "Test alert: it works", Tags: "white_check_mark"}});
+      if (!r.ok) throw new Error(r.status);
+      msg.innerHTML = "Sent. If it popped up on your phone, tick this step. If not, check you subscribed to exactly this code in ntfy (step 2) and that notifications are allowed (step 3).";
+    } catch(e){ msg.textContent = "Couldn't send just now. Check your signal and try again."; }
+  };
+  paint();
+})();
+</script>
+<!-- TEAM SETUP SCRIPT END -->
 </body>
 </html>

@@ -348,6 +348,7 @@
 <input type="file" id="lotCamIn" accept="image/*" capture="environment" class="hidden">
 <input type="file" id="galleryIn" accept="image/*" multiple class="hidden">
 
+<script src="../sync.js"></script>
 <script src="qrcode.min.js"></script>
 <script>
 (() => {
@@ -372,8 +373,8 @@ function openDB(){
 const tx = (store, mode='readonly') => db.transaction(store, mode).objectStore(store);
 const reqP = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
 const allRecords = () => reqP(tx(STORE).getAll());
-const putRecord = rec => reqP(tx(STORE,'readwrite').put(rec));
-const delRecord = id => reqP(tx(STORE,'readwrite').delete(id));
+const putRecord = rec => reqP(tx(STORE,'readwrite').put(rec)).then(r => { if (window.DGSync) DGSync.recordChanged(rec.id); return r; });
+const delRecord = id => reqP(tx(STORE,'readwrite').delete(id)).then(r => { if (window.DGSync) DGSync.recordDeleted(id); return r; });
 const kvGet = k => reqP(tx('kv').get(k));
 const kvSet = (k,v) => reqP(tx('kv','readwrite').put(v,k));
 
@@ -444,7 +445,7 @@ let settings = { biz:CFG.biz, addr:'', phone:'', staff:'', loc:'Poole', prefix:C
 async function loadSettings(){ const s = await kvGet('settings'); if (s) settings = {...settings, ...s};
   // one-off: the business is now Dorset Gold & Jewellery (records and the database keep their old names)
   if (settings.biz === 'Dorset Jewellers' || settings.prefix === 'DJ'){ if (settings.biz === 'Dorset Jewellers') settings.biz = CFG.biz; if (settings.prefix === 'DJ') settings.prefix = CFG.prefix; await saveSettingsObj(); } }
-async function saveSettingsObj(){ await kvSet('settings', settings); }
+async function saveSettingsObj(){ await kvSet('settings', settings); if (window.DGSync) DGSync.settingsChanged(); }
 
 /* ---------- tabs ---------- */
 $$('nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
@@ -629,8 +630,11 @@ $('#resetBtn').onclick = () => { if (confirm('Clear everything on this form?')) 
 async function nextReceipt(){
   const d = new Date(), ymd = d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
   const recs = await allRecords();
-  const today = recs.filter(r => r.receipt && r.receipt.includes('-'+ymd+'-')).length;
-  return `${(settings.prefix||CFG.prefix).toUpperCase()}-${ymd}-${String(today+1).padStart(3,'0')}`;
+  // in the team app each person has their own run of numbers (DG-20261122-J001, DG-20261122-M001), so two phones can never clash
+  const who = window.DGSync && DGSync.joined() ? (DGSync.me()[0] || '').toUpperCase().replace(/[^A-Z]/g, '') : '';
+  const mine = recs.filter(r => r.receipt && r.receipt.includes('-'+ymd+'-'+who) && (who || /-\d{3}$/.test(r.receipt)));
+  const n = mine.reduce((m, r) => Math.max(m, parseInt(r.receipt.slice(-3), 10) || 0), 0);
+  return `${(settings.prefix||CFG.prefix).toUpperCase()}-${ymd}-${who}${String(n+1).padStart(3,'0')}`;
 }
 
 $('#saveBtn').onclick = async () => {
@@ -678,10 +682,13 @@ $('#saveBtn').onclick = async () => {
     staff: v('#f_staff'), location: v('#f_loc'), notes: v('#f_notes'), flagged: $('#f_flag').checked,
     history: [{ at: now, what: 'Created' }]
   };
+  if (window.DGSync && DGSync.joined()) rec._who = DGSync.me();
+  if (visitId) rec.visit = visitId;
   await putRecord(rec); checkBackupDue();
   allCache = [];
   const grams = addToMyGold(rec); logBuys(rec);
   if (v('#f_staff')!==settings.staff){ settings.staff = v('#f_staff'); await saveSettingsObj(); }
+  if (visitId){ try { const vs = JSON.parse(localStorage.getItem('visits') || '[]'), v = vs.find(x => x._id === visitId); if (v){ v.status = 'done'; v.receipt = rec.receipt; v.total = rec.total; localStorage.setItem('visits', JSON.stringify(vs)); } } catch(e){} visitId = null; history.replaceState(null, '', location.pathname); }
   resetForm();
   toast('Saved ' + rec.receipt + (grams ? ` · ${grams.toFixed(2)}g added to My gold` : ''));
   openRecord(rec.id, {justSaved:true});
@@ -902,6 +909,24 @@ $('#saveRev').onclick = async () => {
 };
 $('#testQR').onclick = () => { const l = $('#s_revlink').value.trim(); /^https:\/\/\S+\.\S+/.test(l) ? showQR('Your review QR code', l) : toast('Paste your Google review link first'); };
 
+/* ---------- team: start a purchase from a diary visit, and show changes from the other phones ---------- */
+let visitId = null;
+function prefillFromVisit(){
+  const id = new URLSearchParams(location.search).get('visit'); if (!id) return;
+  let v; try { v = JSON.parse(localStorage.getItem('visits') || '[]').find(x => x._id === id); } catch(e){}
+  if (!v) return;
+  visitId = id;
+  const parts = String(v.name || '').trim().split(/\s+/), set = (sel, val) => { if (val && !$(sel).value) $(sel).value = val; };
+  set('#f_first', parts.slice(0, -1).join(' ') || parts[0]); if (parts.length > 1) set('#f_last', parts[parts.length - 1]);
+  set('#f_phone', v.phone); set('#f_addr', v.address); set('#f_pc', (v.postcode || '').toUpperCase());
+  toast('Details filled in from the diary visit. Check them against the ID.');
+}
+window.addEventListener('dgsync-applied', async e => {
+  allCache = [];
+  if (e.detail.settings){ await loadSettings(); if (!$('#tab-settings').classList.contains('hidden')) fillSettings(); }
+  if (e.detail.records && !$('#tab-records').classList.contains('hidden') && !document.querySelector('.modal')) renderList();
+});
+
 /* ---------- customer receipt (email) ---------- */
 // What the customer gets: what they sold, what they were paid and how. No ID numbers or date of birth.
 function receiptText(r){
@@ -1090,6 +1115,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) retur
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
   if (settings.pinHash) lockNow();
   resetForm();
+  prefillFromVisit();
   requestAnimationFrame(sizeSig);
   checkBackupDue();
   try { if (new URLSearchParams(location.search).get('backup')) { history.replaceState(null, '', location.pathname); showTab('new'); window.scrollTo(0, 0); } } catch(e){}
