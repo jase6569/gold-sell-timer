@@ -11,7 +11,7 @@
 // when the business passphrase is first set. The table is created automatically.
 
 const ALLOWED = ["https://jase6569.github.io"];
-const MAX_DOC = 1_800_000, MAX_BODY = 20_000_000, PAGE = 400;
+const MAX_DOC = 1_800_000, MAX_BODY = 8_000_000, PAGE = 400, PAGE_BYTES = 2_000_000;
 
 function cors(origin){
   return {"Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -63,10 +63,14 @@ export default {
 
     if (path === "/pull"){
       const since = Math.max(0, parseInt(body.since, 10) || 0);
-      const {results} = await env.DB.prepare("SELECT id, rev, at, who, del, data FROM docs WHERE rev > ? ORDER BY rev LIMIT ?").bind(since, PAGE).all();
+      // look at sizes first, so a page never carries more than about 2 MB (photos add up fast on a new phone)
+      const {results: sizes} = await env.DB.prepare("SELECT rev, COALESCE(length(data), 0) AS n FROM docs WHERE rev > ? ORDER BY rev LIMIT ?").bind(since, PAGE).all();
+      let upto = since, total = 0;
+      for (const x of sizes){ if (total > 0 && total + x.n > PAGE_BYTES) break; total += x.n; upto = x.rev; }
+      const {results} = sizes.length ? await env.DB.prepare("SELECT id, rev, at, who, del, data FROM docs WHERE rev > ? AND rev <= ? ORDER BY rev").bind(since, upto).all() : {results: []};
       const top = (await env.DB.prepare("SELECT v FROM meta WHERE k = 'rev'").first()).v;
       const rev = results.length ? results[results.length - 1].rev : top;
-      return reply({docs: results, rev, more: results.length === PAGE}, 200, origin);
+      return reply({docs: results, rev, more: rev < top}, 200, origin);
     }
 
     if (path === "/push"){

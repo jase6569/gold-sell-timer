@@ -348,7 +348,7 @@
 <input type="file" id="lotCamIn" accept="image/*" capture="environment" class="hidden">
 <input type="file" id="galleryIn" accept="image/*" multiple class="hidden">
 
-<script src="../sync.js?v=2"></script>
+<script src="../sync.js?v=3"></script>
 <script src="qrcode.min.js"></script>
 <script>
 (() => {
@@ -798,7 +798,7 @@ async function openRecord(id, opts={}){
   $('#addNoteBtn').onclick = async () => { const t=$('#addNote').value.trim(); if(!t) return; r.history=(r.history||[]).concat({at:new Date().toISOString(), what:t}); await putRecord(r); m.remove(); openRecord(r.id); };
   $('#toggleFlag').onclick = async () => { r.flagged=!r.flagged; r.history=(r.history||[]).concat({at:new Date().toISOString(), what:r.flagged?'Flagged as suspicious':'Flag removed'}); await putRecord(r); m.remove(); openRecord(r.id); };
   $('#delRec').onclick = async () => {
-    if (!confirm('Delete this record permanently? Its gold is also taken out of My gold. This cannot be undone.')) return;
+    if (!confirm((window.DGSync && DGSync.joined() ? 'Delete this record for everyone in the team? ' : 'Delete this record permanently? ') + 'Its gold is also taken out of My gold. This cannot be undone, and you may need it if the police ask.')) return;
     if (prompt('Type DELETE to confirm')!=='DELETE') return;
     const n = removeFromMyGold(r); unlogBuys(r); await delRecord(r.id); allCache=[]; toast('Record deleted' + (n ? ' and removed from My gold' : '')); close();
   };

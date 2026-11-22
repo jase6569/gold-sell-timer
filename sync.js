@@ -145,7 +145,7 @@ async function push(){
     if (!ids.length) return;
     const docs = [], snap = {}; let size = 0;
     for (const id of ids){
-      if (size > 6_000_000) break;
+      if (size > 1_500_000) break;   // keep each upload small, well inside Cloudflare's limits
       const e = q[id]; snap[id] = e.at;
       const data = e.del ? null : await payloadFor(id);
       const del = e.del || data == null;
