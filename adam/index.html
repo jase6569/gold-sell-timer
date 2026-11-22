@@ -887,7 +887,12 @@ function renderTrack(){
 }
 
 /* =============== news & events (context) =============== */
-async function fetchJSON(url){ const r = await fetch(url, {cache: "no-store"}); if (!r.ok) throw new Error(r.status); return r.json(); }
+// Every request gives up after 10 seconds, so a slow or stalled price service can never freeze the page
+async function fetchJSON(url, ms = 10000){
+  const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms);
+  try { const r = await fetch(url, {cache: "no-store", signal: ac.signal}); if (!r.ok) throw new Error(r.status); return await r.json(); }
+  finally { clearTimeout(t); }
+}
 function evWhen(iso){ const d = new Date(iso); return d.toLocaleDateString("en-GB", {weekday: "short", day: "numeric", month: "short"}) + " " + d.toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"}); }
 function ago(iso){ const h = (Date.now() - new Date(iso)) / 36e5; return h < 1 ? "just now" : h < 24 ? Math.round(h) + "h ago" : Math.round(h / 24) + "d ago"; }
 function upcoming(){ return news ? (news.events || []).filter(e => new Date(e.date) > Date.now()) : []; }
@@ -943,6 +948,8 @@ $("cP").addEventListener("input", () => { if (!$("cP").disabled) store.set("ownP
 async function loadMM(){ try { mm = await fetchJSON(MM_URL + "?t=" + Date.now()); } catch(e){} }
 
 /* =============== prices =============== */
+// run one part of the page; if it fails, log it and carry on so the rest still shows
+function safe(fn){ try { fn(); } catch(e){ console.log(e); } }
 async function getLiveOz(){
   const [xau, fx] = await Promise.all([
     fetchJSON("https://api.gold-api.com/price/XAU").then(d => d.price),
@@ -957,13 +964,13 @@ function showPrice(oz, label){
   $("pOz").textContent = fmt(oz, 0) + " per troy ounce";
   $("carats").innerHTML = CARATS.map(([k, f]) => `<div><b>${fmt(gbpPerGram * f)}</b><span>${k}/g</span></div>`).join("");
   $("pTime").textContent = label;
-  applyRefiner(); calc(); checkAlert(); renderStock();
+  [applyRefiner, calc, checkAlert, renderStock].forEach(safe);
 }
 function analyse(){
   if (!daily.length) return;
   try { sig = compute(); renderDealer(); renderCall(); renderExplain(); renderHistory(); renderOutlook(); renderTrack(); }
   catch(e){ console.log(e); $("call").innerHTML = '<p class="muted">Couldn\'t run the analysis just now.</p>'; }
-  renderNews(); renderStock(); checkHealth();
+  [renderNews, renderStock, checkHealth].forEach(safe);
 }
 async function refresh(){
   try {
@@ -1283,10 +1290,13 @@ if (!store.get("seenGuide")) $("welcome").style.display = "block";
 (async () => {
   try { const dj = await fetchJSON("../data.json?t=" + Date.now()); daily = dj.daily; dataUpdated = dj.updated; } catch(e){}
   try { news = await fetchJSON("../news.json?t=" + Date.now()); } catch(e){}
-  await loadMM(); applyRefiner();
-  renderStock();
-  await refresh();
-  setInterval(refresh, 60000);
+  try { await loadMM(); applyRefiner(); } catch(e){ console.log(e); }
+  // show the advice straight away from the last close, then swap in the live price when it arrives
+  try { if (daily.length){ const [d, v] = daily[daily.length - 1]; showPrice(v, "Getting the live price… showing the last close (" + new Date(d).toLocaleDateString("en-GB") + ") for now"); } } catch(e){ console.log(e); }
+  try { analyse(); } catch(e){ console.log(e); }
+  try { renderStock(); } catch(e){ console.log(e); }
+  await refresh().catch(e => console.log(e));
+  setInterval(() => refresh().catch(e => console.log(e)), 60000);
   setInterval(async () => {
     try { const dj = await fetchJSON("../data.json?t=" + Date.now()); daily = dj.daily; dataUpdated = dj.updated; } catch(e){}
     try { news = await fetchJSON("../news.json?t=" + Date.now()); } catch(e){}
