@@ -84,3 +84,12 @@ The bot commits fresh data every hour, so always pull before you start:
 ```bash
 git pull
 ```
+
+## Google reviews (Buy log)
+
+The Buy log can ask customers for a Google review. Requests always go out as **Dorset Gold & Jewellery** (`REV_BIZ` in `buying-log/index.html`), whatever business name is on the receipts. Adam's app has no Buy log, so he never sees it. `buying-log/qrcode.min.js` (MIT licence) draws the QR code.
+
+* **Settings, Google reviews:** paste Dorset Gold & Jewellery's Google review link and edit the message.
+* **Each record:** Show QR code (for the customer to scan at the visit), Ask by text, WhatsApp or email, then "They've left a review". Every step goes in the audit trail.
+* **Records:** shows how many customers have reviewed, and "Show who to ask" lists customers from the last 30 days who haven't been asked.
+* A customer who has already reviewed (matched by phone number or ID number) is never offered another request.

@@ -94,6 +94,10 @@
   .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 16px;border-radius:10px;z-index:200;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
   .viewer{position:fixed;inset:0;background:#000;z-index:300;display:flex;align-items:center;justify-content:center}
   .viewer img{max-width:100%;max-height:100%}
+  .qrview{position:fixed;inset:0;background:#fff;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;color:#0b1a3a}
+  .qrview svg{width:min(78vw,360px);height:auto}
+  .qrview h3{margin:0 0 6px;font-size:22px}
+  .qrview p{margin:6px 0;font-size:16px}
 
   /* Print: police report */
   #print{display:none}
@@ -279,6 +283,7 @@
         <button class="btn ghost sm" id="csvBtn">Export CSV</button>
       </div>
     </div>
+    <div class="card" id="revBox"></div>
     <div class="card list" id="list" style="padding:0"></div>
   </section>
 
@@ -295,6 +300,14 @@
       <label>Default location</label><input id="s_loc">
       <label>Receipt prefix</label><input id="s_prefix" maxlength="6">
       <div class="actions"><button class="btn gold" id="saveSettings">Save settings</button></div>
+    </div>
+    <div class="card" id="revSettings">
+      <h2>Google reviews</h2>
+      <p class="muted">Requests go out as Dorset Gold &amp; Jewellery. Paste Dorset Gold &amp; Jewellery's Google review link here. To find it, search for the business on Google while signed in to the account that manages it, tap <b>Ask for reviews</b> (or <b>Get more reviews</b>) and copy the link. It usually starts https://g.page/r/</p>
+      <label>Google review link</label><input id="s_revlink" type="url" inputmode="url" autocomplete="off" placeholder="https://g.page/r/...">
+      <label>Message to customers</label><textarea id="s_revmsg" style="min-height:160px"></textarea>
+      <p class="muted">{name} is swapped for the customer's first name, {link} for your review link, {staff} for the staff name and {biz} for Dorset Gold &amp; Jewellery. Google's rules say ask every customer the same way, and don't offer anything in return for a review.</p>
+      <div class="actions"><button class="btn gold" id="saveRev">Save</button><button class="btn ghost" id="testQR">Show my QR code</button></div>
     </div>
     <div class="card">
       <h2>PIN lock</h2>
@@ -335,6 +348,7 @@
 <input type="file" id="lotCamIn" accept="image/*" capture="environment" class="hidden">
 <input type="file" id="galleryIn" accept="image/*" multiple class="hidden">
 
+<script src="qrcode.min.js"></script>
 <script>
 (() => {
 'use strict';
@@ -426,7 +440,7 @@ function removeFromMyGold(rec){
 function inMyGold(rec){ return myGold().filter(x => x.bl && x.bl.startsWith(rec.id + ':')); }
 
 /* ---------- settings ---------- */
-let settings = { biz:CFG.biz, addr:'', phone:'', staff:'', loc:'Poole', prefix:CFG.prefix, retain:'6', autolock:'5', pinHash:'' };
+let settings = { biz:CFG.biz, addr:'', phone:'', staff:'', loc:'Poole', prefix:CFG.prefix, retain:'6', autolock:'5', pinHash:'', revLink:'', revMsg:'' };
 async function loadSettings(){ const s = await kvGet('settings'); if (s) settings = {...settings, ...s}; }
 async function saveSettingsObj(){ await kvSet('settings', settings); }
 
@@ -558,6 +572,7 @@ async function checkId(){
         <b>Returning seller:</b> ${hits.length} previous sale${hits.length>1?'s':''}, ${gbp(spent)} in total. Last seen ${fmtDT(last.createdAt)}.
         ${flagged?'<br><b>One or more previous sales were flagged as suspicious.</b>':''}
         ${nameMismatch?'<br><b>This ID number was used before under a different name.</b>':''}
+        <br>${reviewStatusLine(hits)}
         <div class="actions"><button class="btn ghost sm" id="fillPrev">Fill details from last visit</button></div></div>`);
       lastSeller = last.seller;
       setAlerts(out.join(''));
@@ -667,7 +682,7 @@ $('#saveBtn').onclick = async () => {
   if (v('#f_staff')!==settings.staff){ settings.staff = v('#f_staff'); await saveSettingsObj(); }
   resetForm();
   toast('Saved ' + rec.receipt + (grams ? ` · ${grams.toFixed(2)}g added to My gold` : ''));
-  openRecord(rec.id);
+  openRecord(rec.id, {justSaved:true});
 };
 
 /* ---------- records list ---------- */
@@ -687,6 +702,9 @@ async function renderList(){
     const hay = [s.first,s.last,s.first+' '+s.last,s.addr,s.email,r.receipt,r.staff,r.notes,...r.items.map(i=>i.desc+' '+i.hallmark+' '+i.purity)].join(' ').toLowerCase();
     return hay.includes(q) || norm(s.idnum).includes(qn) || norm(s.pc).includes(qn) || norm(s.phone).includes(qn) || norm(s.vrm).includes(qn);
   });
+  const toAsk = reviewsToAsk(recs);
+  renderRevBox(recs, toAsk);
+  if (revFilter) { const ids = new Set(toAsk.map(r=>r.id)); filtered.splice(0, filtered.length, ...filtered.filter(r=>ids.has(r.id))); }
   lastFiltered = filtered;
   const m = new Date().toISOString().slice(0,7);
   $('#st_count').textContent = recs.length;
@@ -709,8 +727,10 @@ async function renderList(){
 function retentionCutoff(){ const d=new Date(); d.setFullYear(d.getFullYear()-(+settings.retain||6)); return d.toISOString(); }
 
 /* ---------- record detail ---------- */
-async function openRecord(id){
-  const r = (await allRecords()).find(x=>x.id===id); if(!r) return;
+async function openRecord(id, opts={}){
+  const all = await allRecords();
+  const r = all.find(x=>x.id===id); if(!r) return;
+  const revCard = reviewCard(r, all, opts.justSaved);
   const s = r.seller;
   const m = document.createElement('div'); m.className='modal';
   m.innerHTML = `<div class="sheet">
@@ -718,6 +738,7 @@ async function openRecord(id){
       <div><b style="font-size:18px">${esc(r.receipt)}</b><div class="muted">${fmtDT(r.createdAt)} · ${esc(r.staff)}${r.location?' · '+esc(r.location):''}</div></div>
       <button class="btn ghost sm" data-close>Close</button></div>
     ${r.flagged?'<div class="alert bad" style="margin:0 0 12px"><b>Flagged as suspicious</b></div>':''}
+    ${opts.justSaved ? revCard : ''}
     <div class="card"><h2>Seller</h2><dl class="kv">
       <dt>Name</dt><dd>${esc(s.first)} ${esc(s.last)}</dd>
       <dt>Date of birth</dt><dd>${fmtDate(s.dob)}${age(s.dob)!==null?` (age ${age(s.dob)} today)`:''}</dd>
@@ -734,6 +755,7 @@ async function openRecord(id){
       <div class="photos">${(r.lotPhotos||[]).map(p=>`<div class="ph"><img src="${p.src}"><span>${esc(p.label)}</span></div>`).join('')}${r.items.flatMap((i,n)=>i.photos.map(p=>`<div class="ph"><img src="${p}"><span>Item ${n+1}</span></div>`)).join('')}</div>
       <div class="total"><span>Total paid</span><span>${gbp(r.total)}</span></div>
       ${(()=>{ const g = inMyGold(r); return g.length ? `<div class="alert ok">In My gold: ${g.map(x=>x.w+'g '+({'0.375':'9ct','0.585':'14ct','0.75':'18ct','0.916':'22ct','0.999':'24ct'}[x.k]||'')).join(', ')}</div>` : (goldLines(r).length ? `<div class="alert warn">Not in My gold (sent to the refiner or removed there).</div>` : ''); })()}</div>
+    ${opts.justSaved ? '' : revCard}
     <div class="card"><h2>Payment & signature</h2><dl class="kv">
       <dt>Method</dt><dd>${esc(r.payment.method)}</dd>
       <dt>Reference</dt><dd>${esc(r.payment.ref)||'–'}</dd>
@@ -756,6 +778,7 @@ async function openRecord(id){
   m.onclick = e => { if (e.target===m) close(); };
   $$('.modal .photos img').forEach(im => im.onclick = () => viewImage(im.src));
   $('#printOne').onclick = () => printRecords([r]);
+  wireReviewCard(r, m, opts);
   $('#emailOne').onclick = async () => {
     const to = r.seller.email || prompt('Customer\'s email address');
     if (!to) return;
@@ -771,6 +794,111 @@ async function openRecord(id){
     const n = removeFromMyGold(r); unlogBuys(r); await delRecord(r.id); allCache=[]; toast('Record deleted' + (n ? ' and removed from My gold' : '')); close();
   };
 }
+
+
+/* ---------- Google reviews ---------- */
+// Review requests go out in the name of Dorset Gold & Jewellery, whatever business name is on the receipts.
+const REV_BIZ = 'Dorset Gold & Jewellery';
+// Ask each customer for a Google review by QR code (in person), text, WhatsApp or email, keep track of who has
+// been asked and who has left one, and never ask the same customer twice once they have reviewed.
+const REV_DEFAULT = "Hi {name}, thank you for choosing {biz} today. We'd really like to hear how it went. Would you mind leaving us a quick Google review? It only takes a minute: {link} Many thanks, {staff}";
+const revLinkOK = () => /^https:\/\/\S+\.\S+/.test(settings.revLink||'');
+function revText(r){
+  return (settings.revMsg||REV_DEFAULT).replace(/\{name\}/g, r.seller.first||'').replace(/\{biz\}/g, REV_BIZ)
+    .replace(/\{link\}/g, settings.revLink||'').replace(/\{staff\}/g, r.staff||settings.staff||'').replace(/\s+,/g, ',').trim();
+}
+// UK numbers in one form, so 07700 900123 and +44 7700 900123 count as the same customer
+function phoneKey(p){ let d = String(p||'').replace(/\D/g,''); if (d.startsWith('0044')) d = d.slice(4); else if (d.startsWith('44') && d.length >= 12) d = d.slice(2); else if (d.startsWith('0')) d = d.slice(1); return d.length >= 9 ? d : ''; }
+const waNumber = p => { const k = phoneKey(p); return k ? (String(p).trim().startsWith('+') && !String(p).trim().startsWith('+44') ? String(p).replace(/\D/g,'') : '44' + k) : ''; };
+function sameCustomer(a, b){
+  const pa = phoneKey(a.seller.phone), pb = phoneKey(b.seller.phone), ia = norm(a.seller.idnum), ib = norm(b.seller.idnum);
+  return (pa && pa === pb) || (ia.length >= 4 && ia === ib);
+}
+const reviewedBefore = (r, all) => all.find(x => x.id !== r.id && x.review && x.review.done && sameCustomer(x, r));
+const viaWords = {text: 'text', whatsapp: 'WhatsApp', email: 'email', qr: 'QR code in person'};
+function reviewStatusLine(hits){
+  const done = hits.find(h => h.review && h.review.done);
+  if (done) return `<b>Has left you a Google review</b> (after their visit on ${fmtDate(done.createdAt.slice(0,10))}).`;
+  const asked = hits.filter(h => h.review && h.review.asked).sort((a,b)=>b.review.asked.localeCompare(a.review.asked))[0];
+  return asked ? `Asked for a Google review on ${fmtDate(asked.review.asked.slice(0,10))} but not marked as reviewed.` : 'Never asked for a Google review. Worth asking after this visit.';
+}
+function reviewCard(r, all, justSaved){
+  const rv = r.review || {}, s = r.seller, prev = !rv.done && reviewedBefore(r, all);
+  let status;
+  if (rv.done) status = `<div class="alert ok" style="margin-top:0"><b>Left a Google review.</b> Marked on ${fmtDT(rv.done)}.</div>`;
+  else if (prev) status = `<div class="alert ok" style="margin-top:0">Already left a review after their visit on ${fmtDate(prev.createdAt.slice(0,10))} (${esc(prev.receipt)}). No need to ask again.</div>`;
+  else if (rv.asked) status = `<p class="muted" style="margin-top:0">Asked by ${viaWords[rv.via]||esc(rv.via)} on ${fmtDT(rv.asked)}. Tap <b>They've left a review</b> once it shows on Google.</p>`;
+  else status = `<p class="muted" style="margin-top:0">${justSaved ? 'Best asked now, while they are still with you: show them the QR code to scan.' : 'Not asked yet.'}</p>`;
+  if (!revLinkOK()) return `<div class="card"><h2>Google review</h2>${status}<div class="alert warn">Add your Google review link in Settings first.</div><div class="actions"><button class="btn ghost sm" id="revSetup">Go to Settings</button></div></div>`;
+  const again = rv.asked ? ' again' : '';
+  const btns = rv.done ? `<button class="btn ghost sm" id="revUndo">Undo, not reviewed</button>` : prev ? '' : `
+      <button class="btn gold sm" id="revQR">Show QR code</button>
+      ${phoneKey(s.phone) ? `<button class="btn navy sm" id="revSMS">Ask${again} by text</button><button class="btn navy sm" id="revWA">Ask${again} by WhatsApp</button>` : ''}
+      ${s.email ? `<button class="btn navy sm" id="revMail">Ask${again} by email</button>` : ''}
+      ${rv.asked ? `<button class="btn ghost sm" id="revDone">They've left a review</button>` : ''}`;
+  return `<div class="card"><h2>Google review</h2>${status}<div class="actions">${btns}</div>
+    ${!rv.done && !prev && !phoneKey(s.phone) && !s.email ? '<p class="muted">No phone number or email on this record, so the QR code is the only way to ask.</p>' : ''}</div>`;
+}
+function showQR(title, link = settings.revLink){
+  if (typeof qrcode !== 'function') return toast('QR code not available. Check your signal and reopen the app.');
+  const q = qrcode(0, 'M'); q.addData(link); q.make();
+  const v = document.createElement('div'); v.className = 'qrview';
+  v.innerHTML = `<h3>${esc(REV_BIZ)}</h3><p>${esc(title)}</p>${q.createSvgTag({cellSize: 8, margin: 2, scalable: true})}<p><b>Point your phone camera at the code</b><br>to leave us a Google review</p><p style="color:#888;font-size:13px;margin-top:18px">Tap anywhere to close</p>`;
+  v.onclick = () => v.remove(); document.body.appendChild(v);
+}
+async function revUpdate(r, change, note){
+  r.review = {...(r.review||{}), ...change};
+  if (change.done === null) delete r.review.done;
+  r.history = (r.history||[]).concat({at: new Date().toISOString(), what: note});
+  await putRecord(r); allCache = [];
+}
+function wireReviewCard(r, m, opts){
+  const reopen = () => setTimeout(() => { m.remove(); openRecord(r.id, opts); }, 400);
+  const on = (id, fn) => { const b = m.querySelector('#' + id); if (b) b.onclick = fn; };
+  const ask = async (via, go) => { go(); await revUpdate(r, {asked: new Date().toISOString(), via}, 'Google review requested by ' + viaWords[via]); reopen(); };
+  on('revSetup', () => { m.remove(); showTab('settings'); setTimeout(() => $('#revSettings').scrollIntoView({behavior: 'smooth'}), 100); });
+  on('revQR', async () => { showQR('Thank you, ' + (r.seller.first||'')); await revUpdate(r, {asked: new Date().toISOString(), via: 'qr'}, 'Google review QR code shown'); m.remove(); openRecord(r.id, opts); });
+  on('revSMS', () => ask('text', () => { const sep = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) ? '&' : '?'; location.href = 'sms:' + r.seller.phone.replace(/[^\d+]/g,'') + sep + 'body=' + encodeURIComponent(revText(r)); }));
+  on('revWA', () => ask('whatsapp', () => { window.open('https://wa.me/' + waNumber(r.seller.phone) + '?text=' + encodeURIComponent(revText(r)), '_blank'); }));
+  on('revMail', () => ask('email', () => { location.href = 'mailto:' + encodeURIComponent(r.seller.email.trim()) + '?subject=' + encodeURIComponent('Thank you from ' + (REV_BIZ)) + '&body=' + encodeURIComponent(revText(r)); }));
+  on('revDone', async () => { await revUpdate(r, {done: new Date().toISOString()}, 'Marked as left a Google review'); reopen(); });
+  on('revUndo', async () => { await revUpdate(r, {done: null}, 'Google review mark removed'); reopen(); });
+}
+// Recent customers (last 30 days) who can be reached and haven't been asked or already reviewed: one entry per customer
+function reviewsToAsk(recs){
+  const since = new Date(Date.now() - 30*864e5).toISOString(), seen = [], out = [];
+  for (const r of recs.slice().sort((a,b)=>b.createdAt.localeCompare(a.createdAt))){
+    if (r.createdAt < since) break;
+    if (seen.some(x => sameCustomer(x, r))) continue;
+    seen.push(r);
+    const contact = phoneKey(r.seller.phone) || r.seller.email;
+    const askedAny = recs.some(x => x.review && (x.review.asked || x.review.done) && (x.id === r.id || sameCustomer(x, r)) && (x.review.done || x.createdAt >= r.createdAt));
+    if (contact && !askedAny) out.push(r);
+  }
+  return out;
+}
+let revFilter = false;
+function renderRevBox(recs, toAsk){
+  const reviewed = []; recs.forEach(r => { if (r.review && r.review.done && !reviewed.some(x => sameCustomer(x, r))) reviewed.push(r); });
+  const m = new Date().toISOString().slice(0,7);
+  const askedMonth = recs.filter(r => r.review && r.review.asked && r.review.asked.startsWith(m)).length;
+  $('#revBox').innerHTML = `<h2>Google reviews</h2>
+    <p class="muted" style="margin-top:0">${reviewed.length} customer${reviewed.length===1?' has':'s have'} left a review. ${askedMonth} asked this month.</p>
+    ${!revLinkOK() ? '<div class="alert warn">Add your Google review link in Settings to start asking.</div>' : ''}
+    ${toAsk.length || revFilter ? `<div class="alert ${toAsk.length?'warn':'ok'}"><b>${toAsk.length ? toAsk.length + ' recent customer' + (toAsk.length===1?'':'s') + ' not asked yet.' : 'Everyone recent has been asked.'}</b>
+      <div class="actions"><button class="btn ghost sm" id="revShow">${revFilter ? 'Show all records' : 'Show who to ask'}</button></div></div>`
+      : '<p class="muted">Everyone from the last 30 days has been asked.</p>'}`;
+}
+$('#revBox').addEventListener('click', e => { if (e.target.closest('#revShow')) { revFilter = !revFilter; renderList(); } });
+$('#saveRev').onclick = async () => {
+  const link = $('#s_revlink').value.trim();
+  if (link && !/^https:\/\/\S+\.\S+/.test(link)) return toast('The link should start with https://');
+  const msg = $('#s_revmsg').value.trim();
+  if (msg && !msg.includes('{link}')) return toast('Put {link} in the message so customers get your review link');
+  settings.revLink = link; settings.revMsg = msg && msg !== REV_DEFAULT ? msg : '';
+  await saveSettingsObj(); toast('Review settings saved');
+};
+$('#testQR').onclick = () => { const l = $('#s_revlink').value.trim(); /^https:\/\/\S+\.\S+/.test(l) ? showQR('Your review QR code', l) : toast('Paste your Google review link first'); };
 
 /* ---------- customer receipt (email) ---------- */
 // What the customer gets: what they sold, what they were paid and how. No ID numbers or date of birth.
@@ -856,6 +984,7 @@ function fillSettings(){
   $('#s_staff').value=settings.staff; $('#s_loc').value=settings.loc; $('#s_prefix').value=settings.prefix;
   $('#s_retain').value=settings.retain; $('#s_autolock').value=settings.autolock;
   $('#pinState').textContent = settings.pinHash ? 'A PIN is set. The app asks for it when opened.' : 'No PIN set. Anyone with this phone can open the records. Setting a PIN is strongly recommended.';
+  $('#s_revlink').value = settings.revLink||''; $('#s_revmsg').value = settings.revMsg||REV_DEFAULT;
   kvGet('lastBackup').then(t => $('#lastBackup').textContent = t ? 'Last backup: '+fmtDT(t) : 'No backup taken yet.');
   if (navigator.storage && navigator.storage.estimate) navigator.storage.estimate().then(e => {
     $('#storageInfo').textContent = `Using ${(e.usage/1048576).toFixed(1)} MB on this device.`;
