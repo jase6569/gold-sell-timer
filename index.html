@@ -355,6 +355,7 @@
         <li>Tap <b>Team</b> in the bottom bar.</li>
         <li>Choose who you are, type the team passphrase, and tap <b>Join the team</b>.</li>
         <li>That's it: stock, the Buy log, the diary, cash and prices are now shared between you. Everything is locked with the passphrase before it leaves your phone.</li>
+        <li>Still in <b>Sharing</b>, tap <b>Copy my visit channel</b>, then in ntfy tap <b>+</b> and paste it. Tap <b>Send me a test visit alert</b> to check. Now you'll get a notification whenever a visit is booked, moved or cancelled for you.</li>
       </ol>
       <button class="btn ghost" onclick="go('team')">Open Team</button>
     </div>
@@ -2050,6 +2051,10 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
   window.scrollTo(0, 0);
 });
 
+/* =============== open the Team page from a visit notification =============== */
+if (location.hash === "#team") setTimeout(() => go("team"), 0);
+window.addEventListener("hashchange", () => { if (location.hash === "#team") go("team"); });
+
 /* =============== team sharing: show changes from the other phones =============== */
 window.addEventListener("dgsync-applied", () => {
   try { const b = buySettings(); $("bM").value = b.m || ""; $("bC").value = b.c || ""; } catch(e){}
@@ -2080,7 +2085,7 @@ if (!store.get("seenGuide")) $("welcome").style.display = "block";
   }, 30 * 60000);
 })();
 </script>
-<script src="team.js?v=2"></script>
+<script src="team.js?v=3"></script>
 <!-- TEAM SETUP SCRIPT START -->
 <style>
   .setup-bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:4px 0 12px}

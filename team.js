@@ -20,6 +20,29 @@ const sms = (p, body) => "sms:" + digits(p) + (isIOS ? "&" : "?") + "body=" + en
 const mapUrl = v => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent([v.address, v.postcode].filter(Boolean).join(", "));
 let tmTab = localStorage.getItem("tmTab") || "diary";
 
+/* ================= visit alerts ================= */
+// Each person has a private ntfy channel for the diary, worked out from the team login, so only team phones know it.
+// Alerts carry the day, time and postcode area only: never the customer's name, phone or address.
+const APP_URL = "https://jase6569.github.io/gold-sell-timer/#team";
+async function visitTopic(who){
+  const tok = localStorage.getItem("dgs:tok"); if (!tok || !who) return "";
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(tok + "|visits|" + who.trim().toLowerCase()));
+  return "dgv" + [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("").slice(0, 28);
+}
+function area(pc){ const m = String(pc || "").toUpperCase().trim().match(/^([A-Z]{1,2}\d[A-Z\d]?)/); return m ? m[1] : ""; }
+async function alertVisit(v, kind){
+  if (!S || !S.joined()) return;
+  const to = (v.who ? [v.who] : people()).filter(p => p && p !== me());
+  const when = dayName(v.date) + (v.time ? " at " + v.time : "");
+  const where = area(v.postcode) ? area(v.postcode) + " area" : "";
+  const title = {new: "New visit booked for you", changed: "Visit changed", cancelled: "Visit cancelled"}[kind];
+  const body = [when, where, (kind === "new" ? "booked" : kind) + " by " + me()].filter(Boolean).join(" · ") + ". Open Team, Diary for the details.";
+  for (const p of to){
+    const topic = await visitTopic(p); if (!topic) continue;
+    try { await fetch("https://ntfy.sh/" + topic, {method: "POST", body, headers: {Title: title, Tags: kind === "cancelled" ? "x" : "calendar", Priority: kind === "cancelled" ? "default" : "high", Click: APP_URL}}); } catch(e){}
+  }
+}
+
 /* ================= sharing card ================= */
 function renderShare(){
   const box = $("tmShare"); if (!box) return;
@@ -58,10 +81,24 @@ function renderShare(){
     <p style="margin:0">Signed in as <b>${esc(me())}</b>. Last shared: ${when}.${st.pending ? ` ${st.pending} change${st.pending === 1 ? "" : "s"} waiting to go up.` : ""}</p>
     ${st.err ? `<div class="warn">${esc(st.err)}</div>` : ""}
     <button class="btn ghost" id="tmSync">Share now</button>
+    <div class="sub">Visit alerts</div>
+    <p style="margin:4px 0 0">Get a notification when someone books, changes or cancels a visit for you. In <b>ntfy</b>, tap <b>+</b> and subscribe to your own visit channel:</p>
+    <p><code id="tmVT" style="word-break:break-all">…</code></p>
+    <button class="btn ghost" id="tmVTCopy">Copy my visit channel</button>
+    <button class="btn ghost" id="tmVTTest">Send me a test visit alert</button>
+    <p class="muted" id="tmVTMsg" style="margin:6px 0 0">Each person has their own channel, so you only hear about your visits. The alert shows the day, time and area. The customer's details stay in the app.</p>
     <details style="margin-top:6px"><summary>Leave the team on this phone</summary>
       <p class="muted">Stops sharing on this phone. Everything already here stays on the phone, and nothing is deleted for anyone else.</p>
       <button class="btn ghost" id="tmLeave">Leave the team</button></details>`;
   $("tmSync").onclick = async () => { $("tmSync").textContent = "Sharing…"; await S.syncNow(); renderShare(); };
+  visitTopic(me()).then(t => { if ($("tmVT")) $("tmVT").textContent = t; });
+  $("tmVTCopy").onclick = async () => { const t = await visitTopic(me()); try { await navigator.clipboard.writeText(t); $("tmVTCopy").textContent = "Copied"; } catch(e){ $("tmVTCopy").textContent = "Press and hold the code above to copy it"; } };
+  $("tmVTTest").onclick = async () => {
+    const t = await visitTopic(me());
+    try { const r = await fetch("https://ntfy.sh/" + t, {method: "POST", body: "This is a test. Visit alerts for " + me() + " are working.", headers: {Title: "Test visit alert", Tags: "calendar", Click: APP_URL}}); if (!r.ok) throw 0;
+      $("tmVTMsg").textContent = "Sent. If it popped up, you're set. If not, check you subscribed to exactly the channel above in ntfy."; }
+    catch(e){ $("tmVTMsg").textContent = "Couldn't send just now. Check your signal and try again."; }
+  };
   $("tmLeave").onclick = async () => { if (!confirm("Stop sharing on this phone?")) return; await S.leave(); location.reload(); };
 }
 window.addEventListener("dgsync-status", () => { if (S && S.joined()) renderShare(); });
@@ -128,8 +165,9 @@ function renderDiary(){
       const v = {date: $("vDate").value, time: $("vTime").value, name: $("vName").value.trim(), phone: $("vPhone").value.trim(), address: $("vAddr").value.trim(), postcode: $("vPc").value.trim().toUpperCase(), what: $("vWhat").value.trim(), notes: $("vNotes").value.trim(), who: $("vWho").value};
       if (!v.date || !v.name){ alert("Add at least the day and the customer's name."); return; }
       const a = visits();
-      if (editing === "new") a.push(Object.assign(v, {_id: rid(), status: "booked", added: new Date().toISOString(), addedBy: me()}));
-      else { const x = a.find(y => y._id === editing); if (x) Object.assign(x, v); }
+      if (editing === "new"){ a.push(Object.assign(v, {_id: rid(), status: "booked", added: new Date().toISOString(), addedBy: me()})); alertVisit(v, "new"); }
+      else { const x = a.find(y => y._id === editing); if (x){ const moved = x.who !== v.who || x.date !== v.date || x.time !== v.time; const wasWho = x.who; Object.assign(x, v);
+        if (moved) alertVisit(x, wasWho !== v.who ? "new" : "changed"); } }
       editing = null; saveVisits(a);
     };
   }
@@ -139,7 +177,7 @@ function renderDiary(){
     if (act === "edit"){ editing = id; renderDiary(); $("vForm").scrollIntoView({behavior: "smooth"}); return; }
     if (act === "remind"){ v.reminded = new Date().toISOString(); saveVisits(a); location.href = sms(v.phone, reminderText(v)); return; }
     if (act === "nosale") v.status = "nosale";
-    if (act === "cancel") v.status = "cancelled";
+    if (act === "cancel"){ v.status = "cancelled"; alertVisit(v, "cancelled"); }
     if (act === "reopen") v.status = "booked";
     if (act === "delete"){ if (!confirm("Delete this visit from the diary for everyone?")) return; a.splice(a.indexOf(v), 1); }
     saveVisits(a);
