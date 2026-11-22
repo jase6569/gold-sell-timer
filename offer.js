@@ -10,6 +10,7 @@ const money = (v, dp = 0) => "£" + (Number(v) || 0).toLocaleString("en-GB", {mi
 const jget = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } };
 const margin = () => Math.min(90, Math.max(0, parseFloat(store.get("pmM") || "20") || 0)) / 100;
 const rate = k => (k === "other" || !gbpPerGram) ? 0 : refinerG(k) * (1 - margin());
+const keepWhy = l => window.keepReason ? keepReason(l.desc) : "";
 const lineOffer = l => l.manual ? (parseFloat(l.price) || 0) : Math.floor((parseFloat(l.w) || 0) * rate(l.k));
 
 const css = document.createElement("style");
@@ -70,6 +71,8 @@ function renderBuild(){
         <div><label>Weight (g)</label><input data-f="w" inputmode="decimal" value="${esc(l.w)}" placeholder="0.0"></div>
         <div><label>Offer (£)</label><input data-f="price" inputmode="decimal" value="${l.manual ? esc(l.price) : (lineOffer(l) || "")}" placeholder="${l.k === "other" ? "Type it" : "Auto"}"></div>
       </div>
+      ${keepWhy(l) ? `<div class="warn" style="margin:8px 0 0"><b>Don't melt this?</b> ${esc(keepWhy(l))}</div>` : ""}
+      <label style="display:flex;gap:8px;align-items:center;color:var(--text);font-size:14px;margin-top:8px"><input type="checkbox" data-keep ${l.keep ? "checked" : ""} style="width:18px;height:18px"> Keep it: don't melt (sell as it is)</label>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
         <span class="muted">${l.manual ? 'Your own price. <a href="#" data-auto style="color:var(--gold2)">Use the auto price</a>' : (l.k === "other" ? "Type a price for this one" : "Worked out from the weight")}</span>
         ${st.lines.length > 1 ? `<button class="x" data-rm style="padding:5px 10px;font-size:13px">Remove</button>` : ""}</div></div>`).join("")}
@@ -91,6 +94,7 @@ function renderBuild(){
         save(); later();
       };
     });
+    el.querySelector("[data-keep]").onchange = e => { l.keep = e.target.checked; save(); };
     const rm = el.querySelector("[data-rm]"); if (rm) rm.onclick = () => { st.lines.splice(i, 1); save(); renderBuild(); };
     const au = el.querySelector("[data-auto]"); if (au) au.onclick = e => { e.preventDefault(); l.manual = false; l.price = ""; save(); renderBuild(); };
   });
@@ -112,7 +116,7 @@ function renderCustomer(){
   box.querySelector("#ofBack").onclick = renderBuild;
   box.querySelector("#ofYes").onclick = () => {
     localStorage.setItem("offerAccepted", JSON.stringify({visitId: st.visitId, at: new Date().toISOString(),
-      items: lines.map(l => ({desc: l.desc || (l.k === "other" ? "Item" : label(l.k) + " gold"), metal: l.k === "other" ? "Mixed / other" : "Gold", purity: PURITY[l.k] || "", hallmark: "", weight: String(l.w || ""), price: String(lineOffer(l)), photos: []}))}));
+      items: lines.map(l => ({desc: l.desc || (l.k === "other" ? "Item" : label(l.k) + " gold"), metal: l.k === "other" ? "Mixed / other" : "Gold", purity: PURITY[l.k] || "", hallmark: "", weight: String(l.w || ""), price: String(lineOffer(l)), photos: [], keep: !!l.keep}))}));
     localStorage.removeItem("offerDraft");
     location.href = "buying-log/?offer=1" + (st.visitId ? "&visit=" + encodeURIComponent(st.visitId) : "");
   };

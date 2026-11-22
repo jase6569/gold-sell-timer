@@ -392,6 +392,7 @@
         <li>Tap <b>Buy log</b> in the bottom bar, then <b>Settings</b>.</li>
         <li>Put your own name as the <b>Default staff name</b> and tap <b>Save settings</b>. The business name, address and phone (01202 117896) are shared, so only one of you needs to fill those in.</li>
         <li>Set your own <b>PIN</b>. The Buy log holds customers' ID photos, so every phone needs locking.</li>
+        <li>Once for the business: in <b>Data protection</b>, check you're registered with the ICO (the link is there), tick it, and add a contact email if you have one. The privacy notice is then added to every emailed receipt.</li>
       </ol>
       <a class="btn ghost" href="buying-log/">Open the Buy log</a>
     </div>
@@ -410,9 +411,9 @@
     <div class="setup-step" data-s="backup">
       <label class="setup-tick"><input type="checkbox"> <b>10. Take your first backup</b></label>
       <ol>
-        <li>In the Buy log, open <b>Settings</b> and tap <b>Back up now</b>.</li>
+        <li>Tap <b>Back up everything</b> (My gold, My stock) or <b>Back up now</b> (Buy log, Settings).</li>
         <li>Choose <b>Google Drive</b> (or email it to yourself).</li>
-        <li>Do this every week. Your records are also shared with the team, but a backup is still your own copy if anything goes wrong. The app reminds you after 7 days.</li>
+        <li>One backup covers everything: the Buy log with photos, your gold, the diary and cash. Do it every week: the app reminds you on the Advice page when it's due. Everything is also shared with the team, but this is your own copy if a phone or the team server ever goes wrong.</li>
       </ol>
     </div>
 
@@ -519,12 +520,14 @@
     <h2>6. The Buy log</h2>
     <p style="margin-top:0">Tap <b>Buy log</b> in the bottom bar to record every purchase from a customer. It appears once you've joined the team. Every purchase either of you makes is shared, so you can both look up any customer. Each phone has its own PIN lock in <b>Settings</b>.</p>
     <ol>
+      <li><b>Don't melt this.</b> Coins, medals, designer, signed, antique and stone-set pieces are flagged with a yellow <b>Don't melt this?</b> note on the offer screen and in the Buy log, because they usually sell for more as they are than as scrap. Tick <b>Keep it: don't melt</b> and the piece is kept back: it shows under <b>Kept back, don't melt</b> on the Send tab, isn't counted in your stock to send, and never goes in a refiner batch. You can tick it for gold you add by hand on My stock too.</li>
       <li><b>New purchase.</b> Take the <b>ID front</b> photo, then tap <b>Fill in the details from the ID photo</b>: the app reads the name, date of birth, ID number, expiry and address into any empty boxes. Always check them against the ID. Then the seller's details, their photo ID and proof of address (with photos), each item (description, carat, weight, price, photos on the scales and of the hallmark), how you paid, and the seller's signature on the declaration. Saving it gives a receipt number and adds the gold to My gold for you.</li>
       <li><b>Records.</b> Search by name, ID number, postcode, phone, item or receipt number. Open a record to <b>email the receipt to the customer</b>. You can print a police report for a date range, or export a spreadsheet (CSV). Receipt numbers carry the buyer's initial, for example DG-20261122-J001 for Jase and DG-20261122-M001 for Mike.</li>
       <li><b>Google reviews.</b> Each record has a <b>Google review</b> card: show the customer a QR code to scan while you're with them, or ask by text, WhatsApp or email, then tap <b>They've left a review</b>. The Records page shows who's still to ask, and nobody is asked twice once they've reviewed. Add the review link once, in Settings.</li>
       <li><b>Settings.</b> The business details for receipts and reports, the Google review link (both shared), plus your own staff name, PIN lock and backups.</li>
     </ol>
-    <p><b>Back up every week.</b> Records are shared with the team, but a backup is still your own copy if anything goes wrong. <b>Back up now</b> saves one file with every record and your My gold list, straight to Google Drive or email. The app reminds you if it's been more than 7 days. The file holds ID photos and personal details, so keep it somewhere private.</p>
+    <p><b>Back up every week.</b> One backup covers everything: the Buy log with all its photos, your gold and what you've bought and sent, the diary and cash. Tap <b>Back up now</b> in Buy log, Settings (or <b>Back up everything</b> on My stock) and save it to Google Drive or email it to yourself. The Advice page reminds you when it's been a week. To get it back, use <b>Restore backup</b> in Buy log, Settings: it only adds what's missing, so nothing is doubled.</p>
+    <p><b>Data protection.</b> Because you keep customers' names, addresses, ID and photos, the business needs to pay the ICO's yearly data protection fee (small businesses pay the lowest tier) and offer sellers a privacy notice. Buy log, Settings, <b>Data protection</b> has the ICO link, and <b>Show the privacy notice</b> puts it on screen for the customer. It says what you record, why, who sees it, how long you keep it (your retention setting) and their rights. It's also added to the bottom of every emailed receipt.</p>
   </div>
 
   <div class="card">
@@ -597,7 +600,7 @@
     <div id="buyPlan" style="margin-top:12px"><p class="muted" style="margin:0">Enter how much you buy in a month to see your plan.</p></div>
   </div>
 
-  <div data-gt="send" class="card" id="lotsCard" style="display:none">
+  <div data-gt="send" class="card" id="sendOrderCard" style="display:none">
     <h2>Which lots to send first</h2>
     <p class="muted" style="margin-top:0">The plan above says how many grams to send. This says which lots: any close to break-even go first, before a bad week turns them into a loss.</p>
     <div id="pmLots"></div>
@@ -624,6 +627,7 @@
     </div>
     <label>Date bought</label>
     <input id="sD" type="date">
+    <label style="display:flex;gap:8px;align-items:center;color:var(--text);font-size:15px;margin-top:10px"><input type="checkbox" id="sKeep" style="width:20px;height:20px"> Keep it: don't melt (a coin, designer or antique piece to sell as it is)</label>
     <button class="btn" id="sAdd">Add to my gold</button>
     <p class="sub" id="blNote" style="margin-top:10px;display:none">Buying from a customer? Use the <a href="buying-log/" style="color:var(--gold2)">Buying log</a>. It records their ID and adds the gold here for you.</p>
   </div>
@@ -648,12 +652,13 @@
       <button data-v="a">Every item</button>
     </div>
     <div id="stockList"></div>
-    <div class="grid2" style="margin-top:12px">
+    <a class="btn ghost" href="buying-log/?backup=1" style="margin-top:12px">Back up everything</a>
+    <div class="grid2" style="display:none">
       <button class="btn ghost" id="bkSave" style="margin-top:0">Back up</button>
       <button class="btn ghost" id="bkLoad" style="margin-top:0">Restore backup</button>
     </div>
     <input id="bkFile" type="file" accept=".json,application/json" style="display:none">
-    <p class="muted" id="bkMsg" style="margin:8px 0 0">Your gold is saved on this phone only. Tap Back up to save a copy to Google Drive or email, so nothing is lost if the phone is.</p>
+    <p class="muted" id="bkMsg" style="margin:8px 0 0">One backup covers everything: the Buy log, your gold, the diary and cash. Restore it from Buy log, Settings.</p>
   </div>
 
 
@@ -736,7 +741,7 @@
   <a href="buying-log/" class="navlink" id="blNav" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16c.6-1.4 1.7-2 3-2s2.4.6 3 2M14 10h4M14 13h3"/></svg>Buy log</a>
 </nav>
 
-<script src="sync.js?v=3"></script>
+<script src="sync.js?v=4"></script>
 <script>
 const OZ = 31.1034768;
 const CARATS = [["9ct",0.375],["14ct",0.585],["18ct",0.75],["22ct",0.916],["24ct",0.999]];
@@ -816,6 +821,7 @@ function buyBatch(a, sendG){
   let left = sendG; const out = [];
   for (const {x, i} of byAge(a)){
     if (left <= 0.05) break;
+    if (x.keep) continue;   // kept to sell as is, never melted
     const take = Math.min(left, x.w);
     out.push({i, take}); left -= take;
   }
@@ -826,7 +832,7 @@ function renderDealer(){
   const box = $("dealerCall"); if (!box || !sig) return;
   const set = buySettings(), monthly = parseFloat(set.m) || 0, months = parseFloat(set.c) > 0 ? parseFloat(set.c) : 2;
   const mode = buyModeOf(sig.cur.tier, sig.cur.slide), b = BUY[mode];
-  const a = stock(), pay = (parseFloat($("cP").value) || 95) / 100, held = a.reduce((t, x) => t + x.w, 0);
+  const a = meltStock(), pay = (parseFloat($("cP").value) || 95) / 100, held = a.reduce((t, x) => t + x.w, 0);
   let extra;
   if (!monthly){
     extra = `<p style="margin:10px 0 0">Tell the app roughly how much gold you buy in a month and it will work out exactly how many grams to send to the refiner each week.</p><button class="btn" onclick="go('calc');setTimeout(()=>{const e=document.getElementById('buyCard');if(e)e.scrollIntoView({behavior:'smooth'})},200)">Set up in My gold</button>`;
@@ -856,7 +862,7 @@ function renderBuy(){
   if (!sig){ box.innerHTML = '<p class="muted" style="margin:0">Working it out…</p>'; return; }
   const a = stock(), pay = (parseFloat($("cP").value) || 95) / 100;
   const mode = buyModeOf(sig.cur.tier, sig.cur.slide), b = BUY[mode];
-  const held = a.reduce((s, x) => s + x.w, 0);
+  const held = a.filter(x => !x.keep).reduce((s, x) => s + x.w, 0), kept = a.filter(x => x.keep);
   const target = buyTarget(mode, held, monthly, months);
   const send = Math.max(0, held - target);
   const batch = send >= 1 ? buyBatch(a, send) : [];
@@ -879,6 +885,8 @@ function renderBuy(){
       <p class="muted">Tapping this takes the batch off your list, oldest items first, so your stock stays right.</p>`
     : `<p style="margin:10px 0 0">${held ? "You're within your limit, so nothing needs to go this week." : "Add the gold you hold above to see what to send."} Check again next Friday, or when an alert comes.</p>`}
     ${tip}
+    ${kept.length ? `<div class="sub" style="margin-top:12px">Kept back, don't melt</div><p class="muted" style="margin:4px 0 6px">Coins and designer or antique pieces you marked to sell as they are. They're not counted above and never go in a refiner batch.</p>
+      <table>${kept.map(x => `<tr><td>${esc(x.n || "Item")}<div class="muted">${x.w}g ${CT[x.k]}${x.paid ? " · paid " + fmt(x.paid, 0) : ""}</div></td><td>${gbpPerGram ? fmt(x.w * refinerG(x.k), 0) + '<div class="muted">as scrap</div>' : ""}</td></tr>`).join("")}</table>` : ""}
     ${a.some(x => !x.d) ? '<p class="muted">Gold added before this feature has no date, so it counts as your oldest.</p>' : ""}`;
   const btn = $("bSent");
   if (btn) btn.onclick = () => {
@@ -1228,12 +1236,15 @@ function calc(){
 /* =============== my gold (stock tracker) =============== */
 const CT = {"0.375": "9ct", "0.585": "14ct", "0.75": "18ct", "0.916": "22ct", "0.999": "24ct"};
 function stock(){ try { return JSON.parse(store.get("stock") || "[]"); } catch(e){ return []; } }
+// gold for the refiner: everything except pieces marked "keep, don't melt" (coins, designer and antique pieces sold as they are)
+function meltStock(){ return stock().filter(x => !x.keep); }
 function saveStock(a){ store.set("stock", JSON.stringify(a)); renderStock(); }
 $("sAdd").onclick = () => {
   const w = parseFloat($("sG").value);
   if (!(w > 0)) { $("sG").focus(); return; }
   const a = stock();
-  a.push({w, k: $("sK").value, n: $("sN").value.trim(), paid: parseFloat($("sP").value) || 0, d: $("sD").value || new Date().toISOString().slice(0, 10)});
+  a.push(Object.assign({w, k: $("sK").value, n: $("sN").value.trim(), paid: parseFloat($("sP").value) || 0, d: $("sD").value || new Date().toISOString().slice(0, 10)}, $("sKeep").checked ? {keep: true} : {}));
+  $("sKeep").checked = false;
   $("sG").value = ""; $("sN").value = ""; $("sP").value = "";
   saveStock(a);
 };
@@ -1276,7 +1287,7 @@ function renderLots(a, pay){
     return `<table>${withIdx.slice().reverse().map(x => {
       const pure = x.w * parseFloat(x.k);
       const val = gbpPerGram ? fmt(pure * gbpPerGram * pay, 0) : "";
-      return `<tr><td>${x.w}g ${CT[x.k]}${x.n ? " · " + esc(x.n) : ""}<div class="muted">${pure.toFixed(1)}g pure${x.paid ? " · paid " + fmt(x.paid, 0) : ""}${x.d ? " · " + new Date(x.d).toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"}) : ""}</div></td><td>${val} <a href="#" id="del${x.i}" onclick="delStock(${x.i});return false" style="color:var(--muted);margin-left:8px;text-decoration:none">✕</a></td></tr>`;
+      return `<tr><td>${x.w}g ${CT[x.k]}${x.n ? " · " + esc(x.n) : ""}${x.keep ? ' <span class="pos">· keep, don\'t melt</span>' : ""}<div class="muted">${pure.toFixed(1)}g pure${x.paid ? " · paid " + fmt(x.paid, 0) : ""}${x.d ? " · " + new Date(x.d).toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"}) : ""}</div></td><td>${val} <a href="#" id="del${x.i}" onclick="delStock(${x.i});return false" style="color:var(--muted);margin-left:8px;text-decoration:none">✕</a></td></tr>`;
     }).join("")}</table>`;
   }
   const groups = new Map();
@@ -1788,7 +1799,7 @@ function backupDays(){ const t = store.get("blBackup"); return t ? Math.floor((D
 function renderBackupDue(){
   const has = PRO_ON() && (buys().length > 0 || stock().some(x => x.bl));
   const d = backupDays(), due = has && (d == null || d >= 7);
-  const html = due ? `<b>Back up your buy log</b><div class="muted" style="margin-top:4px">${d == null ? "It has never been backed up." : `Last backup was ${d} days ago.`} The ID records are only on this phone, so if it's lost or reset they're gone. It takes one tap to save a copy to Google Drive or email.</div>
+  const html = due ? `<b>Weekly backup due</b><div class="muted" style="margin-top:4px">${d == null ? "This phone has never made a backup." : `Last backup was ${d} days ago.`} One tap saves a copy of everything (the Buy log with its ID records, your gold, the diary and cash) to Google Drive or email. It's your own copy if anything ever goes wrong with a phone or the team server.</div>
     <a class="btn" href="buying-log/?backup=1">Back up now</a>` : "";
   ["bkDue1", "bkDue2"].forEach(id => { const el = $(id); if (el){ el.innerHTML = html; el.style.display = due ? "block" : "none"; } });
 }
@@ -1805,8 +1816,8 @@ async function saveFile(blob, name){
   return "downloaded";
 }
 function renderPro(){
-  if (!PRO_ON()){ $("proCard").style.display = "none"; $("lotsCard").style.display = "none"; return; }
-  $("proCard").style.display = "block"; $("lotsCard").style.display = "";
+  if (!PRO_ON()){ $("proCard").style.display = "none"; $("sendOrderCard").style.display = "none"; return; }
+  $("proCard").style.display = "block"; $("sendOrderCard").style.display = "";
   if (!gbpPerGram){ $("pmPay").innerHTML = '<p class="muted">Waiting for the live price…</p>'; return; }
   if (!renderPro.init){ renderPro.init = true; $("pmM").value = store.get("pmM") || "20"; renderLotAlerts(); }
   queueLotSync();
@@ -1819,7 +1830,7 @@ function renderPro(){
     <p class="muted" style="margin:6px 0 0">To keep ${Math.round(m * 100)}% of what the refiner pays, based on ${src}. The live price moves every minute, so check this before each purchase, especially while gold is falling.</p>`;
 
   // lots: which to send now
-  const a = stock(), pay = (parseFloat($("cP").value) || 95) / 100, risk = badWeek(), tier = sig ? sig.cur.tier : 0;
+  const a = meltStock(), pay = (parseFloat($("cP").value) || 95) / 100, risk = badWeek(), tier = sig ? sig.cur.tier : 0;
   const groups = new Map();
   a.forEach(x => { const [k, label] = lotKey(x.d, lotView === "a" ? "m" : lotView); if (!groups.has(k)) groups.set(k, {label, items: []}); groups.get(k).items.push(x); });
   const rows = [...groups.values()].map(g2 => Object.assign({label: g2.label}, lotStats(g2.items, pay))).filter(r => r.be);
@@ -1874,7 +1885,7 @@ async function sealLots(k, obj){
 }
 function lotSummary(){
   const months = new Map();
-  stock().forEach(x => { if (!(x.paid > 0) || !x.d) return; const m = x.d.slice(0, 7);
+  meltStock().forEach(x => { if (!(x.paid > 0) || !x.d) return; const m = x.d.slice(0, 7);
     const t = months.get(m) || [m, 0, 0, {}]; t[1] += x.w * parseFloat(x.k); t[2] += x.paid; t[3][x.k] = +((t[3][x.k] || 0) + x.w).toFixed(2); months.set(m, t); });
   return [...months.values()].sort((a2, b2) => b2[0].localeCompare(a2[0])).slice(0, 30).map(t => [t[0], +t[1].toFixed(3), +t[2].toFixed(2), t[3]]);
 }
@@ -2100,7 +2111,8 @@ if (!store.get("seenGuide")) $("welcome").style.display = "block";
 })();
 </script>
 <script src="team.js?v=4"></script>
-<script src="offer.js?v=1"></script>
+<script src="keep.js?v=1"></script>
+<script src="offer.js?v=2"></script>
 <!-- TEAM SETUP SCRIPT START -->
 <style>
   .setup-bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:4px 0 12px}

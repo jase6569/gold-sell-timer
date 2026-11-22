@@ -302,6 +302,18 @@
       <label>Receipt prefix</label><input id="s_prefix" maxlength="6">
       <div class="actions"><button class="btn gold" id="saveSettings">Save settings</button></div>
     </div>
+    <div class="card" id="dpSettings">
+      <h2>Data protection</h2>
+      <p class="muted" style="margin-top:0">You keep customers' names, addresses, ID and photos, so the business needs to be registered with the ICO (the UK's data protection regulator), and customers have a right to know how their details are used.</p>
+      <ol style="margin:6px 0 0;padding-left:20px">
+        <li>Check whether you need to pay, and pay, at <a href="https://ico.org.uk/for-organisations/data-protection-fee/" target="_blank" rel="noopener" style="color:var(--gold)">ico.org.uk</a>. Small businesses pay the tier 1 fee once a year.</li>
+        <li>Offer every seller the privacy notice. Tap below to show it on your phone, or send it with the receipt (it's added to every emailed receipt automatically).</li>
+      </ol>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:600;margin-top:10px"><input type="checkbox" id="s_icoDone" style="width:20px;height:20px"> We're registered with the ICO</label>
+      <label>ICO registration number (optional, shown on the notice)</label><input id="s_icoNum" placeholder="e.g. ZB123456">
+      <label>Contact email for data requests (optional)</label><input id="s_dpEmail" type="email" placeholder="e.g. hello@dorsetgoldandjewellery.co.uk">
+      <div class="actions"><button class="btn gold" id="saveDp">Save</button><button class="btn ghost" id="showPrivacy">Show the privacy notice</button></div>
+    </div>
     <div class="card" id="revSettings">
       <h2>Google reviews</h2>
       <p class="muted">Requests go out as Dorset Gold &amp; Jewellery. Paste Dorset Gold &amp; Jewellery's Google review link here. To find it, search for the business on Google while signed in to the account that manages it, tap <b>Ask for reviews</b> (or <b>Get more reviews</b>) and copy the link. It usually starts https://g.page/r/</p>
@@ -349,7 +361,8 @@
 <input type="file" id="lotCamIn" accept="image/*" capture="environment" class="hidden">
 <input type="file" id="galleryIn" accept="image/*" multiple class="hidden">
 
-<script src="../sync.js?v=3"></script>
+<script src="../sync.js?v=4"></script>
+<script src="../keep.js?v=1"></script>
 <script src="qrcode.min.js"></script>
 <script>
 (() => {
@@ -421,7 +434,7 @@ function addToMyGold(rec){
   try {
     const a = myGold().filter(x => !(x.bl && x.bl.startsWith(rec.id + ':')));
     const d = rec.createdAt.slice(0,10);
-    lines.forEach(({it,i}) => a.push({ w: parseFloat(it.weight), k: FINENESS[it.purity], n: `${it.desc} (${rec.receipt})`, paid: parseFloat(it.price)||0, d, bl: rec.id + ':' + i }));
+    lines.forEach(({it,i}) => a.push(Object.assign({ w: parseFloat(it.weight), k: FINENESS[it.purity], n: `${it.desc} (${rec.receipt})`, paid: parseFloat(it.price)||0, d, bl: rec.id + ':' + i }, it.keep ? { keep: true } : {})));
     saveMyGold(a);
     return lines.reduce((t,x)=>t+parseFloat(x.it.weight),0);
   } catch(e){ toast('Could not add to My gold'); return 0; }
@@ -479,6 +492,7 @@ function renderIdPhotos(){
   $$('#idPhotos img').forEach(im => im.onclick = () => viewImage(im.src));
 }
 
+const keepHint = it => (window.keepReason ? keepReason([it.desc, it.hallmark].join(' '), it.metal) : '');
 function renderItems(){
   $('#items').innerHTML = items.map((it,i)=>`
     <div class="item">
@@ -498,6 +512,8 @@ function renderItems(){
       </div>
       <label>Hallmarks, serial numbers, engravings or distinguishing marks</label>
       <input data-k="hallmark" data-i="${i}" value="${esc(it.hallmark)}" placeholder="e.g. Birmingham anchor 375, engraved 'Love J'">
+      <div class="alert warn ${keepHint(it) ? '' : 'hidden'}" data-hint="${i}" style="margin:8px 0 0"><b>Don't melt this?</b> <span>${esc(keepHint(it))}</span></div>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:600;margin-top:8px"><input type="checkbox" data-keep="${i}" ${it.keep ? 'checked' : ''} style="width:20px;height:20px"> Keep it: don't melt (sell as it is)</label>
       <div class="row">
         <div><label>Weight (g)</label><input data-k="weight" data-i="${i}" inputmode="decimal" value="${esc(it.weight)}"></div>
         <div><label>Price paid (£)*</label><input data-k="price" data-i="${i}" inputmode="decimal" value="${esc(it.price)}"></div>
@@ -506,8 +522,10 @@ function renderItems(){
       <div class="photos">${it.photos.map((p,j)=>`<div class="ph"><img src="${p}"><button data-rmph="${i}:${j}">×</button></div>`).join('')}</div>
     </div>`).join('');
   $$('#items [data-k]').forEach(el => {
-    el.oninput = el.onchange = () => { items[+el.dataset.i][el.dataset.k] = el.value; updateTotal(); };
+    el.oninput = el.onchange = () => { items[+el.dataset.i][el.dataset.k] = el.value; updateTotal();
+      if (['desc','metal','hallmark'].includes(el.dataset.k)){ const h = $(`#items [data-hint="${el.dataset.i}"]`), why = keepHint(items[+el.dataset.i]); h.classList.toggle('hidden', !why); h.querySelector('span').textContent = why; } };
   });
+  $$('#items [data-keep]').forEach(el => el.onchange = () => { items[+el.dataset.keep].keep = el.checked; });
   $$('#items [data-rmitem]').forEach(b => b.onclick = () => { items.splice(+b.dataset.rmitem,1); renderItems(); });
   $$('#items [data-itemshot]').forEach(b => b.onclick = () => { pendingItem = +b.dataset.itemshot; $('#itemCamIn').value=''; $('#itemCamIn').click(); });
   $$('#items [data-itemgallery]').forEach(b => b.onclick = () => { galleryTarget = {item:+b.dataset.itemgallery}; $('#galleryIn').value=''; $('#galleryIn').click(); });
@@ -761,7 +779,7 @@ async function openRecord(id, opts={}){
       <div class="photos">${r.idPhotos.map(p=>`<div class="ph"><img src="${p.src}"><span>${esc(p.label)}</span></div>`).join('')}</div></div>
     <div class="card"><h2>Items</h2>
       <table class="items"><tr><th>Item</th><th>Purity</th><th>g</th><th>£</th></tr>
-      ${r.items.map(i=>`<tr><td>${esc(i.desc)}${i.hallmark?`<br><span class="muted">${esc(i.hallmark)}</span>`:''}</td><td>${esc(i.purity)}</td><td>${esc(i.weight)}</td><td>${gbp(i.price)}</td></tr>`).join('')}
+      ${r.items.map(i=>`<tr><td>${esc(i.desc)}${i.keep?' <span class="pill" style="background:#e7f3ec;color:#1d6b43">Keep, don\'t melt</span>':''}${i.hallmark?`<br><span class="muted">${esc(i.hallmark)}</span>`:''}</td><td>${esc(i.purity)}</td><td>${esc(i.weight)}</td><td>${gbp(i.price)}</td></tr>`).join('')}
       </table>
       <div class="photos">${(r.lotPhotos||[]).map(p=>`<div class="ph"><img src="${p.src}"><span>${esc(p.label)}</span></div>`).join('')}${r.items.flatMap((i,n)=>i.photos.map(p=>`<div class="ph"><img src="${p}"><span>Item ${n+1}</span></div>`)).join('')}</div>
       <div class="total"><span>Total paid</span><span>${gbp(r.total)}</span></div>
@@ -965,6 +983,41 @@ window.addEventListener('dgsync-applied', async e => {
   if (e.detail.records && !$('#tab-records').classList.contains('hidden') && !document.querySelector('.modal')) renderList();
 });
 
+/* ---------- data protection: the privacy notice customers are offered ---------- */
+function privacyText(){
+  const biz = settings.biz || CFG.biz, yrs = +settings.retain || 6;
+  const contact = [settings.phone ? 'phone ' + settings.phone : '', settings.dpEmail ? 'email ' + settings.dpEmail : '', settings.addr ? 'write to ' + settings.addr.replace(/\n/g, ', ') : ''].filter(Boolean).join(', or ');
+  return [
+    `How ${biz} uses your details`,
+    '',
+    `Who we are: ${biz} buys gold, silver, jewellery, coins and watches. We are responsible for the details you give us${settings.icoNum ? ' (ICO registration ' + settings.icoNum + ')' : ''}.${contact ? ' Contact us: ' + contact + '.' : ''}`,
+    '',
+    'What we record when you sell to us: your name, date of birth, address, phone number and email if you give it, your photo ID and its number, proof of address if needed, photos of you and of the items, what we paid and how, and your signed declaration that the items are yours to sell.',
+    '',
+    'Why: to keep a record of every purchase, which second-hand gold dealers are expected to keep so that stolen goods can be traced and the police can be helped if they ask; to pay you; to send your receipt; and, if you agree, to ask you for a review. We do this because we have a legal duty and a legitimate business need to keep these records.',
+    '',
+    `Who sees them: only the people who buy for ${biz}. We share them with the police or other authorities only when the law requires it. Our records are kept on our phones and on a secure, encrypted service; a computer service reads ID photos to fill in our forms; none of these companies can use your details for anything else. We never sell your details or use them for marketing.`,
+    '',
+    `How long: we keep each record for ${yrs} years after the sale, then delete it.`,
+    '',
+    `Your rights: you can ask for a copy of what we hold about you, ask us to correct it, and object to how we use it. Because the law expects us to keep purchase records, we may not be able to delete a record before the ${yrs} years are up. If you're unhappy with how we handle your details, contact us first; you can also complain to the Information Commissioner's Office at ico.org.uk or on 0303 123 1113.`
+  ].join('\n');
+}
+function showPrivacy(){
+  const m = document.createElement('div'); m.className = 'modal';
+  m.innerHTML = `<div class="sheet" style="max-width:640px"><button class="btn ghost sm" data-close style="float:right">Close</button>
+    <div style="white-space:pre-wrap;line-height:1.55;font-size:15px">${esc(privacyText())}</div>
+    <div class="actions" style="margin-top:12px"><button class="btn gold" id="pvCopy">Copy the text</button><button class="btn ghost" data-close>Done</button></div></div>`;
+  document.body.appendChild(m);
+  m.querySelectorAll('[data-close]').forEach(b => b.onclick = () => m.remove());
+  m.querySelector('#pvCopy').onclick = async () => { try { await navigator.clipboard.writeText(privacyText()); toast('Copied'); } catch(e){ toast('Press and hold the text to copy it'); } };
+}
+$('#showPrivacy').onclick = showPrivacy;
+$('#saveDp').onclick = async () => {
+  settings.icoDone = $('#s_icoDone').checked; settings.icoNum = $('#s_icoNum').value.trim(); settings.dpEmail = $('#s_dpEmail').value.trim();
+  await saveSettingsObj(); toast('Saved');
+};
+
 /* ---------- customer receipt (email) ---------- */
 // What the customer gets: what they sold, what they were paid and how. No ID numbers or date of birth.
 function receiptText(r){
@@ -979,6 +1032,7 @@ function receiptText(r){
   L.push('', 'You signed a declaration that you own these items and have the right to sell them. We keep a record of this sale as the law requires.', '');
   L.push('If you have any questions, just reply to this email' + (settings.phone ? ` or call us on ${settings.phone}` : '') + '.', '', 'Kind regards,', r.staff || '', biz);
   if (settings.addr) L.push(settings.addr.replace(/\n/g, ', '));
+  L.push('', '---', privacyText());
   return L.filter((x,i,a) => !(x === '' && a[i-1] === '')).join('\n');
 }
 
@@ -1049,6 +1103,7 @@ function fillSettings(){
   $('#s_staff').value=settings.staff; $('#s_loc').value=settings.loc; $('#s_prefix').value=settings.prefix;
   $('#s_retain').value=settings.retain; $('#s_autolock').value=settings.autolock;
   $('#pinState').textContent = settings.pinHash ? 'A PIN is set. The app asks for it when opened.' : 'No PIN set. Anyone with this phone can open the records. Setting a PIN is strongly recommended.';
+  $('#s_icoDone').checked = !!settings.icoDone; $('#s_icoNum').value = settings.icoNum||''; $('#s_dpEmail').value = settings.dpEmail||'';
   $('#s_revlink').value = settings.revLink||''; $('#s_revmsg').value = settings.revMsg||REV_DEFAULT;
   kvGet('lastBackup').then(t => $('#lastBackup').textContent = t ? 'Last backup: '+fmtDT(t) : 'No backup taken yet.');
   if (navigator.storage && navigator.storage.estimate) navigator.storage.estimate().then(e => {
@@ -1078,7 +1133,7 @@ $('#reviewOld').onclick = () => { const c=retentionCutoff().slice(0,10); $('#q')
 
 /* ---------- backup / restore ---------- */
 // one file holds the records and the My gold list, so a lost phone can be fully restored
-const GT_KEYS = { stock: CFG.stockKey, buys: CFG.buysKey, sent: CFG.stockKey.replace(/stock$/, 'sent') };
+const GT_KEYS = { stock: CFG.stockKey, buys: CFG.buysKey, sent: CFG.stockKey.replace(/stock$/, 'sent'), visits: CFG.stockKey.replace(/stock$/, 'visits'), cash: CFG.stockKey.replace(/stock$/, 'cash') };
 const BK_MIRROR = CFG.stockKey.replace(/stock$/, 'blBackup');   // lets Gold Trader see when the last backup was
 async function saveOrShare(blob, name){
   const file = new File([blob], name, { type: blob.type });
@@ -1092,7 +1147,7 @@ async function runBackup(){
   const recs = await allRecords();
   const myGold = {};
   Object.entries(GT_KEYS).forEach(([k, key]) => { try { myGold[k] = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e){ myGold[k] = []; } });
-  const data = { app:'gold-buylog', version:2, exportedAt:new Date().toISOString(), settings:{...settings, pinHash:''}, records:recs, myGold };
+  const data = { app:'gold-buylog', version:3, exportedAt:new Date().toISOString(), settings:{...settings, pinHash:''}, records:recs, myGold };
   const how = await saveOrShare(new Blob([JSON.stringify(data)],{type:'application/json'}), `gold-buylog-backup-${new Date().toISOString().slice(0,10)}.json`);
   if (how === 'cancelled') return toast('Backup not saved');
   const t = new Date().toISOString();
@@ -1109,7 +1164,7 @@ async function checkBackupDue(){
     const days = t ? Math.floor((Date.now() - new Date(t)) / 864e5) : null;
     const due = n > 0 && (days == null || days >= 7);
     $('#bkNag').classList.toggle('hidden', !due);
-    if (due) $('#bkNagMsg').textContent = (days == null ? `Your ${n} record${n===1?' has':'s have'} never been backed up.` : `Last backup was ${days} days ago.`) + ' They only live on this phone. Tap below and choose Google Drive or email.';
+    if (due) $('#bkNagMsg').textContent = (days == null ? `Your ${n} record${n===1?' has':'s have'} never been backed up.` : `Last backup was ${days} days ago.`) + ' One tap saves everything (records, your gold, the diary and cash). Choose Google Drive or email.';
   } catch(e){}
 }
 $('#restoreIn').onchange = async e => {
@@ -1126,6 +1181,7 @@ $('#restoreIn').onchange = async e => {
       if (Array.isArray(data.myGold.stock) && !cur('stock').length) localStorage.setItem(GT_KEYS.stock, JSON.stringify(data.myGold.stock));
       if (Array.isArray(data.myGold.buys)) { const b = cur('buys'), ids = new Set(b.map(x => x.id)); localStorage.setItem(GT_KEYS.buys, JSON.stringify(b.concat(data.myGold.buys.filter(x => !x.id || !ids.has(x.id))))); }
       if (Array.isArray(data.myGold.sent) && !cur('sent').length) localStorage.setItem(GT_KEYS.sent, JSON.stringify(data.myGold.sent));
+      ['visits', 'cash'].forEach(k => { if (!Array.isArray(data.myGold[k])) return; const c = cur(k), ids = new Set(c.map(x => x._id)); localStorage.setItem(GT_KEYS[k], JSON.stringify(c.concat(data.myGold[k].filter(x => !x._id || !ids.has(x._id))))); });
     }
     allCache=[]; toast(`Restored ${fresh.length} records`); checkBackupDue();
   } catch(err){ toast(err.message); }
