@@ -157,7 +157,7 @@
   <div class="card" id="liveMine" style="display:none">
     <h2>Your gold right now · live</h2>
     <div id="liveMineBody"></div>
-    <p class="muted" style="margin:8px 0 0">Updates every minute with the live price. Uses Mastermelt's counter price unless you pick your own % (Quick check, on the My gold page).</p>
+    <p class="muted" style="margin:8px 0 0">Updates every minute with the live price. Uses Mastermelt's counter price unless you pick your own % (in the Prices tab, on the My gold page).</p>
   </div>
 
   <div class="card" style="border-color:var(--gold)">
@@ -171,36 +171,42 @@
   </div>
 
   <div class="card">
-    <h2>How this decision was made</h2>
-    <p class="muted" style="margin-top:0">Every step, using today's real numbers. Anyone can check it.</p>
-    <div id="explain"><p class="muted">Working it out…</p></div>
-  </div>
-
-  <div class="card">
-    <h2>Decision history</h2>
-    <p class="muted" style="margin-top:0">What the app would have said each week for the last 6 months, using the same rules. Compare it with any gold chart.</p>
-    <div id="history"><p class="muted">Loading…</p></div>
-  </div>
-
-  <div class="card">
-    <h2>6-month outlook</h2>
-    <div id="outlook"><p class="muted" style="margin:0">Working it out…</p></div>
-  </div>
-
-  <div class="card">
     <h2>Big announcements coming up</h2>
     <p class="muted" style="margin-top:0">US and UK news that often makes gold jump or drop. Avoid selling just before one; decide once the result is out.</p>
     <div id="events"><p class="muted">Loading…</p></div>
   </div>
 
   <div class="card">
+    <details id="whyBox">
+      <summary>Why? See how the advice is worked out</summary>
+  <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:8px">
+    <h2>How this decision was made</h2>
+    <p class="muted" style="margin-top:0">Every step, using today's real numbers. Anyone can check it.</p>
+    <div id="explain"><p class="muted">Working it out…</p></div>
+  </div>
+
+  <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:8px">
+    <h2>Decision history</h2>
+    <p class="muted" style="margin-top:0">What the app would have said each week for the last 6 months, using the same rules. Compare it with any gold chart.</p>
+    <div id="history"><p class="muted">Loading…</p></div>
+  </div>
+
+  <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:8px">
+    <h2>6-month outlook</h2>
+    <div id="outlook"><p class="muted" style="margin:0">Working it out…</p></div>
+  </div>
+
+  <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:8px">
     <h2>Proof: past sell signals</h2>
     <div id="track"><p class="muted" style="margin:0">Checking…</p></div>
   </div>
 
-  <div class="card">
+  <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:8px">
     <h2>What's in the news</h2>
     <div id="newsBox"><p class="muted" style="margin:0">Loading…</p></div>
+  </div>
+
+    </details>
   </div>
 
   <p class="muted" style="padding:0 4px">How it works: the sell signal is based on one measure that held up when tested on 22 years of UK gold prices (2004 to today): how far gold has stretched above its 40-week average, and whether it has started to turn down. It's general information, not regulated financial advice.</p>
@@ -240,7 +246,7 @@
     <p class="muted">Free, no ads. Updates every 30 minutes. Tap ↻ to refresh now, or tap the widget to open this app.</p>
   </div>
 
-  <div class="card">
+  <div class="card" style="display:none">
     <h2>My own target price</h2>
     <p class="muted" style="margin-top:0">An extra on-screen check. It lights up when gold reaches your price while the app is open.</p>
     <label>Sell when 24ct reaches (£ per gram)</label>
@@ -467,11 +473,11 @@
       <li><b>Sell zone prices</b> are the 24ct prices per gram where each zone starts.</li>
       <li><b>Why</b> explains the call in plain numbers.</li>
     </ol>
-    <p><b>How this decision was made</b> and <b>Decision history.</b> Every step of today's call with the real numbers, and what it said each week for the last 6 months. If anyone asks "why did it say that?", this is where to look.</p>
-    <p><b>6-month outlook.</b> What gold did in the past after weeks like this one: the typical result, a realistic range, and how often it was higher. If history is unclear, it says so.</p>
+    <p><b>Why? See how the advice is worked out.</b> Tap it to open the full working: every step of today's call with the real numbers, what it said each week for the last 6 months, the 6-month outlook, every past sell signal and what gold did next, and the latest gold headlines. If anyone asks "why did it say that?", this is where to look.</p>
+    
     <p><b>Big announcements coming up.</b> US and UK news, such as inflation figures and interest rate decisions, that often makes gold jump or drop. Try not to send a big batch just before one.</p>
-    <p><b>Proof: past sell signals.</b> Every sell signal since 2005 and what gold did 6 months later, so you can judge how reliable the app is.</p>
-    <p><b>What's in the news.</b> The latest gold headlines, for background only. They don't change the call.</p>
+    
+    
   </div>
 
   <div class="card">
@@ -491,12 +497,12 @@
     <p style="margin-top:0">Once you've joined the team, My gold is shared: your stock, what you've bought and sent, and the buying-in, margin and refiner settings are the same on both phones, and a change on one shows on the other within a minute. Before you join, it's saved on your phone only. Adam's app never sees any of it.</p>
     <p><b>Overview.</b> <b>Your week</b> (this week and last): what you bought and your margin on the refiner's price that day, what you sent to the refiner and roughly what you made, and what you're still holding. Under it, the live value of all your gold. If you haven't backed up for 7 days, a reminder shows here too.</p>
     <p><b>My stock.</b> Add each piece or batch you buy: weight, carat, what you paid and the date. <b>My lots</b> groups it by week or month and shows each lot's break-even price and profit, plus <b>which lots to sell first</b>. Gold bought through the Buy log is added here for you.</p>
-    <p><b>Send.</b> <b>Buying in</b>: enter roughly how many grams you buy in a month, and the most stock you want to hold (start with 2 months). It then shows how many grams of each carat to send to the refiner this week, oldest first, and roughly what you'll be paid. When the batch has gone, tap <b>I've sent this batch</b> so next week's figures are right. If a big announcement is due, a timing tip tells you to wait for it.</p>
+    <p><b>Send.</b> The one place for what to send. <b>Buying in</b>: enter roughly how many grams you buy in a month, and the most stock you want to hold (start with 2 months). It shows how many grams of each carat to send to the refiner this week, oldest first, and roughly what you'll be paid. Under it, <b>Which lots to send first</b> marks each lot <b>Send now</b> (only just above break-even, so a bad week would turn it into a loss), <b>Lock it in</b> (in profit and gold is in the sell zone), <b>Safe for now</b>, or <b>At a loss</b> (with the price it breaks even at). When the batch has gone, tap <b>I've sent this batch</b> so next week's figures are right. If a big announcement is due, a timing tip tells you to wait for it.</p>
     <p><b>Make money.</b> Shows once you've joined the team (or the Buy log is switched on for your phone). The margin you set here is shared, so you both offer customers the same price per gram:</p>
     <ol>
       <li><b>What to pay today.</b> Set the margin you want to keep (e.g. 20%). It's shared, and the offer screen uses it too and it shows the most to pay per gram for each carat, from the refiner's price. Check it before each purchase, especially while gold is falling.</li>
-      <li><b>Lots to send now.</b> Each lot marked <b>Send now</b> (only just above break-even, so a bad week would turn it into a loss), <b>Lock it in</b> (in profit and gold is in the sell zone), <b>Safe for now</b>, or <b>At a loss</b> (with the price it breaks even at).</li>
-      <li><b>How well you're buying.</b> Your margin month by month: what you paid against what the refiner was paying the day you bought. Green means you hit your target.</li>
+      
+      <li><b>Your buying margin</b> month by month, for each of you and the business, is in <b>Team, Figures</b>.</li>
       <li><b>Lot alerts.</b> Type in your alert code and tap <b>Turn on lot alerts</b>. The app tells you where the lot alerts will arrive. If it shows a lot channel code, subscribe to that code in ntfy too. Only the month, grams, carats and what you paid are sent, locked so only your own alert check can read them. Customer details never leave the phone.</li>
     </ol>
     <p><b>Coins.</b> Gold and silver coins, three ways:</p>
@@ -506,7 +512,7 @@
       <li><b>Scan with camera.</b> Photograph a coin, a handful of coins or a whole set in its case, up to 4 photos (front, back, certificate). It lists every coin and the set, then totals the pure gold and silver, melt value, what the refiner pays and what to pay, using the official weights. Then weigh them in the box below: it tells you if the weight matches. Anything marked <b>check it</b> needs a closer look.</li>
     </ol>
     <p class="muted" style="margin-top:0">Proof coins, complete boxed sets and old coins are often worth more than melt, and the app says <b>don't scrap</b> when that's likely. A photo can't prove a coin is real, so always weigh before you buy.</p>
-    <p><b>Prices.</b> <b>Refiner prices</b> sets the price used for every "what you'd be paid" figure in the app. <b>Mastermelt trade counter prices</b> (the default) are read automatically each day, so the figures match Mastermelt. If you get a different rate, choose <b>My own %</b> and type it in. Below that, <b>Quick check</b> values any single piece by weight and carat.</p>
+    <p><b>Prices.</b> <b>Refiner prices</b> sets the price used for every "what you'd be paid" figure in the app, including offers. <b>Mastermelt trade counter prices</b> (the default) are read automatically each day, so the figures match Mastermelt. If you get a different rate, choose <b>My own %</b> and type it in. To value pieces for a customer, use <b>Make an offer</b> on a visit.</p>
   </div>
 
   <div class="card">
@@ -532,7 +538,7 @@
 
   <div class="card">
     <h2>8. The Alerts and Chart pages</h2>
-    <p style="margin-top:0"><b>Alerts.</b> Phone alert setup, the Android widget (if you already have it, uninstall the old one before installing a new version), and your own target price. Enter the price per gram you'd be happy with, and the app lights up when gold reaches it. This only works while the app is open. The phone alerts work all the time.</p>
+    <p style="margin-top:0"><b>Alerts.</b> Phone alert setup and the Android widget (if you already have it, uninstall the old one before installing a new version). The phone alerts work all the time, even with the app closed.</p>
     <p><b>Chart.</b> The weekly gold price in pounds, with the sell zone shaded above it and the 40-week average as a dotted line. A plain-English summary sits above it. There's also a full TradingView chart if you want to look closer.</p>
   </div>
 
@@ -591,9 +597,15 @@
     <div id="buyPlan" style="margin-top:12px"><p class="muted" style="margin:0">Enter how much you buy in a month to see your plan.</p></div>
   </div>
 
+  <div data-gt="send" class="card" id="lotsCard" style="display:none">
+    <h2>Which lots to send first</h2>
+    <p class="muted" style="margin-top:0">The plan above says how many grams to send. This says which lots: any close to break-even go first, before a bad week turns them into a loss.</p>
+    <div id="pmLots"></div>
+  </div>
+
   <div data-gt="stock" class="card">
     <h2>My gold</h2>
-    <p class="muted" style="margin-top:0">Add the gold you're holding to see what it's worth today and exactly how much to sell when the time comes. It's saved on this phone only and never sent anywhere.</p>
+    <p class="muted" style="margin-top:0">Add the gold you're holding to see what it's worth today and exactly how much to sell when the time comes. Once you've joined the team it's shared with your team, locked with the passphrase. Before that it's saved on this phone onlre.</p>
     <div class="grid2">
       <div><label>Weight (grams)</label><input id="sG" type="number" inputmode="decimal" placeholder="e.g. 120"></div>
       <div><label>Carat</label>
@@ -622,10 +634,8 @@
     <label>Margin you want to keep, %</label>
     <input id="pmM" type="number" inputmode="decimal" placeholder="e.g. 20">
     <div id="pmPay"></div>
-    <div class="sub" style="margin-top:14px">Lots to send now</div>
-    <div id="pmLots"></div>
-    <div class="sub" style="margin-top:14px">How well you're buying, month by month</div>
-    <div id="pmMonths"></div>
+    <div id="pmMonths" style="display:none"></div>
+    <p class="muted" style="margin:14px 0 0">Your buying margin month by month, for each of you, is in <a href="#" onclick="go('team');setTimeout(()=>document.querySelector('#tmTabs button[data-t=figures]').click(),0);return false" style="color:var(--gold2)">Team, Figures</a>. Which lots to send first is on the <b>Send</b> tab.</p>
     <div class="sub" style="margin-top:14px">Lot alerts on your phone</div>
     <div id="laBox"></div>
   </div>
@@ -681,8 +691,8 @@
   </div>
 
   <div data-gt="prices" class="card">
-    <h2>Quick check: what's this worth?</h2>
-    <div class="grid2">
+    <h2>Refiner prices</h2>
+    <div class="grid2" style="display:none">
       <div><label>Weight (grams)</label><input id="cG" type="number" inputmode="decimal" placeholder="e.g. 250"></div>
       <div><label>Carat</label>
         <select id="cK">
@@ -702,14 +712,15 @@
     <div id="mmInfo" class="muted" style="margin:6px 0 4px"></div>
     <label id="cPLabel">Buyer pays (% of spot)</label>
     <input id="cP" type="number" inputmode="decimal" value="95">
-    <div class="result">
+    <div class="result" style="display:none">
       <div class="muted">Melt value at today's price</div>
       <b id="cSpot">£0</b>
       <div class="muted" style="margin-top:8px">You'd receive at <span id="cPct">95%</span></div>
       <b id="cNet">£0</b>
       <div class="muted" style="margin-top:8px" id="cZone"></div>
     </div>
-    <p class="muted">Pure gold content: <span id="cPure">0</span> g. Get quotes from two or three buyers, because the payout percentage matters as much as the timing.</p>
+    <p class="muted" style="display:none">Pure gold content: <span id="cPure">0</span> g.</p>
+    <p class="muted">To value pieces for a customer, use <b>Make an offer</b> on a visit in Team, Diary.</p>
   </div>
 </section>
 
@@ -1704,7 +1715,7 @@ function scanHTML(res){
       ${allPaid && pays ? `<tr><td>${mmOn() ? "Mastermelt pays" : "Refiner pays"}</td><td>${fmt(pays, 0)}</td></tr>` : ""}
       <tr><td>Pay up to</td><td><strong>${fmt((allPaid && pays ? pays : melt) * (1 - m), 0)}</strong></td></tr></table>
       <p class="muted" style="margin:6px 0 0">From the official weights of each coin, at today's price. Pay up to keeps your ${Math.round(m * 100)}% margin.</p>` : ""}
-    ${unpriced.length ? `<div class="warn"><b>Not priced:</b> ${unpriced.join(", ")}. These aren't in the coin list, so weigh them and use Identify a coin or Quick check.</div>` : ""}
+    ${unpriced.length ? `<div class="warn"><b>Not priced:</b> ${unpriced.join(", ")}. These aren't in the coin list, so weigh them and use Identify a coin, or price them on the offer screen.</div>` : ""}
     ${(res.warnings || []).length ? `<div class="warn"><b>Watch out:</b> ${res.warnings.map(esc).join(" ")}</div>` : ""}
     ${rows.length ? `<div class="sub" style="margin-top:14px">Check it's real: weigh it</div>
       <label>Weight of ${unpriced.length ? "the priced coins" : "all the coins"} together, grams${set ? " (out of the case, or weigh the case on its own and take it off)" : ""}</label>
@@ -1794,8 +1805,8 @@ async function saveFile(blob, name){
   return "downloaded";
 }
 function renderPro(){
-  if (!PRO_ON()){ $("proCard").style.display = "none"; return; }
-  $("proCard").style.display = "block";
+  if (!PRO_ON()){ $("proCard").style.display = "none"; $("lotsCard").style.display = "none"; return; }
+  $("proCard").style.display = "block"; $("lotsCard").style.display = "";
   if (!gbpPerGram){ $("pmPay").innerHTML = '<p class="muted">Waiting for the live price…</p>'; return; }
   if (!renderPro.init){ renderPro.init = true; $("pmM").value = store.get("pmM") || "20"; renderLotAlerts(); }
   queueLotSync();
