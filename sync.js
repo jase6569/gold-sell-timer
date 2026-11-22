@@ -10,7 +10,7 @@
 // Changes made offline wait in a queue and go up next time there's signal.
 (function(){
 'use strict';
-const SYNC_URL = "";   // the team sync Worker's address, e.g. https://dg-sync.<name>.workers.dev (see sync-worker/README.md)
+const SYNC_URL = "https://dg-sync.maximus6569.workers.dev";   // the team sync Worker (see sync-worker/README.md)
 
 const LS = window.localStorage, P = "dgs:";
 const ARRAYS = ["stock", "buys", "sent", "visits", "cash"];         // lists in localStorage, synced item by item
