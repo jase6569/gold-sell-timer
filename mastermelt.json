@@ -1,14 +1,14 @@
 {
  "source": "https://www.mastermeltgroup.com/scrap-prices/",
  "date": "2026-11-23",
- "checked": "2026-11-23T09:01:10Z",
- "pure_g": 84.86,
+ "checked": "2026-11-23T10:01:08Z",
+ "pure_g": 85.47,
  "prices": {
-  "9ct": 31.82,
-  "14ct": 49.64,
-  "18ct": 63.64,
-  "22ct": 77.73,
-  "24ct": 84.86
+  "9ct": 32.04,
+  "14ct": 50.0,
+  "18ct": 64.09,
+  "22ct": 78.29,
+  "24ct": 85.47
  },
  "ok": true
 }
