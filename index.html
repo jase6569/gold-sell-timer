@@ -1462,6 +1462,7 @@ const COINS = [
   {m: "au", g: "World gold", n: "Maple Leaf 1/4oz", w: 7.78, d: 20.00, f: 0.9999, p: 1, y: "1986 to today"},
   {m: "au", g: "World gold", n: "Maple Leaf 1/10oz", w: 3.13, d: 16.00, f: 0.9999, p: 1, y: "1982 to today"},
   {m: "au", g: "World gold", n: "Philharmonic 1oz", w: 31.10, d: 37.00, f: 0.9999, p: 1, y: "1989 to today"},
+  {m: "au", g: "World gold", n: "Philharmonic 1/2oz", w: 15.55, d: 28.00, f: 0.9999, p: 1, y: "1989 to today"},
   {m: "au", g: "World gold", n: "Philharmonic 1/4oz", w: 7.78, d: 22.00, f: 0.9999, p: 1, y: "1989 to today"},
   {m: "au", g: "World gold", n: "Philharmonic 1/10oz", w: 3.12, d: 16.00, f: 0.9999, p: 1, y: "1991 to today"},
   {m: "au", g: "World gold", n: "Austria 100 Corona (1915 restrike)", w: 33.875, d: 37.00, f: 0.900, p: 1, y: "dated 1915"},
@@ -1470,20 +1471,41 @@ const COINS = [
   {m: "au", g: "World gold", n: "Austria 1 Ducat (1915 restrike)", w: 3.4909, d: 19.75, f: 0.986, p: 1, y: "dated 1915"},
   {m: "au", g: "World gold", n: "Kangaroo / Nugget 1oz", w: 31.11, d: 32.10, f: 0.9999, p: 1, y: "1987 to today"},
   {m: "au", g: "World gold", n: "China Panda 30g", w: 30.00, d: 32.00, f: 0.999, p: 1, y: "2016 to today"},
+  {m: "au", g: "World gold", n: "China Panda 15g", w: 15, d: 27.00, f: 0.999, p: 1, y: "2016 to today"},
+  {m: "au", g: "World gold", n: "China Panda 8g", w: 8, d: 22.00, f: 0.999, p: 1, y: "2016 to today"},
+  {m: "au", g: "World gold", n: "China Panda 3g", w: 3, d: 18.00, f: 0.999, p: 1, y: "2016 to today"},
+  {m: "au", g: "World gold", n: "China Panda 1g", w: 1, d: 10.00, f: 0.999, p: 1, y: "2016 to today"},
   {m: "au", g: "World gold", n: "China Panda 1oz", w: 31.10, d: 32.00, f: 0.999, p: 1, y: "1982 to 2015"},
   {m: "au", g: "World gold", n: "Mexico 50 Pesos", w: 41.666, d: 37.00, f: 0.900, p: 1, y: "1921 to 1947 and restrikes"},
   {m: "au", g: "World gold", n: "Mexico 20 Pesos", w: 16.666, d: 27.50, f: 0.900, p: 1, y: "1917 to 1959"},
   {m: "au", g: "World gold", n: "20 Francs / 20 Lire (French Napoleon, Swiss Vreneli, Belgian, Italian)", w: 6.4516, d: 21.00, f: 0.900, p: 2, y: "1800s to 1930s"},
+  {m: "au", g: "World gold", n: "10 Francs (French Napoleon / Marianne, Swiss Vreneli)", w: 3.2258, d: 19.00, f: 0.900, p: 1, y: "1850s to 1922"},
+  {m: "au", g: "World gold", n: "US $2.50 Quarter Eagle (pre-1930)", w: 4.18, d: 18.00, f: 0.900, p: 2, y: "1796 to 1929"},
+  {m: "au", g: "World gold", n: "Russia 10 Roubles chervonets (Sower)", w: 8.6026, d: 22.60, f: 0.900, p: 1, y: "1923, 1975 to 1982"},
   {m: "au", g: "World gold", n: "Germany 20 Mark", w: 7.965, d: 22.50, f: 0.900, p: 2, y: "1871 to 1915"},
   {m: "au", g: "World gold", n: "Netherlands 10 Guilder", w: 6.729, d: 22.50, f: 0.900, p: 1, y: "1875 to 1933"},
   {m: "au", g: "World gold", n: "Turkey 100 Kurush (Ata / Monogram)", w: 7.216, d: 22.00, f: 0.9167, p: 1, y: "1920s to today"},
   {m: "au", g: "World gold", n: "Turkey 50 Kurush", w: 3.608, d: 18.00, f: 0.9167, p: 1, y: "1920s to today"},
   {m: "au", g: "World gold", n: "Turkey 25 Kurush", w: 1.804, d: 15.00, f: 0.9167, p: 1, y: "1920s to today"},
-  // ---- UK modern £5 crowns (1990 to today): the same design is struck in cupronickel, silver and gold ----
-  {m: "cn", g: "UK £5 crowns (1990 to today)", n: "£5 crown (standard / brilliant uncirculated, cupronickel)", w: 28.28, d: 38.61, f: 0, p: 0, y: "1990 to today", fam: "crown5"},
-  {m: "ag", g: "UK £5 crowns (1990 to today)", n: "£5 crown (silver proof, 92.5%)", w: 28.28, d: 38.61, f: 0.925, p: 2, y: "1990 to today", fam: "crown5"},
-  {m: "ag", g: "UK £5 crowns (1990 to today)", n: "£5 crown (silver piedfort, double thickness)", w: 56.56, d: 38.61, f: 0.925, p: 2, y: "1990 to today"},
-  {m: "au", g: "UK £5 crowns (1990 to today)", n: "£5 crown (gold proof, 22ct)", w: 39.94, d: 38.61, f: 0.9167, p: 3, y: "1990 to today"},
+  // ---- modern UK coins: the same design is struck in base metal, silver and gold, and base and silver weigh the same ----
+  {m: "cn", g: "UK crowns (25p and £5, 1972 to today)", n: "£5 crown (standard / brilliant uncirculated, cupronickel)", w: 28.28, d: 38.61, f: 0, p: 0, y: "1990 to today", fam: "crown5"},
+  {m: "ag", g: "UK crowns (25p and £5, 1972 to today)", n: "£5 crown (silver proof, 92.5%)", w: 28.28, d: 38.61, f: 0.925, p: 2, y: "1990 to today", fam: "crown5"},
+  {m: "ag", g: "UK crowns (25p and £5, 1972 to today)", n: "£5 crown (silver piedfort, double thickness)", w: 56.56, d: 38.61, f: 0.925, p: 2, y: "1990 to today"},
+  {m: "au", g: "UK crowns (25p and £5, 1972 to today)", n: "£5 crown (gold proof, 22ct)", w: 39.94, d: 38.61, f: 0.9167, p: 3, y: "1990 to today"},
+  {m: "cn", g: "UK crowns (25p and £5, 1972 to today)", n: "25p crown (cupronickel, 1972–1981)", w: 28.28, d: 38.61, f: 0, p: 0, y: "1972 to 1981", fam: "crown5"},
+  {m: "ag", g: "UK crowns (25p and £5, 1972 to today)", n: "25p crown (silver proof, 92.5%, 1972–1981)", w: 28.28, d: 38.61, f: 0.925, p: 2, y: "1972 to 1981", fam: "crown5"},
+  {m: "cn", g: "UK £2, £1 and 50p", n: "£2 two-coloured (standard)", w: 12.0, d: 28.4, f: 0, p: 2, y: "1997 to today", fam: "two"},
+  {m: "ag", g: "UK £2, £1 and 50p", n: "£2 two-coloured (silver proof, 92.5%)", w: 12.0, d: 28.4, f: 0.925, p: 2, y: "1997 to today", fam: "two"},
+  {m: "au", g: "UK £2, £1 and 50p", n: "£2 two-coloured (gold proof, 22ct)", w: 15.97, d: 28.4, f: 0.9167, p: 2, y: "1997 to today"},
+  {m: "cn", g: "UK £2, £1 and 50p", n: "£1 round (standard, 1983–2016)", w: 9.5, d: 22.5, f: 0, p: 0, y: "1983 to 2016", fam: "one"},
+  {m: "ag", g: "UK £2, £1 and 50p", n: "£1 round (silver proof, 92.5%)", w: 9.5, d: 22.5, f: 0.925, p: 2, y: "1983 to 2016", fam: "one"},
+  {m: "au", g: "UK £2, £1 and 50p", n: "£1 round (gold proof, 22ct)", w: 19.62, d: 22.5, f: 0.9167, p: 2, y: "1983 to 2016"},
+  {m: "cn", g: "UK £2, £1 and 50p", n: "50p (standard, cupronickel)", w: 8.0, d: 27.3, f: 0, p: 2, y: "1997 to today", fam: "fifty"},
+  {m: "ag", g: "UK £2, £1 and 50p", n: "50p (silver proof, 92.5%)", w: 8.0, d: 27.3, f: 0.925, p: 2, y: "1997 to today", fam: "fifty"},
+  {m: "au", g: "UK £2, £1 and 50p", n: "50p (gold proof, 22ct)", w: 15.5, d: 27.3, f: 0.9167, p: 2, y: "1997 to today"},
+  // ---- bars: sizes vary by maker, so match on weight ----
+  ...[1, 2.5, 5, 10, 20, 31.1035, 50, 100].map(w => ({m: "au", g: "Gold bars (24ct)", n: `Gold bar ${w === 31.1035 ? "1oz" : w + "g"} (24ct, 99.99%)`, w, d: 0, f: 0.9999, p: 1, y: "any maker", bar: true})),
+  ...[[31.1035, "1oz"], [311.035, "10oz"], [1000, "1kg"]].map(([w, n]) => ({m: "ag", g: "Silver bars", n: `Silver bar ${n} (99.9%)`, w, d: 0, f: 0.999, p: 1, y: "any maker", bar: true})),
   // ---- UK silver: same coin, different metal by date ----
   SV("Crown", 28.276, 38.61, "to 1919, 92.5% silver", 0.925, 2, "1818 to 1902", "crown"),
   SV("Crown", 28.276, 38.61, "1927–1937, 50% silver", 0.500, 2, "1927 to 1937", "crown"),
@@ -1532,9 +1554,10 @@ const COIN_SETS = [
   {n: "Maundy set (4d, 3d, 2d, 1d)", parts: ["Maundy fourpence", "Maundy threepence", "Maundy twopence", "Maundy penny"]},
 ].map(st => Object.assign({set: true, g: "Sets", p: 3}, st, {items: st.parts.map(n => COINS.find(c => c.n === n))}));
 const COIN_ALL = COINS.concat(COIN_SETS);
+const METAL_FAMS = ["crown5", "two", "one", "fifty"];   // base-metal and silver proof versions weigh the same
 const PREM = {
   0: ["Melt value only", "Coins like this trade on their metal."],
-  1: ["A little over melt", "Bullion coin. Coin dealers usually pay a little over melt for good, unscratched ones, so selling to one can beat scrapping."],
+  1: ["A little over melt", "Bullion. Bullion dealers usually pay a little over melt for good, unscratched ones (bars still sealed in their card), so selling to one can beat scrapping."],
   2: ["Check the date: could be worth more", "Common dates go for about melt, but older, rarer dates, mint marks and coins in very good condition can be worth much more. Look the date up in a catalogue such as Spink's Coins of England before melting it."],
   3: ["Usually worth more than melt: don't scrap", "Collectors pay more than the metal is worth. Get it valued by a coin dealer or auction house before doing anything else."]
 };
@@ -1588,7 +1611,7 @@ function coinHTML(c, weight, qty){
     <div class="muted">${esc(c.g)} · ${esc(c.y)}</div><b style="font-size:19px">${esc(c.n)}</b>
     <table style="margin-top:8px">
       <tr><td>Weight</td><td>${+c.w.toFixed(3)} g${weight ? ` (yours ${weight.toFixed(2)} g)` : ""}</td></tr>
-      <tr><td>Diameter</td><td>${c.d.toFixed(2)} mm</td></tr>
+      <tr><td>${c.bar ? "Size" : "Diameter"}</td><td>${c.bar ? "varies by maker" : c.d.toFixed(2) + " mm"}</td></tr>
       <tr><td>Metal</td><td>${purity(c)}</td></tr>
       ${c.m !== "cn" ? `<tr><td>Pure ${metalWord(c)} in it</td><td><strong>${pure.toFixed(3)} g</strong> (${(pure / OZ).toFixed(4)} oz)</td></tr>` : ""}
       ${v && c.m !== "cn" ? `<tr><td>Melt value${n > 1 ? ` × ${n}` : ""}</td><td>${fmt(v.melt * n, v.melt < 20 ? 2 : 0)}</td></tr>
@@ -1617,13 +1640,13 @@ function renderCoins(){
   const pool = COINS.filter(c => metal === "any" || (metal === "au" ? c.m === "au" : c.m !== "au"));
   const seen = new Set();
   const ranked = pool.map(c => {
-    const dw = (w - c.w) / c.w * 100, dd = d > 0 ? d - c.d : null;
+    const dw = (w - c.w) / c.w * 100, dd = d > 0 && !c.bar ? d - c.d : null;
     // UK coins are far more common over a UK counter, so they win a near tie
     return {c, dw, dd, score: ((dw > 0 ? dw * 3 : -dw * 0.7) + (dd == null ? 0 : Math.abs(dd) / c.d * 100 * 2)) * (c.g.startsWith("UK") ? 0.6 : 1)};
   }).sort((a, b) => a.score - b.score).filter(r => { const k = r.c.fam || r.c.n; if (seen.has(k)) return false; seen.add(k); return true; });
   const best = ranked[0];
   if (!best || Math.abs(best.dw) > 6 || (best.dd != null && Math.abs(best.dd) > 1)){
-    $("coinOut").innerHTML = `<div class="warn"><b>No match.</b> Nothing in the list is ${w.toFixed(2)} g${d > 0 ? ` and ${d.toFixed(2)} mm` : ""}. It may be a coin that isn't listed, a medal, or a fake.${best ? ` Closest is the ${esc(best.c.n)} (${best.c.w.toFixed(2)} g, ${best.c.d.toFixed(2)} mm).` : ""}</div>`;
+    $("coinOut").innerHTML = `<div class="warn"><b>No match.</b> Nothing in the list is ${w.toFixed(2)} g${d > 0 ? ` and ${d.toFixed(2)} mm` : ""}. It may be a coin that isn't listed, a medal, or a fake.${best ? ` Closest is the ${esc(best.c.n)} (${best.c.w.toFixed(2)} g${best.c.bar ? "" : `, ${best.c.d.toFixed(2)} mm`}).` : ""}</div>`;
     return;
   }
   const notes = [];
@@ -1641,7 +1664,7 @@ function renderCoins(){
   $("coinOut").innerHTML = `<div class="verdict ${ok ? "t1" : "t2"}" style="margin:12px 0 0"><div class="call" style="font-size:18px">${ok ? "Matches" : "Check this one"}: ${esc(famName)}</div>
       ${notes.length ? `<div>${notes.join(" ")}</div>` : `<div>Weight${best.dd != null ? " and size match" : " matches"} the official spec.</div>`}</div>
     ${close.length ? `<p class="muted" style="margin:8px 0 0">Could also be: ${close.map(r => esc(r.c.fam ? r.c.n.replace(/ \(.*\)$/, "") : r.c.n)).join(", ")}. Check the design and wording on it.</p>` : ""}
-    ${fam ? `<div class="warn">${best.c.fam === "crown5" ? `<b>Check the metal.</b> The cupronickel and silver proof versions weigh exactly the same. The silver one comes boxed with a Royal Mint certificate, and has a mirror background with a frosted design. If there's no certificate, have it tested before you pay silver money.` : `<b>Look at the date.</b> These weigh the same whatever they're made of, so the date decides how much silver is in it.`}
+    ${fam ? `<div class="warn">${METAL_FAMS.includes(best.c.fam) ? `<b>Check the metal.</b> The standard and silver proof versions weigh exactly the same. The silver one comes boxed with a Royal Mint certificate, and has a mirror background with a frosted design. If there's no certificate, have it tested before you pay silver money.` : `<b>Look at the date.</b> These weigh the same whatever they're made of, so the date decides how much silver is in it.`}
         <table style="margin-top:6px">${fam.map(c => { const v = coinVal(c, w); return `<tr><td>${esc(c.n.replace(/^.*\((.*)\)$/, "$1"))}${/Maundy/.test(c.n) ? " (Maundy)" : ""}</td><td>${c.m === "cn" ? "face value" : v ? fmt(v.melt, 2) + " melt" : ""}</td></tr>`; }).join("")}</table></div>
         ${fam.filter(c => c.m !== "cn").slice(0, 1).map(c => coinHTML(c, w, 1)).join("")}`
       : coinHTML(best.c, w, 1)}
@@ -1712,7 +1735,7 @@ function scanHTML(res){
     const n = Math.max(1, parseInt(x.count) || 1), c = COIN_ALL.find(c2 => c2.n === x.catalogue);
     const items = !c ? [] : c.set ? c.items.filter(Boolean) : [c];
     if (!items.length){ unpriced.push(`${n > 1 ? n + " × " : ""}${esc(x.name || "Unknown coin")}${x.note ? ` <span class="muted">(${esc(x.note)})</span>` : ""}`); return; }
-    if (c.fam === "crown5") crown5 = true;
+    if (METAL_FAMS.includes(c.fam)) crown5 = true;
     let rMelt = 0, rPays = 0, rPure = 0, ok = true;
     items.forEach(it => { const v = coinVal(it); if (!v){ ok = false; return; } rMelt += v.melt; if (v.pays) rPays += v.pays; else if (it.m === "au") ok = false;
       if (it.m === "au") pureAu += it.w * it.f * n; else if (it.m === "ag") pureAg += it.w * it.f * n; rPure += it.w * it.f; wt += it.w * n; if (it.m !== "au") allPaid = false; });
@@ -1733,7 +1756,7 @@ function scanHTML(res){
       ${pureAu || pureAg ? `<tr><td>Pay up to</td><td><strong>${fmt((allPaid && pays ? pays : melt) * (1 - m), 0)}</strong></td></tr>` : ""}</table>
       <p class="muted" style="margin:6px 0 0">From the official weights of each coin, at today's price. Pay up to keeps your ${Math.round(m * 100)}% margin.</p>` : ""}
     ${unpriced.length ? `<div class="warn"><b>Not priced:</b> ${unpriced.join(", ")}. These aren't in the coin list, so weigh them and use Identify a coin, or price them on the offer screen.</div>` : ""}
-    ${crown5 ? `<div class="warn"><b>£5 crowns: check the metal.</b> Most are cupronickel, worth face value only. The silver proof weighs exactly the same, so the scales can't tell them apart. The silver one comes boxed with a Royal Mint certificate. If there's no certificate, have it tested before you pay silver money.</div>` : ""}
+    ${crown5 ? `<div class="warn"><b>Check the metal.</b> Most modern crowns, £2, £1 and 50p coins are base metal, worth face value only. The silver proof weighs exactly the same, so the scales can't tell them apart. The silver one comes boxed with a Royal Mint certificate. If there's no certificate, have it tested before you pay silver money.</div>` : ""}
     ${(res.warnings || []).length ? `<div class="warn"><b>Watch out:</b> ${res.warnings.map(esc).join(" ")}</div>` : ""}
     ${rows.length ? `<div class="sub" style="margin-top:14px">Check it's real: weigh it</div>
       <label>Weight of ${unpriced.length ? "the priced coins" : "all the coins"} together, grams${set ? " (out of the case, or weigh the case on its own and take it off)" : ""}</label>
