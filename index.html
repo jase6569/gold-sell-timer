@@ -2203,6 +2203,25 @@ if (!store.get("seenGuide")) $("welcome").style.display = "block";
   };
   paint();
 })();
+
+/* ---- keep phones on the latest version: home-screen apps (iPhone especially) can keep showing an old copy ---- */
+async function checkForUpdate(){
+  try {
+    const last = parseInt(localStorage.getItem("updReload") || "0");
+    if (Date.now() - last < 5 * 60000) return;            // never reload more than once every 5 minutes
+    const r = await fetch(location.pathname + "?u=" + Date.now(), {cache: "no-store"});
+    if (!r.ok) return;
+    const fresh = new DOMParser().parseFromString(await r.text(), "text/html");
+    const code = d => [...d.querySelectorAll("script:not([src])")].map(x => x.textContent).join("\n");
+    const now = code(document), latest = code(fresh);
+    if (latest.length > 1000 && latest !== now){
+      localStorage.setItem("updReload", String(Date.now()));
+      location.replace(location.pathname + "?v=" + Date.now() + location.hash);
+    }
+  } catch(e){}
+}
+setTimeout(checkForUpdate, 4000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkForUpdate(); });
 </script>
 <!-- TEAM SETUP SCRIPT END -->
 </body>
