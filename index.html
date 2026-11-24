@@ -1705,7 +1705,7 @@ loadSilver(); setInterval(loadSilver, 15 * 60000);
 
 /* ---- scan with camera: an AI reads the photos, the app does the sums from the official coin specs ---- */
 const SCAN_URL = "https://gold-coin-scan.maximus6569.workers.dev/";   // the Gold Trader coin scanner (Cloudflare Worker), see scan-worker/
-let scPhotos = [], scResult = null, scBusy = false, scErr = "";
+let scPhotos = [], scResult = null, scBusy = false, scErr = "", scOpen = -1;
 function shrinkPhoto(file){
   return new Promise((ok, bad) => {
     const img = new Image(), url = URL.createObjectURL(file);
@@ -1732,7 +1732,7 @@ $("scClear").onclick = () => { scPhotos = []; scResult = null; scErr = ""; rende
 $("scGo").onclick = async () => {
   if (scBusy || !scPhotos.length) return;
   if (!SCAN_URL){ scErr = "The camera scan isn't switched on yet. It needs its AI service set up first."; renderScan(); return; }
-  scBusy = true; scErr = ""; scResult = null; renderScan();
+  scBusy = true; scErr = ""; scResult = null; scOpen = -1; renderScan();
   try {
     const r = await fetch(SCAN_URL, {method: "POST", headers: {"Content-Type": "application/json"},
       body: JSON.stringify({photos: scPhotos.map(d => d.split(",")[1]), catalogue: COIN_ALL.map(c => c.n)})});
@@ -1770,8 +1770,10 @@ function scanHTML(res){
     items.forEach(it => { const v = coinVal(it); if (!v){ ok = false; return; } rMelt += v.melt; if (v.pays) rPays += v.pays; else if (it.m === "au") ok = false;
       if (it.m === "au") pureAu += it.w * it.f * n; else if (it.m === "ag") pureAg += it.w * it.f * n; rPure += it.w * it.f; wt += it.w * n; if (it.m !== "au") allPaid = false; });
     melt += rMelt * n; pays += rPays * n; prem = Math.max(prem, x.proof ? 3 : (c.p || 0));
-    rows.push(`<tr><td>${n > 1 ? `<b>${n} ×</b> ` : ""}${esc(x.name || c.n)}${x.year ? "" : ""}<div class="muted">${esc(c.n)}${x.proof ? " · proof" : ""}${x.confidence && x.confidence !== "high" ? ` · <span class="neg">${x.confidence} confidence, check it</span>` : ""}${x.note ? " · " + esc(x.note) : ""}</div></td>
-      <td>${(rPure * n).toFixed(2)} g<div class="muted">${ok ? fmt(rMelt * n, 0) : "…"}</div></td></tr>`);
+    const ci = COIN_ALL.indexOf(c), open = scOpen === ci;
+    rows.push(`<tr onclick="scOpen=scOpen===${ci}?-1:${ci};renderScan()" style="cursor:pointer"><td>${n > 1 ? `<b>${n} ×</b> ` : ""}${esc(x.name || c.n)} <span style="color:var(--gold);font-size:13px">${open ? "▲ hide details" : "▼ details"}</span><div class="muted">${esc(c.n)}${x.proof ? " · proof" : ""}${x.confidence && x.confidence !== "high" ? ` · <span class="neg">${x.confidence} confidence, check it</span>` : ""}${x.note ? " · " + esc(x.note) : ""}</div></td>
+      <td>${(rPure * n).toFixed(2)} g<div class="muted">${ok ? fmt(rMelt * n, 0) : "…"}</div></td></tr>
+      ${open ? `<tr><td colspan="2" style="padding:0 0 8px">${coinHTML(c, null, n)}</td></tr>` : ""}`);
   });
   scExpected = wt;
   if (!rows.length && !unpriced.length) return `<div class="warn"><b>No coins found.</b> Try again with the coins flat, close up and in good light.</div>`;
