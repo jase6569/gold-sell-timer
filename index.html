@@ -670,9 +670,10 @@
       <button data-c="scan">Scan with camera</button>
     </div>
     <div id="coinScan" style="display:none">
-      <p class="muted" style="margin-top:0">Photograph a coin, a handful of coins or a whole set in its case. For a set, get the certificate in the shot if there is one. Up to 4 photos, e.g. front and back.</p>
+      <p class="muted" style="margin-top:0">Photograph a coin, a handful of coins or a whole set in its case. For a set, get the certificate in the shot if there is one. Take them now or upload ones already on your phone. Up to 4 photos, e.g. front and back.</p>
       <input id="scFile" type="file" accept="image/*" capture="environment" style="display:none">
-      <button class="btn" id="scTake">📷 Take a photo</button>
+      <input id="scPick" type="file" accept="image/*" multiple style="display:none">
+      <div style="display:flex;gap:8px"><button class="btn" id="scTake" style="flex:1">📷 Take a photo</button><button class="btn" id="scUp" style="flex:1">🖼 Upload photos</button></div>
       <div id="scThumbs" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"></div>
       <button class="btn" id="scGo" style="display:none">Scan these photos</button>
       <button class="btn" id="scClear" style="display:none;background:none;border:1px solid var(--line);color:var(--muted)">Start again</button>
@@ -1694,11 +1695,17 @@ function shrinkPhoto(file){
   });
 }
 $("scTake").onclick = () => $("scFile").click();
-$("scFile").addEventListener("change", async () => {
-  const f = $("scFile").files[0]; $("scFile").value = ""; if (!f) return;
-  try { scPhotos.push(await shrinkPhoto(f)); scPhotos = scPhotos.slice(-4); scResult = null; scErr = ""; } catch(e){ scErr = "Couldn't open that photo. Try taking it again."; }
+async function scAdd(input){
+  const files = [...input.files]; input.value = ""; if (!files.length) return;
+  for (const f of files){
+    try { scPhotos.push(await shrinkPhoto(f)); scResult = null; scErr = ""; } catch(e){ scErr = "Couldn't open one of those photos. Try another."; }
+  }
+  if (scPhotos.length > 4){ scPhotos = scPhotos.slice(-4); scErr = scErr || ""; }
   renderScan();
-});
+}
+$("scFile").addEventListener("change", () => scAdd($("scFile")));
+$("scPick").addEventListener("change", () => scAdd($("scPick")));
+$("scUp").onclick = () => $("scPick").click();
 $("scClear").onclick = () => { scPhotos = []; scResult = null; scErr = ""; renderScan(); };
 $("scGo").onclick = async () => {
   if (scBusy || !scPhotos.length) return;
@@ -1716,7 +1723,8 @@ $("scGo").onclick = async () => {
 function renderScan(){
   $("scThumbs").innerHTML = scPhotos.map((d, i) => `<div style="position:relative"><img src="${d}" style="width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid var(--line)">
     <button onclick="scPhotos.splice(${i},1);scResult=null;renderScan()" style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:0;background:#000;color:#fff;font-size:13px">×</button></div>`).join("");
-  $("scTake").textContent = scPhotos.length ? (scPhotos.length < 4 ? "📷 Add another photo" : "📷 Replace the last photo") : "📷 Take a photo";
+  $("scTake").textContent = scPhotos.length ? (scPhotos.length < 4 ? "📷 Take another" : "📷 Replace the last") : "📷 Take a photo";
+  $("scUp").textContent = scPhotos.length ? "🖼 Upload more" : "🖼 Upload photos";
   $("scGo").style.display = scPhotos.length ? "" : "none";
   $("scGo").textContent = scBusy ? "Scanning…" : scResult ? "Scan again" : "Scan these photos";
   $("scClear").style.display = scPhotos.length ? "" : "none";
