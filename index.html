@@ -45,7 +45,8 @@
   .price{font-size:42px;font-weight:700;line-height:1.1}
   .price small{font-size:16px;color:var(--muted);font-weight:500}
   .muted{color:var(--muted);font-size:13px}
-  .carats{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:14px}
+  .carats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:14px}
+  @media (max-width:380px){.carats{gap:4px}.carats div{padding:7px 1px}.carats b{font-size:13px}}
   .carats div{background:#12110f;border:1px solid var(--line);border-radius:10px;padding:8px 4px;text-align:center}
   .carats b{display:block;font-size:15px}
   .carats span{font-size:11px;color:var(--muted)}
@@ -251,7 +252,7 @@
 <!-- ========== ALERTS ========== -->
 <section class="page" id="p-alerts">
   <div class="card">
-    <h2>Get sell alerts on your phone</h2>
+    <h2>Get alerts on your phone</h2>
     <p style="margin-top:0">The app checks gold every hour, even when your phone is off. It sends you a notification when:</p>
     <ol>
       <li>gold moves into the <b>sell zone</b> (sell a portion), or the <b>strong sell zone</b></li>
