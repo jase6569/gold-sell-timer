@@ -1479,10 +1479,15 @@ const COINS = [
   {m: "au", g: "World gold", n: "Turkey 100 Kurush (Ata / Monogram)", w: 7.216, d: 22.00, f: 0.9167, p: 1, y: "1920s to today"},
   {m: "au", g: "World gold", n: "Turkey 50 Kurush", w: 3.608, d: 18.00, f: 0.9167, p: 1, y: "1920s to today"},
   {m: "au", g: "World gold", n: "Turkey 25 Kurush", w: 1.804, d: 15.00, f: 0.9167, p: 1, y: "1920s to today"},
+  // ---- UK modern £5 crowns (1990 to today): the same design is struck in cupronickel, silver and gold ----
+  {m: "cn", g: "UK £5 crowns (1990 to today)", n: "£5 crown (standard / brilliant uncirculated, cupronickel)", w: 28.28, d: 38.61, f: 0, p: 0, y: "1990 to today", fam: "crown5"},
+  {m: "ag", g: "UK £5 crowns (1990 to today)", n: "£5 crown (silver proof, 92.5%)", w: 28.28, d: 38.61, f: 0.925, p: 2, y: "1990 to today", fam: "crown5"},
+  {m: "ag", g: "UK £5 crowns (1990 to today)", n: "£5 crown (silver piedfort, double thickness)", w: 56.56, d: 38.61, f: 0.925, p: 2, y: "1990 to today"},
+  {m: "au", g: "UK £5 crowns (1990 to today)", n: "£5 crown (gold proof, 22ct)", w: 39.94, d: 38.61, f: 0.9167, p: 3, y: "1990 to today"},
   // ---- UK silver: same coin, different metal by date ----
   SV("Crown", 28.276, 38.61, "to 1919, 92.5% silver", 0.925, 2, "1818 to 1902", "crown"),
   SV("Crown", 28.276, 38.61, "1927–1937, 50% silver", 0.500, 2, "1927 to 1937", "crown"),
-  SV("Crown", 28.276, 38.61, "1951–1965 and later £5 crowns, no silver", 0, 0, "1951 to today", "crown"),
+  SV("Crown", 28.276, 38.61, "1951–1981, no silver", 0, 0, "1951 to 1981", "crown"),
   SV("Double florin", 22.62, 36.00, "1887–1890, 92.5% silver", 0.925, 2, "1887 to 1890"),
   SV("Halfcrown", 14.138, 32.31, "to 1919, 92.5% silver", 0.925, 2, "1816 to 1919", "halfcrown"),
   SV("Halfcrown", 14.138, 32.31, "1920–1946, 50% silver", 0.500, 0, "1920 to 1946", "halfcrown"),
@@ -1636,7 +1641,7 @@ function renderCoins(){
   $("coinOut").innerHTML = `<div class="verdict ${ok ? "t1" : "t2"}" style="margin:12px 0 0"><div class="call" style="font-size:18px">${ok ? "Matches" : "Check this one"}: ${esc(famName)}</div>
       ${notes.length ? `<div>${notes.join(" ")}</div>` : `<div>Weight${best.dd != null ? " and size match" : " matches"} the official spec.</div>`}</div>
     ${close.length ? `<p class="muted" style="margin:8px 0 0">Could also be: ${close.map(r => esc(r.c.fam ? r.c.n.replace(/ \(.*\)$/, "") : r.c.n)).join(", ")}. Check the design and wording on it.</p>` : ""}
-    ${fam ? `<div class="warn"><b>Look at the date.</b> These weigh the same whatever they're made of, so the date decides how much silver is in it.
+    ${fam ? `<div class="warn">${best.c.fam === "crown5" ? `<b>Check the metal.</b> The cupronickel and silver proof versions weigh exactly the same. The silver one comes boxed with a Royal Mint certificate, and has a mirror background with a frosted design. If there's no certificate, have it tested before you pay silver money.` : `<b>Look at the date.</b> These weigh the same whatever they're made of, so the date decides how much silver is in it.`}
         <table style="margin-top:6px">${fam.map(c => { const v = coinVal(c, w); return `<tr><td>${esc(c.n.replace(/^.*\((.*)\)$/, "$1"))}${/Maundy/.test(c.n) ? " (Maundy)" : ""}</td><td>${c.m === "cn" ? "face value" : v ? fmt(v.melt, 2) + " melt" : ""}</td></tr>`; }).join("")}</table></div>
         ${fam.filter(c => c.m !== "cn").slice(0, 1).map(c => coinHTML(c, w, 1)).join("")}`
       : coinHTML(best.c, w, 1)}
@@ -1701,12 +1706,13 @@ function renderScan(){
 let scExpected = 0;
 function scanHTML(res){
   const m = coinMargin(), rows = [], unpriced = [];
-  let pureAu = 0, pureAg = 0, melt = 0, pays = 0, allPaid = true, prem = 0, wt = 0;
+  let crown5 = false, pureAu = 0, pureAg = 0, melt = 0, pays = 0, allPaid = true, prem = 0, wt = 0;
   if (!res.photo_ok) return `<div class="warn"><b>Couldn't read the coins.</b> ${esc(res.photo_tip || "Take the photo closer, in good light, with the coins flat.")}</div>`;
   (res.coins || []).forEach(x => {
     const n = Math.max(1, parseInt(x.count) || 1), c = COIN_ALL.find(c2 => c2.n === x.catalogue);
     const items = !c ? [] : c.set ? c.items.filter(Boolean) : [c];
     if (!items.length){ unpriced.push(`${n > 1 ? n + " × " : ""}${esc(x.name || "Unknown coin")}${x.note ? ` <span class="muted">(${esc(x.note)})</span>` : ""}`); return; }
+    if (c.fam === "crown5") crown5 = true;
     let rMelt = 0, rPays = 0, rPure = 0, ok = true;
     items.forEach(it => { const v = coinVal(it); if (!v){ ok = false; return; } rMelt += v.melt; if (v.pays) rPays += v.pays; else if (it.m === "au") ok = false;
       if (it.m === "au") pureAu += it.w * it.f * n; else if (it.m === "ag") pureAg += it.w * it.f * n; rPure += it.w * it.f; wt += it.w * n; if (it.m !== "au") allPaid = false; });
@@ -1722,11 +1728,12 @@ function scanHTML(res){
     ${rows.length ? `<table style="margin-top:8px"><tr><td class="muted">Coin</td><td class="muted">Pure metal · melt</td></tr>${rows.join("")}
       ${pureAu ? `<tr><td><strong>Total pure gold</strong></td><td><strong>${pureAu.toFixed(3)} g</strong></td></tr>` : ""}
       ${pureAg ? `<tr><td><strong>Total pure silver</strong></td><td><strong>${pureAg.toFixed(2)} g</strong></td></tr>` : ""}
-      <tr><td>Melt value</td><td>${fmt(melt, 0)}</td></tr>
+      ${!pureAu && !pureAg ? `<tr><td colspan="2"><b>No gold or silver in ${rows.length > 1 ? "these" : "this"}.</b> Worth face value only, unless a collector wants it.</td></tr>` : `<tr><td>Melt value</td><td>${fmt(melt, 0)}</td></tr>`}
       ${allPaid && pays ? `<tr><td>${mmOn() ? "Mastermelt pays" : "Refiner pays"}</td><td>${fmt(pays, 0)}</td></tr>` : ""}
-      <tr><td>Pay up to</td><td><strong>${fmt((allPaid && pays ? pays : melt) * (1 - m), 0)}</strong></td></tr></table>
+      ${pureAu || pureAg ? `<tr><td>Pay up to</td><td><strong>${fmt((allPaid && pays ? pays : melt) * (1 - m), 0)}</strong></td></tr>` : ""}</table>
       <p class="muted" style="margin:6px 0 0">From the official weights of each coin, at today's price. Pay up to keeps your ${Math.round(m * 100)}% margin.</p>` : ""}
     ${unpriced.length ? `<div class="warn"><b>Not priced:</b> ${unpriced.join(", ")}. These aren't in the coin list, so weigh them and use Identify a coin, or price them on the offer screen.</div>` : ""}
+    ${crown5 ? `<div class="warn"><b>£5 crowns: check the metal.</b> Most are cupronickel, worth face value only. The silver proof weighs exactly the same, so the scales can't tell them apart. The silver one comes boxed with a Royal Mint certificate. If there's no certificate, have it tested before you pay silver money.</div>` : ""}
     ${(res.warnings || []).length ? `<div class="warn"><b>Watch out:</b> ${res.warnings.map(esc).join(" ")}</div>` : ""}
     ${rows.length ? `<div class="sub" style="margin-top:14px">Check it's real: weigh it</div>
       <label>Weight of ${unpriced.length ? "the priced coins" : "all the coins"} together, grams${set ? " (out of the case, or weigh the case on its own and take it off)" : ""}</label>
