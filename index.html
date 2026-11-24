@@ -13,6 +13,19 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 <style>
+  /* opening animation: the first frame matches the phone's start-up picture exactly, so there's no jump */
+  #splash{position:fixed;inset:0;z-index:9999;background:#0f0e0c;display:flex;align-items:center;justify-content:center;transition:opacity .35s ease, transform .35s ease}
+  #splash .sp{position:relative;width:min(58vw,220px);aspect-ratio:1;animation:spBreath 1s ease-in-out both}
+  #splash img{width:100%;height:100%;display:block}
+  #splash .shine{position:absolute;inset:3%;border-radius:50%;overflow:hidden;pointer-events:none}
+  #splash .shine::after{content:"";position:absolute;top:-20%;bottom:-20%;width:45%;left:-60%;transform:skewX(-18deg);
+    background:linear-gradient(90deg,transparent,rgba(255,236,180,.55),transparent);mix-blend-mode:screen;animation:spShine .9s .1s ease-in-out both}
+  #splash.out{opacity:0;transform:scale(1.06)}
+  @keyframes spBreath{0%{transform:scale(1)}55%{transform:scale(1.045)}100%{transform:scale(1.02)}}
+  @keyframes spShine{from{left:-60%}to{left:120%}}
+  body.sp-in main, body.sp-in header{animation:spUp .45s ease-out both}
+  @keyframes spUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion: reduce){#splash .sp,#splash .shine::after,body.sp-in main,body.sp-in header{animation:none}}
   :root{
     --bg:#0f0e0c; --card:#1a1815; --line:#2c2924; --text:#f3efe6; --muted:#a39d90;
     --gold:#d4a843; --gold2:#f0cb6a; --up:#3fb27f; --down:#e05d4f; --amber:#e3a33b;
@@ -121,6 +134,29 @@
 <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
+<div id="splash"><div class="sp"><img src="icon.png" alt=""><div class="shine"></div></div></div>
+<script>
+/* plays when the app is opened fresh; skipped when switching back or when the app reloads itself for an update */
+(function(){
+  const el = document.getElementById("splash");
+  // Jase's phone only: shown when this phone joined the team as Jase, or after opening the app once with ?intro=on (?intro=off turns it off)
+  let on = false, seen = false;
+  try {
+    const q = (location.search.match(/[?&]intro=(on|off)/) || [])[1];
+    if (q) localStorage.setItem("intro", q);
+    const pref = localStorage.getItem("intro");
+    on = pref ? pref === "on" : localStorage.getItem("dgs:me") === "Jase";
+    seen = sessionStorage.getItem("spl") === "1"; sessionStorage.setItem("spl", "1");
+  } catch(e){}
+  if (!on || seen || /[?&]v=/.test(location.search)) { el.remove(); window.hideSplash = function(){}; return; }
+  const t0 = Date.now(); let done = false;
+  window.hideSplash = function(){
+    if (done) return; const wait = Math.max(0, 850 - (Date.now() - t0));
+    setTimeout(function(){ if (done) return; done = true; document.body.classList.add("sp-in"); el.classList.add("out"); setTimeout(function(){ el.remove(); }, 380); }, wait);
+  };
+  setTimeout(window.hideSplash, 1200);   // never hold the app up longer than about a second
+})();
+</script>
 <header>
   <img src="logo.png" alt="Dorset Gold &amp; Jewellery">
   <div>
@@ -1201,6 +1237,7 @@ function showPrice(oz, label){
   $("pOz").textContent = fmt(oz, 0) + " per troy ounce";
   $("carats").innerHTML = CARATS.map(([k, f]) => `<div><b>${fmt(gbpPerGram * f)}</b><span>${k}/g</span></div>`).join("");
   $("pTime").textContent = label;
+  if (window.hideSplash) hideSplash();
   [applyRefiner, calc, checkAlert, renderStock].forEach(safe);
 }
 function analyse(){
