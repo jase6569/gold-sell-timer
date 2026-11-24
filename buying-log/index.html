@@ -364,6 +364,7 @@
 <script src="../sync.js?v=4"></script>
 <script src="../keep.js?v=1"></script>
 <script src="qrcode.min.js"></script>
+<script>if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../sw.js", {scope: "../"}).catch(() => {}));</script>
 <script>
 (() => {
 'use strict';

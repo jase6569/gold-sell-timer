@@ -592,6 +592,7 @@
     <h2>Questions</h2>
     <p style="margin-top:0"><b>The price is different from my refiner's.</b> The top of the Advice page shows the market (spot) price. Every "what you'd be paid" figure uses the refiner price from <b>My gold, Prices</b>: Mastermelt's daily counter price, or your own %.</p>
     <p><b>The Mastermelt figure doesn't move during the day.</b> That's right. Mastermelt sets its counter price once a day, so it changes when they update it. The live value above it moves every minute.</p>
+    <p><b>No signal?</b> The app still opens, with your stock call, My gold, coins and the Buy log. It shows the last live price your phone saw, with the time, and updates as soon as you're back online. Anything you add with no signal is saved on the phone and shared with the team when the signal returns. Only the coin scanner needs a signal. Open the app once with signal after an update so the phone keeps the newest copy.</p>
     <p><b>It says "Live feed unavailable".</b> The app is showing the last saved price and keeps retrying every minute. The advice still works.</p>
     <p><b>I haven't had an alert for a while.</b> That's normal: alerts come when the stock call changes, plus the Friday summary. If even the Friday summary stops, check you're still subscribed in ntfy and that notifications for it aren't muted.</p>
     <p><b>The ID reader filled in something wrong, or nothing at all.</b> It only fills boxes that are empty and can misread a worn or shiny card, so always check every detail against the ID itself before saving. If it says the photo is hard to read, retake it flat, in good light, with the whole card filling the frame. It never decides whether an ID is genuine: that's your check.</p>
@@ -1250,14 +1251,25 @@ function analyse(){
 async function refresh(){
   try {
     liveOz = await getLiveOz();
+    store.set("lastLive", JSON.stringify({oz: liveOz, t: Date.now()}));
     showPrice(liveOz, "Live · updated " + new Date().toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"}) + " · refreshes every minute");
   } catch(e){
     liveOz = null;
-    if (daily.length){ const [d, v] = daily[daily.length - 1]; showPrice(v, "Live feed unavailable. Showing last close (" + new Date(d).toLocaleDateString("en-GB") + "). Retrying…"); }
+    // no signal: use the last live price this phone saw, if it's newer than the last daily close
+    let last = null; try { last = JSON.parse(store.get("lastLive") || "null"); } catch(e2){}
+    const closeT = daily.length ? new Date(daily[daily.length - 1][0]).getTime() + 22 * 3600e3 : 0;
+    if (last && last.oz && last.t > closeT && Date.now() - last.t < 7 * 864e5){
+      const when = new Date(last.t), today = when.toDateString() === new Date().toDateString();
+      showPrice(last.oz, (navigator.onLine ? "Live feed unavailable." : "No signal.") + " Showing the price from " + when.toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"}) + (today ? " today" : " on " + when.toLocaleDateString("en-GB", {weekday: "short", day: "numeric", month: "short"})) + ". Updates as soon as you're back online.");
+    }
+    else if (daily.length){ const [d, v] = daily[daily.length - 1]; showPrice(v, "Live feed unavailable. Showing last close (" + new Date(d).toLocaleDateString("en-GB") + "). Retrying…"); }
     else $("pTime").textContent = "Can't reach prices right now. Retrying in a minute.";
   }
   analyse();
 }
+
+window.addEventListener("online", () => { refresh(); loadMM().then(() => safe(applyRefiner)); });
+if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 
 /* =============== value calculator =============== */
 function calc(){
@@ -1769,6 +1781,7 @@ $("scUp").onclick = () => $("scPick").click();
 $("scClear").onclick = () => { scPhotos = []; scResult = null; scErr = ""; renderScan(); };
 $("scGo").onclick = async () => {
   if (scBusy || !scPhotos.length) return;
+  if (!navigator.onLine){ scErr = "Scanning needs a signal. Your photos are kept here: tap Scan again once you're back online."; renderScan(); return; }
   if (!SCAN_URL){ scErr = "The camera scan isn't switched on yet. It needs its AI service set up first."; renderScan(); return; }
   scBusy = true; scErr = ""; scResult = null; scOpen = -1; renderScan();
   try {
