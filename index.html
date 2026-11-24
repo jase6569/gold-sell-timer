@@ -117,6 +117,7 @@
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .result{margin-top:14px;padding:14px;border-radius:12px;background:#12110f;border:1px solid var(--line)}
   .result b{font-size:28px;color:var(--gold2)}
+  .result .warn b,.result td b,.result .muted b{font-size:inherit;color:inherit}
   .btn{display:block;width:100%;margin-top:12px;padding:13px;border:0;border-radius:12px;background:var(--gold);color:#1a1408;font-weight:700;font-size:16px;text-align:center;text-decoration:none}
   .btn.ghost{background:none;border:1px solid var(--line);color:var(--text)}
   code{background:#12110f;border:1px solid var(--line);border-radius:6px;padding:2px 6px;font-size:15px;color:var(--gold2)}
@@ -1840,7 +1841,10 @@ function scanHTML(res){
       <p class="muted" style="margin:6px 0 0">From the official weights of each coin, at today's price. Pay up to keeps your ${Math.round(m * 100)}% margin.</p>` : ""}
     ${unpriced.length ? `<div class="warn"><b>Not priced:</b> ${unpriced.join(", ")}. These aren't in the coin list, so weigh them and use Identify a coin, or price them on the offer screen.</div>` : ""}
     ${crown5 ? `<div class="warn"><b>Check the metal.</b> Most modern crowns, £2, £1 and 50p coins are base metal, worth face value only. The silver proof weighs exactly the same, so the scales can't tell them apart. The silver one comes boxed with a Royal Mint certificate. If there's no certificate, have it tested before you pay silver money.</div>` : ""}
-    ${(res.warnings || []).length ? `<div class="warn"><b>Watch out:</b> ${res.warnings.map(esc).join(" ")}</div>` : ""}
+    ${(() => {   // the app already says "weigh it" and "don't scrap", and gives the official weight: keep only the AI's extra warnings
+      const w = (res.warnings || []).flatMap(x => String(x).split(/(?<=[.!?;])\s+/)).map(x => x.trim()).filter(x => x.length > 3).filter(x => !/\b\d+(\.\d+)?\s*g\b|grams?\b|weigh|authentic|genuine|photograph/i.test(x) && !(prem >= 2 && /scrap|valued|collect/i.test(x)));
+      return w.length ? `<div class="warn"><b>Watch out:</b> ${w.map(esc).join(" ")}</div>` : "";
+    })()}
     ${rows.length ? `<div class="sub" style="margin-top:14px">Check it's real: weigh it</div>
       <label>Weight of ${unpriced.length ? "the priced coins" : "all the coins"} together, grams${set ? " (out of the case, or weigh the case on its own and take it off)" : ""}</label>
       <input id="scW" type="number" inputmode="decimal" step="0.01" placeholder="should be about ${wt.toFixed(2)}" value="${esc(store.get("scW") || "")}">
