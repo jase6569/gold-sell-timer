@@ -13,7 +13,7 @@
 const SYNC_URL = "https://dg-sync.maximus6569.workers.dev";   // the team sync Worker (see sync-worker/README.md)
 
 const LS = window.localStorage, P = "dgs:";
-const ARRAYS = ["stock", "buys", "sent", "visits", "cash", "sales", "customers", "safebags", "forsale", "staff", "till", "shopcfg", "stockchecks"];         // lists in localStorage, synced item by item
+const ARRAYS = ["stock", "buys", "sent", "visits", "cash", "sales", "customers", "safebags", "forsale", "staff", "till", "shopcfg", "stockchecks", "sends", "safechecks"];         // lists in localStorage, synced item by item
 const SCALARS = ["refiner", "ownPct", "pmM", "buyin"];               // shared settings: refiner price, margin, buying-in
 const BL_SHARED = ["biz", "addr", "phone", "prefix", "retain", "revLink", "revMsg", "icoDone", "icoNum", "dpEmail", "offerPct", "holdDays", "cmAt"];   // Buy log settings everyone shares
 const BL_DB = "dj-buylog";

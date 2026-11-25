@@ -204,8 +204,10 @@
   <section id="p-safe" style="display:none">
     <div class="card">
       <h2>Safe log</h2>
-      <p class="muted" style="margin-top:0">Every bag numbered and logged into the safe, and out again when it goes to the refiner.</p>
+      <p class="muted" style="margin-top:0">Every bag numbered and logged into the safe, sent to the refiner in a numbered send, and checked against what they pay.</p>
       <button class="btn" onclick="editBag()">+ Log a bag into the safe</button>
+      <div class="row"><button class="btn ghost" onclick="sendForm()">Send to the refiner</button><button class="btn ghost" onclick="safeCheck()">Safe check</button><button class="btn ghost" onclick="printBagLabels(get('safebags').filter(b=>!b.outAt).map(b=>b._id))">Print bag labels</button></div>
+      <div id="safeCheckInfo" class="muted" style="margin-top:10px"></div>
     </div>
     <div class="cols">
     <div class="card">
@@ -216,6 +218,16 @@
     <div class="card">
       <h2>Out of the safe</h2>
       <div id="safeOut"></div>
+    </div>
+    </div>
+    <div class="cols">
+    <div class="card">
+      <h2>With the refiner, waiting for payment</h2>
+      <div id="sendsWait"></div>
+    </div>
+    <div class="card">
+      <h2>Settled</h2>
+      <div id="sendsDone"></div>
     </div>
     </div>
   </section>
@@ -277,7 +289,7 @@
 <div id="cam"></div>
 <div id="lock"><img src="../icon.png" alt=""><div class="who" id="lockWho"></div><div style="margin-bottom:10px" id="lockAsk">Enter PIN</div><input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><div id="lockMsg" class="muted" style="margin-top:8px"></div></div>
 
-<script src="../sync.js?v=11"></script>
+<script src="../sync.js?v=12"></script>
 <script src="../buying-log/qrcode.min.js"></script>
 <script>
 /* ============ Dorset Gold & Jewellery · Shop ============
@@ -1309,49 +1321,77 @@ function buyToSafe(ids){
   editBag(null, {lines, desc: "Buys " + recs.map(r => r.receipt).join(", "), buyIds: recs.map(r => r.id), holdUntil: recs.map(r => r.holdUntil || "").sort().pop() || ""});
 }
 
-/* ============ SAFE LOG ============ */
+/* ============ SAFE LOG ============
+   Bags in (numbered, sealed, weighed by carat), held while the holding period runs, then sent to the refiner in a
+   numbered send with a weight check and dispatch note. When the refiner pays, the settlement is checked against
+   what the gold was worth to Mastermelt on the day it went, and any shortfall is flagged.
+   Sending also takes the same gold off Gold Trader's My gold list, so both apps agree on what you hold. */
 let mm = null;
 fetch("../mastermelt.json?t=" + Date.now()).then(r => r.json()).then(j => { mm = j; renderSafe(); }).catch(() => {});
 const bagPure = b => (b.lines || []).reduce((t, l) => { const f = (CARATS.find(c => c[0] === l.carat) || [0, 0])[1]; return t + (/ct$/.test(l.carat) ? num(l.g) * f : 0); }, 0);
 const bagGrams = b => (b.lines || []).reduce((t, l) => t + num(l.g), 0);
+const bagValue = (b, m) => (b.lines || []).reduce((t, l) => t + ((m || mm) && (m || mm).prices && (m || mm).prices[l.carat] ? num(l.g) * (m || mm).prices[l.carat] : 0), 0);
+const sendsAll = () => get("sends");
+const sendOf = b => b.sendId && sendsAll().find(s => s._id === b.sendId);
 function renderSafe(){
   const all = get("safebags").slice().sort((a, b) => (b.inAt || "").localeCompare(a.inAt || ""));
   const inn = all.filter(b => !b.outAt), out = all.filter(b => b.outAt);
-  const pure = inn.reduce((t, b) => t + bagPure(b), 0);
+  const by = {}; inn.forEach(b => (b.lines || []).forEach(l => { by[l.carat] = (by[l.carat] || 0) + num(l.g); }));
+  const pure = inn.reduce((t, b) => t + bagPure(b), 0), val = inn.reduce((t, b) => t + bagValue(b), 0);
+  const held = inn.filter(b => onHold(bagHold(b))), ready = inn.filter(b => !onHold(bagHold(b)));
   $("safeTotal").innerHTML = inn.length ? `<div class="big">${inn.length} bag${inn.length > 1 ? "s" : ""} · ${inn.reduce((t, b) => t + bagGrams(b), 0).toFixed(1)}g</div>
-    <p class="muted" style="margin:2px 0 8px">${pure.toFixed(2)}g pure gold${mm && mm.pure_g ? `, about <b>${gbp(pure * mm.pure_g, 0)}</b> at Mastermelt's price (${fmtD(mm.date)})` : ""}</p>` : "";
-  const row = b => `<div class="item" onclick="viewBag('${b._id}')"><span class="r">${bagGrams(b).toFixed(1)}g</span><b>Bag ${esc(b.no)}${!b.outAt ? holdPill(bagHold(b)) : ""}</b>
-    <span class="muted">${b.outAt ? `Out ${fmtD(b.outAt)} · ${esc(b.outTo || "")}` : `In ${fmtD(b.inAt)}${b.by ? " · " + esc(b.by) : ""}`}${b.desc ? " · " + esc(b.desc) : ""}</span></div>`;
-  $("safeIn").innerHTML = inn.length ? inn.map(row).join("") : '<p class="muted">The safe log is empty.</p>';
+    <table style="margin:6px 0">${Object.entries(by).sort().map(([k, g]) => `<tr><td>${esc(k)}</td><td>${g.toFixed(2)}g${mm && mm.prices && mm.prices[k] ? ` · ${gbp(g * mm.prices[k], 0)}` : ""}</td></tr>`).join("")}</table>
+    <p class="muted" style="margin:2px 0 8px">${pure.toFixed(2)}g pure gold${val ? `, worth about <b>${gbp(val, 0)}</b> to Mastermelt today (${fmtD(mm.date)} prices)` : ""}.
+    ${held.length ? `<br>${held.length} on hold, ${ready.length} ready to send.` : ""}</p>` : "";
+  const row = b => { const sd = sendOf(b);
+    return `<div class="item" onclick="viewBag('${b._id}')"><span class="r">${bagGrams(b).toFixed(1)}g</span><b>Bag ${esc(b.no)}${!b.outAt ? holdPill(bagHold(b)) : ""}${b.weighIssue ? '<span class="pill due">Weight differed</span>' : ""}</b>
+    <span class="muted">${b.outAt ? `Out ${fmtD(b.outAt)} · ${esc(b.outTo || "")}${sd ? " · send " + esc(sd.no) : ""}` : `In ${fmtD(b.inAt)}${b.by ? " · " + esc(b.by) : ""}`}${b.seal ? " · seal " + esc(b.seal) : ""}${b.desc ? " · " + esc(b.desc) : ""}</span></div>`; };
+  $("safeIn").innerHTML = inn.length ? inn.map(row).join("") : '<p class="muted">The safe log is empty. Bags from the Buy log can be put in from the Buy page.</p>';
   $("safeOut").innerHTML = out.length ? out.slice(0, 50).map(row).join("") : '<p class="muted">Nothing booked out yet.</p>';
+  const waiting = sendsAll().filter(s => !s.paidAt).sort((a, b) => a.at.localeCompare(b.at)), done = sendsAll().filter(s => s.paidAt).sort((a, b) => b.paidAt.localeCompare(a.paidAt));
+  $("sendsWait").innerHTML = waiting.length ? waiting.map(sendRow).join("") + `<p class="muted">Waiting for ${gbp(waiting.reduce((t, s) => t + num(s.expected), 0), 0)} in total.</p>` : '<p class="muted">Nothing with the refiner. Use "Send to the refiner" when bags are ready to go.</p>';
+  $("sendsDone").innerHTML = done.length ? done.slice(0, 20).map(sendRow).join("") : '<p class="muted">No settlements recorded yet.</p>';
+  const last = get("safechecks").sort((a, b) => (b.at || "").localeCompare(a.at || ""))[0];
+  $("safeCheckInfo").innerHTML = last ? `Last safe check ${fmtD(last.at)} by ${esc(last.by || "?")}: ${last.found.length} of ${last.total} bags found${last.missing.length ? ` · <b style="color:var(--down)">${last.missing.length} missing</b>` : ""}` : "No safe check done yet.";
+}
+function sendRow(s){
+  const days = Math.floor((Date.now() - new Date(s.at)) / 864e5), d = s.paidAt ? num(s.paid) - num(s.expected) : 0, pct = num(s.expected) ? d / num(s.expected) * 100 : 0;
+  return `<div class="item" onclick="viewSend('${s._id}')"><span class="r">${s.paidAt ? gbp(s.paid, 0) + `<div class="muted" style="font-weight:600;color:${pct < -2 ? "var(--down)" : "var(--up)"}">${d >= 0 ? "+" : "−"}${gbp(Math.abs(d), 0)}</div>` : gbp(s.expected, 0) + '<div class="muted" style="font-weight:400;font-size:12px">expected</div>'}</span>
+    <b>Send ${esc(s.no)} · ${esc(s.to)}${!s.paidAt ? `<span class="pill ${days > 14 ? "due" : ""}">${days} day${days === 1 ? "" : "s"} waiting</span>` : pct < -2 ? '<span class="pill" style="border-color:#6a2a22;color:#f08a7c">Paid short</span>' : ""}</b>
+    <span class="muted">${fmtD(s.at)} · ${s.bagIds.length} bag${s.bagIds.length > 1 ? "s" : ""} · ${num(s.grams).toFixed(1)}g${s.ref ? " · " + esc(s.ref) : ""}</span></div>`;
 }
 function editBag(id, pre){
   const b = (id && get("safebags").find(x => x._id === id)) || pre || {lines: [{carat: "9ct", g: ""}]};
   const lines = (b.lines || []).map(l => Object.assign({}, l));
+  let lotIds = (b.lotIds || []).slice();
   const draw = () => {
     $("bg_lines").innerHTML = lines.map((l, i) => `<div class="line"><select data-i="${i}" data-k="carat" style="max-width:150px">${CARATS.map(([k]) => `<option${l.carat === k ? " selected" : ""}>${k}</option>`).join("")}</select><input data-i="${i}" data-k="g" type="number" inputmode="decimal" step="0.01" placeholder="grams" value="${esc(l.g)}"><button class="x" data-del="${i}">×</button></div>`).join("");
-    $("bg_lines").querySelectorAll("[data-k]").forEach(e => e.oninput = e.onchange = () => { lines[+e.dataset.i][e.dataset.k] = e.value; });
+    $("bg_lines").querySelectorAll("[data-k]").forEach(e => e.oninput = e.onchange = () => { lines[+e.dataset.i][e.dataset.k] = e.value; tot(); });
     $("bg_lines").querySelectorAll("[data-del]").forEach(e => e.onclick = () => { lines.splice(+e.dataset.del, 1); draw(); });
+    tot();
   };
-  const myGold = linked() ? get("stock").filter(x => !x.keep && !x.sent) : [];
+  const tot = () => { const g = lines.reduce((t, l) => t + num(l.g), 0); $("bg_tot").textContent = g ? `Total ${g.toFixed(2)}g` : ""; };
+  const used = new Set(get("safebags").filter(x => x._id !== b._id).flatMap(x => x.lotIds || []));
+  const myGold = linked() ? get("stock").filter(x => !x.keep && !x.sent && x._id && !used.has(x._id) && !(x.bl && get("safebags").some(bb => (bb.buyIds || []).includes(String(x.bl).split(":")[0])))) : [];
   openSheet(id ? `Bag ${b.no}` : "Log a bag into the safe", `
-    <label>Bag number (written on the bag or its seal)</label><input id="bg_no" value="${esc(b.no || "")}" placeholder="leave blank to number it for you">
+    <div class="row"><div><label>Bag number (written on the bag)</label><input id="bg_no" value="${esc(b.no || "")}" placeholder="blank: numbered for you"></div><div><label>Seal number (if sealed)</label><input id="bg_seal" value="${esc(b.seal || "")}"></div></div>
     <label>What's in it</label><input id="bg_desc" value="${esc(b.desc)}" placeholder="e.g. Tuesday's scrap, mixed chains and rings">
-    <h2 style="margin-top:14px">Weights by carat</h2><div id="bg_lines"></div>
+    <h2 style="margin-top:14px">Weights by carat</h2><div id="bg_lines"></div><div class="muted" id="bg_tot" style="margin-top:6px"></div>
     <button class="btn ghost" id="bg_add">+ Add a carat</button>
     ${b.buyIds ? `<p class="muted">Filled from the Buy log. Weigh the bag and correct any weight that's different on the scales.</p>` : ""}
-    ${myGold.length && !id && !b.buyIds ? `<button class="btn ghost" id="bg_fill">Fill from My gold (${myGold.length} lot${myGold.length > 1 ? "s" : ""} not yet sent)</button>` : ""}
+    ${myGold.length && !id && !b.buyIds ? `<button class="btn ghost" id="bg_fill">Fill from My gold (${myGold.length} lot${myGold.length > 1 ? "s" : ""} not in a bag)</button>` : ""}
     <label>Notes</label><input id="bg_notes" value="${esc(b.notes)}">
     <button class="btn" id="bg_save">${id ? "Save changes" : "Log it into the safe"}</button>`);
   draw();
   $("bg_add").onclick = () => { lines.push({carat: "9ct", g: ""}); draw(); };
   if ($("bg_fill")) $("bg_fill").onclick = () => {
     const sum = {}; myGold.forEach(x => { const k = (CARATS.find(c => Math.abs(c[1] - parseFloat(x.k)) < 0.01) || ["Other"])[0]; sum[k] = (sum[k] || 0) + num(x.w); });
-    lines.length = 0; Object.entries(sum).forEach(([k, g]) => lines.push({carat: k, g: g.toFixed(2)})); draw(); toast("Filled from My gold. Check the weights on the scales.");
+    lines.length = 0; Object.entries(sum).forEach(([k, g]) => lines.push({carat: k, g: g.toFixed(2)})); lotIds = myGold.map(x => x._id); draw(); toast("Filled from My gold. Check the weights on the scales.");
   };
   $("bg_save").onclick = () => {
     const ls = lines.filter(l => num(l.g) > 0); if (!ls.length) return toast("Add at least one weight");
-    const list = get("safebags"), rec = Object.assign({}, b, {lines: ls.map(l => ({carat: l.carat, g: num(l.g)})), desc: $("bg_desc").value.trim(), notes: $("bg_notes").value.trim()});
+    const list = get("safebags"), rec = Object.assign({}, b, {lines: ls.map(l => ({carat: l.carat, g: num(l.g)})), desc: $("bg_desc").value.trim(), notes: $("bg_notes").value.trim(), seal: $("bg_seal").value.trim(), lotIds});
+    if (!rec.lotIds.length) delete rec.lotIds;
     const typed = $("bg_no").value.trim();
     if (!rec._id){ rec._id = uid(); rec.no = typed || nextNo(list, "B"); rec.inAt = new Date().toISOString(); rec.by = who(); list.push(rec); }
     else { rec.no = typed || rec.no; list[list.findIndex(x => x._id === rec._id)] = rec; }
@@ -1360,20 +1400,151 @@ function editBag(id, pre){
     put("safebags", list); closeSheet(); toast(`Bag ${rec.no} logged`); renderAll();
   };
 }
+/* weigh before it leaves: anything more than 0.2g and 0.5% different from what was logged is recorded and flagged */
+const weighOff = (logged, now) => Math.abs(now - logged) > 0.2 && Math.abs(now - logged) / Math.max(logged, 0.01) > 0.005;
 function viewBag(id){
   const b = get("safebags").find(x => x._id === id); if (!b) return;
-  const pure = bagPure(b);
+  const pure = bagPure(b), val = bagValue(b), sd = sendOf(b);
   openSheet(`Bag ${b.no}`, `
-    <p class="muted" style="margin-top:0">In ${fmtDT(b.inAt)}${b.by ? " · " + esc(b.by) : ""}${b.outAt ? `<br>Out ${fmtDT(b.outAt)} · ${esc(b.outTo)}${b.outBy ? " · " + esc(b.outBy) : ""}` : ""}</p>
+    <p class="muted" style="margin-top:0">In ${fmtDT(b.inAt)}${b.by ? " · " + esc(b.by) : ""}${b.seal ? " · seal " + esc(b.seal) : ""}${b.outAt ? `<br>Out ${fmtDT(b.outAt)} · ${esc(b.outTo)}${b.outBy ? " · " + esc(b.outBy) : ""}` : ""}</p>
     ${b.desc ? `<p>${esc(b.desc)}</p>` : ""}${!b.outAt && onHold(bagHold(b)) ? `<div class="alert wn">On hold until ${fmtD(bagHold(b))}. Don't melt or sell it on before then.</div>` : ""}
-    <table>${b.lines.map(l => `<tr><td>${esc(l.carat)}</td><td>${num(l.g).toFixed(2)}g</td></tr>`).join("")}<tr><td><b>Total</b></td><td><b>${bagGrams(b).toFixed(2)}g</b></td></tr>
-    ${pure ? `<tr><td>Pure gold</td><td>${pure.toFixed(2)}g${mm && mm.pure_g ? ` · about ${gbp(pure * mm.pure_g, 0)}` : ""}</td></tr>` : ""}</table>
+    ${b.weighIssue ? `<div class="alert wn">Weighed ${num(b.weighedOut).toFixed(2)}g when it left, against ${bagGrams(b).toFixed(2)}g logged in.</div>` : b.weighedOut ? `<p class="muted">Weighed ${num(b.weighedOut).toFixed(2)}g when it left: matches.</p>` : ""}
+    <table>${b.lines.map(l => `<tr><td>${esc(l.carat)}</td><td>${num(l.g).toFixed(2)}g${mm && mm.prices && mm.prices[l.carat] ? ` · ${gbp(num(l.g) * mm.prices[l.carat], 0)}` : ""}</td></tr>`).join("")}<tr><td><b>Total</b></td><td><b>${bagGrams(b).toFixed(2)}g</b></td></tr>
+    ${pure ? `<tr><td>Pure gold</td><td>${pure.toFixed(2)}g${val ? ` · about ${gbp(val, 0)} at Mastermelt today` : ""}</td></tr>` : ""}</table>
     ${b.notes ? `<p class="muted">${esc(b.notes)}</p>` : ""}
-    ${!b.outAt ? `<label>Booking it out to</label><select id="bo_to"><option>Mastermelt</option><option>Another refiner</option><option>Sold as it is</option><option>Back to stock</option><option>Other</option></select>
-      <button class="btn" id="bo_go">Book it out of the safe</button><button class="btn ghost" onclick="td={custId:'',lines:[],notes:''};get('safebags').filter(x=>x._id==='${b._id}').forEach(x=>x.lines.forEach(l=>td.lines.push({kind:'scrap',carat:l.carat,g:String(l.g),ppg:'',bagId:x._id,bagNo:x.no})));tradeForm()">Sell this bag to a contact</button><button class="btn ghost" onclick="editBag('${b._id}')">Edit</button>` : ""}
+    ${sd ? `<button class="btn ghost" onclick="viewSend('${sd._id}')">See send ${esc(sd.no)}</button>` : ""}
+    ${!b.outAt ? `<button class="btn" onclick="sendForm(['${b._id}'])">Send to the refiner</button>
+      <button class="btn ghost" onclick="td={custId:'',lines:[],notes:''};get('safebags').filter(x=>x._id==='${b._id}').forEach(x=>x.lines.forEach(l=>td.lines.push({kind:'scrap',carat:l.carat,g:String(l.g),ppg:'',bagId:x._id,bagNo:x.no})));tradeForm()">Sell this bag to a contact</button>
+      <details style="margin-top:10px"><summary class="muted">Book it out another way</summary>
+        <div class="row"><div><label>To</label><select id="bo_to"><option>Sold as it is</option><option>Back to stock</option><option>Other</option></select></div><div><label>Weight on the scales now (g)</label><input id="bo_w" type="number" inputmode="decimal" step="0.01"></div></div>
+        <button class="btn ghost" id="bo_go">Book it out</button></details>
+      <div class="row"><button class="btn ghost" onclick="editBag('${b._id}')">Edit</button><button class="btn ghost" onclick="printBagLabels(['${b._id}'])">Print bag label</button></div>` : ""}
     ${b.saleId ? `<button class="btn ghost" onclick="viewSale('${b.saleId}')">See the sale</button>` : ""}${histBtn("safebags", b._id)}`);
-  if ($("bo_go")) $("bo_go").onclick = () => { if ($("bo_to").value !== "Back to stock" && !holdOk([bagHold(b)], `Bag ${b.no}`)) return; if (!confirm(`Book bag ${b.no} out to ${$("bo_to").value}?`)) return;
-    const list = get("safebags"), x = list.find(y => y._id === id); x.outAt = new Date().toISOString(); x.outTo = $("bo_to").value; x.outBy = who(); put("safebags", list); closeSheet(); toast(`Bag ${b.no} booked out`); renderAll(); };
+  if ($("bo_go")) $("bo_go").onclick = () => {
+    const w = num($("bo_w").value); if (!(w > 0)) return toast("Weigh the bag first");
+    if ($("bo_to").value !== "Back to stock" && !holdOk([bagHold(b)], `Bag ${b.no}`)) return;
+    if (weighOff(bagGrams(b), w) && !confirm(`It weighs ${w.toFixed(2)}g now but ${bagGrams(b).toFixed(2)}g was logged. Book it out anyway? The difference is recorded.`)) return;
+    const list = get("safebags"), x = list.find(y => y._id === id); x.outAt = new Date().toISOString(); x.outTo = $("bo_to").value; x.outBy = who(); x.weighedOut = w; x.weighIssue = weighOff(bagGrams(b), w);
+    put("safebags", list); closeSheet(); toast(`Bag ${b.no} booked out`); renderAll(); };
+}
+
+/* ---------- sending to the refiner ---------- */
+function sendForm(pick){
+  const inn = get("safebags").filter(b => !b.outAt).sort((a, b) => (a.inAt || "").localeCompare(b.inAt || ""));
+  if (!inn.length) return toast("Nothing in the safe to send");
+  const chosen = new Set(pick || inn.filter(b => !onHold(bagHold(b))).map(b => b._id));
+  openSheet("Send to the refiner", `
+    <div class="row"><div><label>Refiner</label><select id="sn_to"><option>Mastermelt</option><option>Another refiner</option></select></div><div><label>Courier or tracking reference</label><input id="sn_ref" placeholder="e.g. Royal Mail Special Delivery number"></div></div>
+    <h2 style="margin-top:14px">Bags going</h2>
+    ${inn.map(b => `<label style="display:flex;align-items:center;gap:8px;color:var(--text);margin:8px 0"><input type="checkbox" data-sb="${b._id}" style="width:auto"${chosen.has(b._id) ? " checked" : ""}> Bag ${esc(b.no)} · ${bagGrams(b).toFixed(2)}g${b.seal ? " · seal " + esc(b.seal) : ""} ${holdPill(bagHold(b))}</label>`).join("")}
+    <div id="sn_sum" class="muted"></div>
+    <label>Total weight on the scales now (g)</label><input id="sn_w" type="number" inputmode="decimal" step="0.01" placeholder="weigh everything going together">
+    <div id="sn_chk"></div>
+    <label>Insured for (£)</label><input id="sn_ins" type="number" inputmode="decimal">
+    <button class="btn" id="sn_go">Record the send</button>
+    <p class="muted">Afterwards, print the dispatch note to go in the parcel and keep a copy.</p>`);
+  const sel = () => inn.filter(b => document.querySelector(`[data-sb="${b._id}"]`).checked);
+  const upd = () => { const s = sel(), g = s.reduce((t, b) => t + bagGrams(b), 0), v = s.reduce((t, b) => t + bagValue(b), 0);
+    $("sn_sum").innerHTML = s.length ? `${s.length} bag${s.length > 1 ? "s" : ""}, ${g.toFixed(2)}g logged${v ? `, worth about <b>${gbp(v, 0)}</b> to Mastermelt today` : ""}` : "Tick the bags going.";
+    if (!$("sn_ins").dataset.touched) $("sn_ins").value = v ? Math.ceil(v / 100) * 100 : "";
+    const w = num($("sn_w").value); $("sn_chk").innerHTML = w && s.length ? (weighOff(g, w) ? `<div class="alert wn">That's ${Math.abs(w - g).toFixed(2)}g ${w > g ? "more" : "less"} than logged. Check each bag before it goes.</div>` : '<div class="pill ok" style="margin-top:6px">Weight matches</div>') : ""; };
+  document.querySelectorAll("[data-sb]").forEach(e => e.onchange = upd); $("sn_w").oninput = upd; $("sn_ins").oninput = () => $("sn_ins").dataset.touched = 1; upd();
+  $("sn_go").onclick = () => {
+    const s = sel(); if (!s.length) return toast("Tick the bags going");
+    const w = num($("sn_w").value); if (!(w > 0)) return toast("Weigh everything going, together, first");
+    if (!holdOk(s.map(bagHold), "Some of this gold")) return;
+    const g = s.reduce((t, b) => t + bagGrams(b), 0);
+    if (weighOff(g, w) && !confirm(`It weighs ${w.toFixed(2)}g but ${g.toFixed(2)}g was logged. Send anyway? The difference is recorded.`)) return;
+    const sends = sendsAll(), now = new Date().toISOString(), by = {};
+    s.forEach(b => b.lines.forEach(l => { by[l.carat] = Math.round(((by[l.carat] || 0) + num(l.g)) * 100) / 100; }));
+    const rec = {_id: uid(), no: nextNo(sends, "R"), to: $("sn_to").value, at: now, by: who(), ref: $("sn_ref").value.trim(), bagIds: s.map(b => b._id), lines: by, grams: Math.round(g * 100) / 100, weighed: w, weighIssue: weighOff(g, w),
+      pure: Math.round(s.reduce((t, b) => t + bagPure(b), 0) * 100) / 100, expected: Math.round(s.reduce((t, b) => t + bagValue(b), 0) * 100) / 100, mmDate: mm ? mm.date : "", mmPrices: mm ? mm.prices : null, insured: num($("sn_ins").value)};
+    sends.push(rec); put("sends", sends);
+    const bags = get("safebags"); bags.forEach(b => { if (rec.bagIds.includes(b._id)){ b.outAt = now; b.outTo = rec.to; b.outBy = who(); b.sendId = rec._id; } }); put("safebags", bags);
+    const n = takeOffMyGold(s, rec);
+    closeSheet(); toast(`Send ${rec.no} recorded${n ? ` · ${n.toFixed(1)}g taken off My gold` : ""}`); renderAll(); viewSend(rec._id);
+  };
+}
+/* the same gold leaves Gold Trader's My gold list (lots from those Buy log purchases, or lots used to fill the bags),
+   recorded as a refiner batch in Gold Trader's own format, so the two apps never disagree */
+function takeOffMyGold(bags, send){
+  const buyIds = new Set(bags.flatMap(b => b.buyIds || [])), lotIds = new Set(bags.flatMap(b => b.lotIds || []));
+  const st = get("stock"), go = st.filter(x => !x.keep && ((x.bl && buyIds.has(String(x.bl).split(":")[0])) || (x._id && lotIds.has(x._id))));
+  if (!go.length) return 0;
+  const perPure = mm && mm.pure_g ? mm.pure_g : 0, rec = {d: today(), by: {}, pure: 0, purePaid: 0, cost: 0, value: 0, valuePaid: 0, shop: send.no};
+  go.forEach(x => { const p = num(x.w) * parseFloat(x.k); rec.by[x.k] = +((rec.by[x.k] || 0) + num(x.w)).toFixed(2); rec.pure += p; rec.value += p * perPure;
+    if (num(x.paid) > 0){ rec.cost += num(x.paid); rec.purePaid += p; rec.valuePaid += p * perPure; } });
+  ["pure", "purePaid", "cost", "value", "valuePaid"].forEach(k => rec[k] = Math.round(rec[k] * 100) / 100);
+  const ids = new Set(go.map(x => x._id || x.bl));
+  put("stock", st.filter(x => !ids.has(x._id || x.bl)));
+  const sent = get("sent"); sent.push(rec); put("sent", sent.slice(-300));
+  return go.reduce((t, x) => t + num(x.w), 0);
+}
+function viewSend(id){
+  const s = sendsAll().find(x => x._id === id); if (!s) return;
+  const bags = get("safebags").filter(b => s.bagIds.includes(b._id)), d = s.paidAt ? num(s.paid) - num(s.expected) : 0, pct = num(s.expected) ? d / num(s.expected) * 100 : 0;
+  openSheet(`Send ${s.no}`, `
+    <p class="muted" style="margin-top:0">To ${esc(s.to)} · ${fmtDT(s.at)}${s.by ? " · " + esc(s.by) : ""}${s.ref ? "<br>Tracking: " + esc(s.ref) : ""}${s.insured ? "<br>Insured for " + gbp(s.insured, 0) : ""}</p>
+    <table>${Object.entries(s.lines).map(([k, g]) => `<tr><td>${esc(k)}</td><td>${num(g).toFixed(2)}g${s.mmPrices && s.mmPrices[k] ? ` · ${gbp(num(g) * s.mmPrices[k], 0)}` : ""}</td></tr>`).join("")}
+      <tr><td><b>Total</b></td><td><b>${num(s.grams).toFixed(2)}g</b> (weighed ${num(s.weighed).toFixed(2)}g)</td></tr>
+      <tr><td>Expected from Mastermelt</td><td><b>${gbp(s.expected)}</b>${s.mmDate ? `<div class="muted">at ${fmtD(s.mmDate)} prices</div>` : ""}</td></tr></table>
+    ${s.weighIssue ? `<div class="alert wn">Weighed ${num(s.weighed).toFixed(2)}g when sent, against ${num(s.grams).toFixed(2)}g logged.</div>` : ""}
+    <p class="muted">Bags: ${bags.map(b => `<a href="#" style="color:var(--gold2)" onclick="viewBag('${b._id}');return false">${esc(b.no)}</a>`).join(", ")}</p>
+    ${s.paidAt ? `<h2 style="margin-top:14px">Settlement</h2><table>
+        <tr><td>Paid</td><td><b>${gbp(s.paid)}</b> on ${fmtD(s.paidAt)}</td></tr>${s.fine ? `<tr><td>Fine gold (assay)</td><td>${num(s.fine).toFixed(2)}g against ${num(s.pure).toFixed(2)}g expected</td></tr>` : ""}
+        ${s.payRef ? `<tr><td>Their reference</td><td>${esc(s.payRef)}</td></tr>` : ""}<tr><td>Against expected</td><td style="color:${pct < -2 ? "var(--down)" : "var(--up)"}"><b>${d >= 0 ? "+" : "−"}${gbp(Math.abs(d))} (${pct >= 0 ? "+" : "−"}${Math.abs(pct).toFixed(1)}%)</b></td></tr></table>
+        ${pct < -2 ? `<div class="alert bad">Paid ${Math.abs(pct).toFixed(1)}% less than the gold was worth at their prices on the day it went. Ask for the assay breakdown: a lower-than-hallmarked result, solder or a price-date difference are the usual reasons.</div>` : ""}
+        ${s.notes ? `<p class="muted">${esc(s.notes)}</p>` : ""}`
+      : `<h2 style="margin-top:14px">When they pay</h2>
+        <div class="row"><div><label>Amount paid (£)</label><input id="st_paid" type="number" inputmode="decimal"></div><div><label>Date paid</label><input id="st_date" type="date" value="${today()}"></div></div>
+        <div class="row"><div><label>Fine gold on their assay (g, optional)</label><input id="st_fine" type="number" inputmode="decimal" step="0.01" placeholder="${num(s.pure).toFixed(2)} expected"></div><div><label>Their reference</label><input id="st_ref"></div></div>
+        <label>Notes</label><input id="st_notes"><button class="btn" id="st_go">Record the settlement</button>`}
+    <button class="btn ghost" onclick="dispatchNote('${s._id}')">Print the dispatch note</button>${histBtn("sends", s._id)}`);
+  if ($("st_go")) $("st_go").onclick = () => {
+    const paid = num($("st_paid").value); if (!(paid > 0)) return toast("Enter what they paid");
+    const list = sendsAll(), x = list.find(y => y._id === id); Object.assign(x, {paid, paidAt: $("st_date").value || today(), fine: num($("st_fine").value) || "", payRef: $("st_ref").value.trim(), notes: $("st_notes").value.trim(), settledBy: who()});
+    put("sends", list); renderAll(); viewSend(id);
+    const p = num(x.expected) ? (paid - num(x.expected)) / num(x.expected) * 100 : 0; toast(p < -2 ? `Paid ${Math.abs(p).toFixed(1)}% short` : "Settlement recorded");
+  };
+}
+function dispatchNote(id){
+  const s = sendsAll().find(x => x._id === id); if (!s) return;
+  const bags = get("safebags").filter(b => s.bagIds.includes(b._id)), w = window.open("", "_blank"); if (!w) return toast("Allow pop-ups to print");
+  w.document.write(`<!DOCTYPE html><html><head><title>Dispatch note ${esc(s.no)}</title><style>body{font:13px/1.45 -apple-system,Segoe UI,Roboto,sans-serif;max-width:700px;margin:20px auto;padding:0 16px;color:#000}h1{font-size:20px;margin:0}table{width:100%;border-collapse:collapse;margin:10px 0}td,th{border:1px solid #999;padding:5px 7px;text-align:left}.s{height:40px;border-bottom:1px solid #000;margin-top:24px}</style></head><body>
+    <h1>${esc(bizName())}</h1><div>${esc([blSettings.addr, blSettings.phone].filter(Boolean).join(" · "))}</div>
+    <h2 style="font-size:16px">Dispatch note ${esc(s.no)} to ${esc(s.to)}</h2><p>${fmtDT(s.at)} · sent by ${esc(s.by || "")}${s.ref ? " · tracking " + esc(s.ref) : ""}${s.insured ? " · insured for " + gbp(s.insured, 0) : ""}</p>
+    <table><tr><th>Bag</th><th>Seal</th><th>Contents</th><th>Weight</th></tr>${bags.map(b => `<tr><td>${esc(b.no)}</td><td>${esc(b.seal || "")}</td><td>${b.lines.map(l => `${esc(l.carat)} ${num(l.g).toFixed(2)}g`).join(", ")}</td><td>${bagGrams(b).toFixed(2)}g</td></tr>`).join("")}
+    <tr><th colspan="3">Total (weighed together: ${num(s.weighed).toFixed(2)}g)</th><th>${num(s.grams).toFixed(2)}g</th></tr></table>
+    <table>${Object.entries(s.lines).map(([k, g]) => `<tr><td>${esc(k)}</td><td>${num(g).toFixed(2)}g</td></tr>`).join("")}</table>
+    <div style="display:flex;gap:30px"><div style="flex:1"><div class="s"></div>Packed by</div><div style="flex:1"><div class="s"></div>Checked by</div><div style="flex:1"><div class="s"></div>Date</div></div>
+    <script>setTimeout(()=>print(),400)<\/script></body></html>`);
+  w.document.close();
+}
+/* bag labels with a QR code of the bag number */
+function printBagLabels(ids){
+  const bags = get("safebags").filter(b => ids.includes(b._id)); if (!bags.length) return;
+  const qr = t => { try { const q = qrcode(0, "M"); q.addData(t); q.make(); return q.createSvgTag({cellSize: 2, margin: 0}); } catch(e){ return ""; } };
+  const w = window.open("", "_blank"); if (!w) return toast("Allow pop-ups to print labels");
+  w.document.write(`<!DOCTYPE html><html><head><title>Bag labels</title><style>@page{margin:8mm}body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;margin:0}.g{display:flex;flex-wrap:wrap;gap:3mm}.t{width:70mm;height:36mm;border:.3mm dashed #999;box-sizing:border-box;padding:2.5mm;display:flex;gap:2.5mm;font-size:2.8mm;line-height:1.3;page-break-inside:avoid}.t svg{width:20mm;height:20mm;flex:none}.n{font-size:5mm;font-weight:800}</style></head><body><div class="g">
+    ${bags.map(b => `<div class="t">${qr(b.no)}<div><div>${esc(bizName())}</div><div class="n">${esc(b.no)}</div><div>In ${fmtD(b.inAt)}${b.seal ? " · seal " + esc(b.seal) : ""}</div><div>${b.lines.map(l => `${esc(l.carat)} ${num(l.g).toFixed(2)}g`).join(" · ")}</div><div><b>${bagGrams(b).toFixed(2)}g</b>${onHold(bagHold(b)) ? " · hold until " + fmtD(bagHold(b)) : ""}</div></div></div>`).join("")}
+    </div><script>setTimeout(()=>print(),400)<\/script></body></html>`);
+  w.document.close();
+}
+function safeCheck(){
+  const bags = get("safebags").filter(b => !b.outAt).sort((a, b) => (a.no || "").localeCompare(b.no || ""));
+  if (!bags.length) return toast("The safe log is empty");
+  const found = new Set();
+  openSheet("Safe check", `<p class="muted" style="margin-top:0">Scan each bag label or type its number, or tick bags as you see them. Check seals are intact.</p>
+    <input id="sk_in" placeholder="Scan or type a bag number, then Enter" autocomplete="off"><div id="sk_msg" class="muted" style="margin-top:6px"></div><div id="sk_list"></div><button class="btn" id="sk_done">Finish the check</button>`);
+  const draw = () => { $("sk_list").innerHTML = bags.map(b => `<label style="display:flex;align-items:center;gap:8px;color:var(--text);margin:8px 0"><input type="checkbox" data-k="${b._id}" style="width:auto"${found.has(b._id) ? " checked" : ""}> Bag ${esc(b.no)} · ${bagGrams(b).toFixed(2)}g${b.seal ? " · seal " + esc(b.seal) : ""}</label>`).join("");
+    $("sk_list").querySelectorAll("[data-k]").forEach(e => e.onchange = () => { e.checked ? found.add(e.dataset.k) : found.delete(e.dataset.k); $("sk_msg").textContent = `${found.size} of ${bags.length} found`; }); $("sk_msg").textContent = `${found.size} of ${bags.length} found`; };
+  draw(); setTimeout(() => $("sk_in").focus(), 50);
+  $("sk_in").onkeydown = e => { if (e.key !== "Enter") return; const v = $("sk_in").value.trim().toUpperCase(), b = bags.find(x => (x.no || "").toUpperCase() === v); $("sk_in").value = "";
+    if (!b){ $("sk_msg").innerHTML = `<b style="color:var(--down)">${esc(v)} isn't in the safe log.</b>`; return; } found.add(b._id); draw(); };
+  $("sk_done").onclick = () => { const missing = bags.filter(b => !found.has(b._id));
+    if (missing.length && !confirm(`${missing.length} bag${missing.length > 1 ? "s" : ""} not found: ${missing.map(b => b.no).join(", ")}. Save the check with these marked missing?`)) return;
+    const list = get("safechecks"); list.push({_id: uid(), at: new Date().toISOString(), by: who(), total: bags.length, found: [...found], missing: missing.map(b => b._id)}); put("safechecks", list);
+    closeSheet(); toast(missing.length ? `Saved: ${missing.length} missing` : "All bags present"); renderAll(); };
 }
 
 /* ============ SETTINGS, LOCK, BACKUP ============ */
@@ -1473,7 +1644,7 @@ function renderStatus(){
 }
 window.addEventListener("dgsync-status", renderStatus);
 setInterval(renderStatus, 20000);
-const KIND = {sales: "Sale", forsale: "Stock piece", customers: "Customer", safebags: "Safe bag", stock: "My gold lot", buys: "Buying entry", sent: "Refiner batch", visits: "Diary visit", cash: "Cash entry", staff: "Staff", till: "Till entry", shopcfg: "Receipt settings", stockchecks: "Stock check"};
+const KIND = {sales: "Sale", forsale: "Stock piece", customers: "Customer", safebags: "Safe bag", stock: "My gold lot", buys: "Buying entry", sent: "Refiner batch", visits: "Diary visit", cash: "Cash entry", staff: "Staff", till: "Till entry", shopcfg: "Receipt settings", stockchecks: "Stock check", sends: "Refiner send", safechecks: "Safe check"};
 function docLabel(id){
   const [k, ...r] = id.split(":");
   if (k === "a"){ const key = r[0], iid = r.slice(1).join(":"), x = get(key).find(y => y._id === iid), name = KIND[key] || key;
@@ -1528,7 +1699,7 @@ async function showHistory(id){
 }
 const histBtn = (key, id) => window.DGSync && DGSync.joined && DGSync.joined() ? `<button class="btn ghost" onclick="showHistory('a:${key}:${esc(id)}')">History of changes</button>` : "";
 async function backup(){
-  const data = {app: "dgj-shop", version: 2, exportedAt: new Date().toISOString(), sales: get("sales"), forsale: get("forsale"), customers: get("customers"), safebags: get("safebags"), staff: get("staff"), till: get("till"), shopcfg: get("shopcfg"), stockchecks: get("stockchecks"), photos: {}};
+  const data = {app: "dgj-shop", version: 2, exportedAt: new Date().toISOString(), sales: get("sales"), forsale: get("forsale"), customers: get("customers"), safebags: get("safebags"), staff: get("staff"), till: get("till"), shopcfg: get("shopcfg"), stockchecks: get("stockchecks"), sends: get("sends"), safechecks: get("safechecks"), photos: {}};
   for (const c of data.customers.concat(data.forsale)) for (const p of (c.photos || [])) if (p.ref && !data.photos[p.ref]) data.photos[p.ref] = await photoSrc(p);
   const blob = new Blob([JSON.stringify(data)], {type: "application/json"}), name = `shop-backup-${today()}.json`, file = new File([blob], name, {type: "application/json"});
   if (navigator.canShare && navigator.canShare({files: [file]})) navigator.share({files: [file], title: name}).catch(() => {});
