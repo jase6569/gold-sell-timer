@@ -99,6 +99,31 @@
   .qrview h3{margin:0 0 6px;font-size:22px}
   .qrview p{margin:6px 0;font-size:16px}
 
+  /* same look as the Shop app */
+  :root{--bg:#0f0e0c;--card:#1a1815;--ink:#f3efe6;--muted:#a39d90;--line:#2c2924;--red:#e05d4f;--green:#3fb27f}
+  .card h2,.item h3{color:var(--gold2)}
+  input,select,textarea{background:#12110f;border-color:var(--line);color:var(--ink)}
+  .btn.ghost{background:none;border-color:var(--line);color:var(--ink)}
+  .btn.navy{background:var(--gold);color:#1a1405}
+  .btn.red{background:none;border-color:#6a2a22;color:#f08a7c}
+  .item{border-color:var(--line)}
+  .photos .ph,.rec .thumb{background:#222}
+  .alert.warn{background:rgba(227,163,59,.08);border-color:#8a5a20;color:#f0c27a}
+  .alert.bad{background:rgba(224,93,79,.08);border-color:#6a2a22;color:#f3a296}
+  .alert.ok{background:rgba(63,178,127,.08);border-color:#2f6b4f;color:#9fe0bd}
+  .rec .amt,.stat b{color:var(--gold2)}
+  .pill{background:#2a2620;color:var(--muted)}.pill.flag{background:rgba(224,93,79,.15);color:#f08a7c}
+  .modal .sheet{background:var(--bg)}
+  .toast{background:#2a261e;border:1px solid var(--gold)}
+  #bkNag{background:rgba(227,163,59,.08)!important}
+  .price{font-size:13px;color:var(--muted);margin-top:6px}.price b{color:var(--ink)}
+  .cols2{display:flex;flex-direction:column}.cols2>div{display:contents}
+  .o1{order:1}.o2{order:2}.o3{order:3}.o4{order:4}.o5{order:5}.o6{order:6}
+  @media (min-width:1100px){
+    main{max-width:1240px}
+    .cols2{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}.cols2>div{display:block}
+  }
+
   /* Print: police report */
   #print{display:none}
   @media print{
@@ -151,7 +176,9 @@
       <p class="muted" id="bkNagMsg" style="margin:6px 0 10px"></p>
       <button class="btn navy" id="bkNagBtn">Back up now</button>
     </div>
-    <div class="card">
+<div class="cols2">
+  <div>
+    <div class="card o1">
       <h2>Seller</h2>
       <div class="row">
         <div><label>First name(s)*</label><input id="f_first" autocomplete="off"></div>
@@ -171,7 +198,7 @@
       <input id="f_vrm" autocomplete="off" style="text-transform:uppercase">
     </div>
 
-    <div class="card">
+    <div class="card o2">
       <h2>Identification</h2>
       <div class="row">
         <div><label>Photo ID type*</label>
@@ -210,7 +237,24 @@
       <div id="idScanBox" class="hidden"><button class="btn gold" id="idScanBtn" style="width:100%">✨ Fill in the details from the ID photo</button><div id="idScanMsg"></div></div>
     </div>
 
-    <div class="card">
+    <div class="card o6">
+      <h2>Declaration & signature</h2>
+      <div class="check"><input type="checkbox" id="f_decl"><label for="f_decl" style="margin:0;color:var(--ink)">I confirm I am the legal owner of the items listed, I have the right to sell them, they are not stolen or subject to any finance, and the details I have given are true. I agree to my details being kept on record and passed to the police if requested.</label></div>
+      <label>Seller signature*</label>
+      <div class="sig-wrap"><canvas id="sig"></canvas><span class="hint" id="sigHint">Sign here with your finger</span></div>
+      <div class="actions"><button class="btn ghost sm" id="sigClear">Clear signature</button></div>
+      <div class="row">
+        <div><label>Staff member*</label><input id="f_staff" autocomplete="off"></div>
+        <div><label>Location</label><input id="f_loc" autocomplete="off"></div>
+      </div>
+      <label>Notes (anything unusual about the sale)</label>
+      <textarea id="f_notes"></textarea>
+      <div class="check"><input type="checkbox" id="f_flag"><label for="f_flag" style="margin:0;color:var(--ink)">Flag this sale as suspicious</label></div>
+    </div>
+
+  </div>
+  <div>
+    <div class="card o3">
       <h2>Items bought</h2>
       <label style="margin-top:0">Photos of everything bought*</label>
       <p class="muted" style="margin:0">Lay all the items out together, then put them on the scales so the weight shows in the shot.</p>
@@ -224,9 +268,18 @@
       <div id="items"></div>
       <div class="actions"><button class="btn ghost" id="addItem">+ Add another item</button></div>
       <div class="total"><span>Total paid</span><span id="totalOut">£0.00</span></div>
+      <div id="priceBox"></div>
     </div>
 
-    <div class="card">
+    <div class="card o4">
+      <h2>Stolen-goods check</h2>
+      <p class="muted" style="margin-top:0" id="cmNote">Check watches and anything with a serial number on CheckMEND (or another stolen-property register) before paying.</p>
+      <div class="check"><input type="checkbox" id="f_cm"><label for="f_cm" style="margin:0;color:var(--ink)">Checked on CheckMEND or another stolen-property register: nothing found</label></div>
+      <label>Check reference</label><input id="f_cmref" autocomplete="off" placeholder="e.g. the CheckMEND certificate number">
+      <div id="holdNote" class="muted" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card o5">
       <h2>Payment</h2>
       <div class="row">
         <div><label>Method*</label>
@@ -247,21 +300,8 @@
       <div id="payAlerts"></div>
     </div>
 
-    <div class="card">
-      <h2>Declaration & signature</h2>
-      <div class="check"><input type="checkbox" id="f_decl"><label for="f_decl" style="margin:0;color:var(--ink)">I confirm I am the legal owner of the items listed, I have the right to sell them, they are not stolen or subject to any finance, and the details I have given are true. I agree to my details being kept on record and passed to the police if requested.</label></div>
-      <label>Seller signature*</label>
-      <div class="sig-wrap"><canvas id="sig"></canvas><span class="hint" id="sigHint">Sign here with your finger</span></div>
-      <div class="actions"><button class="btn ghost sm" id="sigClear">Clear signature</button></div>
-      <div class="row">
-        <div><label>Staff member*</label><input id="f_staff" autocomplete="off"></div>
-        <div><label>Location</label><input id="f_loc" autocomplete="off"></div>
-      </div>
-      <label>Notes (anything unusual about the sale)</label>
-      <textarea id="f_notes"></textarea>
-      <div class="check"><input type="checkbox" id="f_flag"><label for="f_flag" style="margin:0;color:var(--ink)">Flag this sale as suspicious</label></div>
-    </div>
-
+  </div>
+</div>
     <div id="formErrors"></div>
     <button class="btn gold block" id="saveBtn" style="padding:16px;font-size:17px">Save purchase record</button>
     <div class="actions" style="justify-content:center"><button class="btn ghost sm" id="resetBtn">Clear form</button></div>
@@ -303,6 +343,15 @@
       <label>Default location</label><input id="s_loc">
       <label>Receipt prefix</label><input id="s_prefix" maxlength="6">
       <div class="actions"><button class="btn gold" id="saveSettings">Save settings</button></div>
+    </div>
+    <div class="card">
+      <h2>Buying rules (shared with the team)</h2>
+      <label>Your offer, as a % of what Mastermelt pays (leave blank to only see melt value)</label><input id="s_offerPct" type="number" inputmode="decimal" placeholder="e.g. 75">
+      <label>Holding period before bought gold can be melted or sold on (days)</label><input id="s_holdDays" type="number" inputmode="numeric" placeholder="14">
+      <p class="muted" style="margin:4px 0 0">Many police forces and licences expect bought items to be held for a period in case they turn out to be stolen. Check what applies to you. 0 means no hold.</p>
+      <label>Stolen-goods check needed for buys of (£) or more</label><input id="s_cmAt" type="number" inputmode="decimal" placeholder="1000">
+      <p class="muted" style="margin:4px 0 0">Watches always need it.</p>
+      <div class="actions"><button class="btn gold" id="saveRules">Save buying rules</button></div>
     </div>
     <div class="card" id="dpSettings">
       <h2>Data protection</h2>
@@ -363,7 +412,7 @@
 <input type="file" id="lotCamIn" accept="image/*" capture="environment" class="hidden">
 <input type="file" id="galleryIn" accept="image/*" multiple class="hidden">
 
-<script src="../sync.js?v=10"></script>
+<script src="../sync.js?v=11"></script>
 <script src="../keep.js?v=1"></script>
 <script src="qrcode.min.js"></script>
 <script>if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../sw.js", {scope: "../"}).catch(() => {}));</script>
@@ -458,7 +507,7 @@ function removeFromMyGold(rec){
 function inMyGold(rec){ return myGold().filter(x => x.bl && x.bl.startsWith(rec.id + ':')); }
 
 /* ---------- settings ---------- */
-let settings = { biz:CFG.biz, addr:'', phone:'', staff:'', loc:'Poole', prefix:CFG.prefix, retain:'6', autolock:'5', pinHash:'', revLink:'', revMsg:'' };
+let settings = { biz:CFG.biz, addr:'', phone:'', staff:'', loc:'Poole', prefix:CFG.prefix, retain:'6', autolock:'5', pinHash:'', revLink:'', revMsg:'', offerPct:'', holdDays:'14', cmAt:'1000' };
 async function loadSettings(){ const s = await kvGet('settings'); if (s) settings = {...settings, ...s};
   // one-off: the business is now Dorset Gold & Jewellery (records and the database keep their old names)
   if (settings.biz === 'Dorset Jewellers' || settings.prefix === 'DJ'){ if (settings.biz === 'Dorset Jewellers') settings.biz = CFG.biz; if (settings.prefix === 'DJ') settings.prefix = CFG.prefix; await saveSettingsObj(); } }
@@ -521,6 +570,7 @@ function renderItems(){
         <div><label>Weight (g)</label><input data-k="weight" data-i="${i}" inputmode="decimal" value="${esc(it.weight)}"></div>
         <div><label>Price paid (£)*</label><input data-k="price" data-i="${i}" inputmode="decimal" value="${esc(it.price)}"></div>
       </div>
+      <div class="price" data-price="${i}"></div>
       <div class="actions"><button class="btn ghost sm" data-itemshot="${i}">📷 Photo of this item</button><button class="btn ghost sm" data-itemgallery="${i}">🖼 From gallery</button></div>
       <div class="photos">${it.photos.map((p,j)=>`<div class="ph"><img src="${p}"><button data-rmph="${i}:${j}">×</button></div>`).join('')}</div>
     </div>`).join('');
@@ -528,7 +578,7 @@ function renderItems(){
     el.oninput = el.onchange = () => { items[+el.dataset.i][el.dataset.k] = el.value; updateTotal();
       if (['desc','metal','hallmark'].includes(el.dataset.k)){ const h = $(`#items [data-hint="${el.dataset.i}"]`), why = keepHint(items[+el.dataset.i]); h.classList.toggle('hidden', !why); h.querySelector('span').textContent = why; } };
   });
-  $$('#items [data-keep]').forEach(el => el.onchange = () => { items[+el.dataset.keep].keep = el.checked; });
+  $$('#items [data-keep]').forEach(el => el.onchange = () => { items[+el.dataset.keep].keep = el.checked; updateTotal(); });
   $$('#items [data-rmitem]').forEach(b => b.onclick = () => { items.splice(+b.dataset.rmitem,1); renderItems(); });
   $$('#items [data-itemshot]').forEach(b => b.onclick = () => { pendingItem = +b.dataset.itemshot; $('#itemCamIn').value=''; $('#itemCamIn').click(); });
   $$('#items [data-itemgallery]').forEach(b => b.onclick = () => { galleryTarget = {item:+b.dataset.itemgallery}; $('#galleryIn').value=''; $('#galleryIn').click(); });
@@ -566,8 +616,37 @@ function renderLotPhotos(){
 }
 $('#addItem').onclick =() => { items.push(blankItem()); renderItems(); };
 function total(){ return items.reduce((s,it)=>s+(parseFloat(it.price)||0),0); }
-function updateTotal(){ $('#totalOut').textContent = gbp(total()); checkPay(); }
+function updateTotal(){ $('#totalOut').textContent = gbp(total()); checkPay(); priceHelp(); cmRule(); }
+/* ---------- pricing help: melt value at Mastermelt today, your offer, and a warning when a price doesn't add up ---------- */
+let MM = null;
+fetch('../mastermelt.json?t=' + Date.now()).then(r => r.json()).then(j => { if (j && j.ok && j.prices) { MM = j; priceHelp(); } }).catch(() => {});
+const meltOf = it => { if (!MM || !isGold(it)) return 0; const k = String(it.purity || '').split(' ')[0], p = MM.prices[k]; return p && parseFloat(it.weight) > 0 ? p * parseFloat(it.weight) : 0; };
+function priceHelp(){
+  const pct = parseFloat(settings.offerPct) || 0; let melt = 0, paidOnMelt = 0;
+  items.forEach((it, i) => {
+    const el = $(`#items [data-price="${i}"]`); if (!el) return;
+    const m = meltOf(it), paid = parseFloat(it.price) || 0, out = [];
+    if (m){
+      melt += m; paidOnMelt += paid;
+      out.push(`Melt value at Mastermelt today: <b>${gbp(m)}</b>` + (pct ? ` · your offer at ${pct}%: <b>${gbp(m * pct / 100)}</b>` : ''));
+      if (paid > m + 0.004 && !it.keep) out.push(`<span style="color:#f08a7c">You're paying ${gbp(paid - m)} more than Mastermelt pays. That's a loss unless you sell it as a piece (tick Keep it).</span>`);
+      else if (paid && paid < m * 0.3) out.push(`<span style="color:#f0c27a">That's under 30% of melt value. Check the weight and the price are right.</span>`);
+    } else if (isGold(it) && it.purity && MM && !(parseFloat(it.weight) > 0)) out.push('Enter the weight to see its melt value.');
+    el.innerHTML = out.join('<br>');
+  });
+  const box = $('#priceBox'); if (!box) return;
+  box.innerHTML = melt ? `<div class="price" style="margin-top:8px">Gold in this purchase is worth <b>${gbp(melt)}</b> to Mastermelt (${fmtDate(MM.date)} prices). You're paying <b>${gbp(paidOnMelt)}</b> for it: <b style="color:${melt - paidOnMelt >= 0 ? 'var(--green)' : 'var(--red)'}">${melt - paidOnMelt >= 0 ? gbp(melt - paidOnMelt) + ' margin' : gbp(paidOnMelt - melt) + ' over melt'}</b> (${Math.round(paidOnMelt / melt * 100)}% of melt).</div>` : (MM ? '' : '<div class="price" style="margin-top:8px">Mastermelt prices aren\'t available right now, so no melt values.</div>');
+}
+/* ---------- stolen-goods check and holding period ---------- */
+const cmNeeded = () => items.some(it => it.desc.trim() && it.metal === 'Watch') || total() >= (parseFloat(settings.cmAt) || 1000);
+function cmRule(){
+  const need = cmNeeded(), hd = parseInt(settings.holdDays ?? '14', 10) || 0;
+  $('#cmNote').innerHTML = need ? `<b style="color:#f0c27a">Needed for this purchase</b> (${items.some(it => it.desc.trim() && it.metal === 'Watch') ? 'it includes a watch' : 'it\'s ' + gbp(parseFloat(settings.cmAt) || 1000) + ' or more'}). Check it on CheckMEND or another stolen-property register before paying.`
+    : 'Check watches and anything with a serial number on CheckMEND (or another stolen-property register) before paying.';
+  $('#holdNote').textContent = hd ? `Everything bought is held for ${hd} days (until ${fmtDate(new Date(Date.now() + hd * 864e5).toISOString().slice(0, 10))}) before it can be melted or sold on.` : '';
+}
 
+['#f_idtype','#f_poa'].forEach(k => $(k).addEventListener('change', () => checkId()));
 $('#f_pay').onchange = () => { $('#bankRow').classList.toggle('hidden', $('#f_pay').value!=='Bank transfer'); checkPay(); };
 function checkPay(){
   const out = [];
@@ -583,6 +662,7 @@ async function checkId(){
   if (exp && new Date(exp+'T23:59') < new Date()) out.push(`<div class="alert bad">This ID expired on ${fmtDate(exp)}.</div>`);
   const a = age($('#f_dob').value);
   if (a !== null && a < 18) out.push(`<div class="alert bad">Seller is ${a}, under 18.</div>`);
+  if ($('#f_idtype').value && !$('#f_poa').value && $('#f_idtype').value !== 'UK driving licence') out.push(`<div class="alert warn">No proof of address, and a ${esc($('#f_idtype').value.toLowerCase())} doesn't show one. Ask for a utility bill, bank statement or council tax bill.</div>`);
   const idn = norm($('#f_idnum').value);
   const name = (norm($('#f_first').value) + norm($('#f_last').value));
   const dob = $('#f_dob').value;
@@ -594,6 +674,8 @@ async function checkId(){
       const flagged = hits.some(r=>r.flagged);
       const last = hits.sort((a,b)=>b.createdAt.localeCompare(a.createdAt))[0];
       const nameMismatch = idn.length>=4 && hits.some(r => norm(r.seller.idnum)===idn && name.length>3 && norm(r.seller.first)+norm(r.seller.last)!==name);
+      const recent = hits.filter(r => Date.now() - new Date(r.createdAt) < 30 * 864e5).length;
+      if (recent >= 3) out.push(`<div class="alert bad"><b>Sold to you ${recent} times in the last 30 days.</b> Frequent selling can be a sign of stolen goods. Ask where the items came from, and note the answer.</div>`);
       out.push(`<div class="alert ${flagged||nameMismatch?'bad':'ok'}">
         <b>Returning seller:</b> ${hits.length} previous sale${hits.length>1?'s':''}, ${gbp(spent)} in total. Last seen ${fmtDT(last.createdAt)}.
         ${flagged?'<br><b>One or more previous sales were flagged as suspicious.</b>':''}
@@ -647,7 +729,7 @@ function resetForm(){
   $('#f_staff').value = signedIn || settings.staff||''; $('#f_loc').value = settings.loc||'';
   idPhotos=[]; lotPhotos=[]; items=[blankItem()]; $('#idScanMsg').innerHTML=''; renderIdPhotos(); renderLotPhotos(); renderItems();
   $('#sigClear').click(); setAlerts(''); $('#payAlerts').innerHTML=''; $('#formErrors').innerHTML='';
-  $('#bankRow').classList.add('hidden');
+  $('#bankRow').classList.add('hidden'); try { cmRule(); priceHelp(); } catch(e){}
 }
 $('#resetBtn').onclick = () => { if (confirm('Clear everything on this form?')) resetForm(); };
 
@@ -668,6 +750,8 @@ $('#saveBtn').onclick = async () => {
   if (!v('#f_dob')) errs.push('Date of birth');
   if (!v('#f_addr') || !v('#f_pc')) errs.push('Address and postcode');
   if (!v('#f_idtype') || !v('#f_idnum')) errs.push('ID type and number');
+  if (!v('#f_idexp')) errs.push('ID expiry date');
+  else if (new Date(v('#f_idexp') + 'T23:59') < new Date()) errs.push('In-date photo ID (this one has expired)');
   if (!idPhotos.some(p=>p.label==='ID front')) errs.push('Photo of the ID (front)');
   const goodItems = items.filter(it => it.desc.trim());
   if (!goodItems.length) errs.push('At least one item with a description');
@@ -677,6 +761,7 @@ $('#saveBtn').onclick = async () => {
     if (isGold(it) && !FINENESS[it.purity]) errs.push(`The carat for gold item ${n} (test it if unsure), so it can go into My gold`);
     if (isGold(it) && !(parseFloat(it.weight) > 0)) errs.push(`The weight of gold item ${n}, so it can go into My gold`); });
   if (!v('#f_pay')) errs.push('Payment method');
+  if (cmNeeded() && !$('#f_cm').checked) errs.push('The stolen-goods check (tick it once done)');
   if (!$('#f_decl').checked) errs.push('Seller declaration ticked');
   if (!sigDirty) errs.push('Seller signature');
   if (!v('#f_staff')) errs.push('Staff member name');
@@ -704,6 +789,9 @@ $('#saveBtn').onclick = async () => {
     declaration: true,
     signature: sig.toDataURL('image/png'),
     staff: v('#f_staff'), location: v('#f_loc'), notes: v('#f_notes'), flagged: $('#f_flag').checked,
+    stolenCheck: $('#f_cm').checked ? { done: true, ref: v('#f_cmref'), at: now } : null,
+    holdUntil: (parseInt(settings.holdDays ?? '14', 10) || 0) ? new Date(Date.now() + (parseInt(settings.holdDays ?? '14', 10)) * 864e5).toISOString().slice(0, 10) : '',
+    meltAtBuy: MM ? Math.round(goodItems.reduce((t, it) => t + meltOf(it), 0) * 100) / 100 : null, mmDate: MM ? MM.date : '',
     history: [{ at: now, what: 'Created' }]
   };
   if (window.DGSync && DGSync.joined()) rec._who = DGSync.me();
@@ -773,6 +861,9 @@ async function openRecord(id, opts={}){
       <div><b style="font-size:18px">${esc(r.receipt)}</b><div class="muted">${fmtDT(r.createdAt)} · ${esc(r.staff)}${r.location?' · '+esc(r.location):''}</div></div>
       <button class="btn ghost sm" data-close>Close</button></div>
     ${r.flagged?'<div class="alert bad" style="margin:0 0 12px"><b>Flagged as suspicious</b></div>':''}
+    ${r.holdUntil ? `<div class="alert ${r.holdUntil > new Date().toISOString().slice(0,10) ? 'warn' : 'ok'}" style="margin:0 0 12px">${r.holdUntil > new Date().toISOString().slice(0,10) ? 'On hold until ' + fmtDate(r.holdUntil) + ': don\'t melt or sell on before then.' : 'Holding period ended ' + fmtDate(r.holdUntil) + '.'}</div>` : ''}
+    ${r.stolenCheck ? `<div class="alert ok" style="margin:0 0 12px">Stolen-goods check done${r.stolenCheck.ref ? ': ' + esc(r.stolenCheck.ref) : ''}.</div>` : ''}
+    ${r.meltAtBuy ? `<p class="muted" style="margin:0 0 12px">Melt value when bought: ${gbp(r.meltAtBuy)} at Mastermelt (${fmtDate(r.mmDate)}).</p>` : ''}
     ${opts.justSaved ? revCard : ''}
     <div class="card"><h2>Seller</h2><dl class="kv">
       <dt>Name</dt><dd>${esc(s.first)} ${esc(s.last)}</dd>
@@ -1108,6 +1199,7 @@ function fillSettings(){
   $('#s_biz').value=settings.biz; $('#s_addr').value=settings.addr; $('#s_phone').value=settings.phone;
   $('#s_staff').value=settings.staff; $('#s_loc').value=settings.loc; $('#s_prefix').value=settings.prefix;
   $('#s_retain').value=settings.retain; $('#s_autolock').value=settings.autolock;
+  $('#s_offerPct').value = settings.offerPct || ''; $('#s_holdDays').value = settings.holdDays ?? '14'; $('#s_cmAt').value = settings.cmAt || '1000';
   $('#pinState').textContent = settings.pinHash ? 'A PIN is set. The app asks for it when opened.' : 'No PIN set. Anyone with this phone can open the records. Setting a PIN is strongly recommended.';
   $('#s_icoDone').checked = !!settings.icoDone; $('#s_icoNum').value = settings.icoNum||''; $('#s_dpEmail').value = settings.dpEmail||'';
   $('#s_revlink').value = settings.revLink||''; $('#s_revmsg').value = settings.revMsg||REV_DEFAULT;
@@ -1123,6 +1215,12 @@ $('#saveSettings').onclick = async () => {
   await saveSettingsObj(); toast('Settings saved');
 };
 $('#s_autolock').onchange = $('#saveSettings').onclick;
+$('#saveRules').onclick = async () => {
+  const pct = $('#s_offerPct').value.trim(), hd = $('#s_holdDays').value.trim(), cm = $('#s_cmAt').value.trim();
+  if (pct && !(+pct > 0 && +pct <= 100)) return toast('The offer % should be between 1 and 100');
+  Object.assign(settings, {offerPct: pct, holdDays: hd === '' ? '14' : String(Math.max(0, Math.round(+hd))), cmAt: cm || '1000'});
+  await saveSettingsObj(); toast('Buying rules saved'); updateTotal();
+};
 $('#setPin').onclick = async () => {
   const p = $('#s_pin').value.trim();
   if (!/^\d{4,8}$/.test(p)) return toast('PIN must be 4 to 8 digits');

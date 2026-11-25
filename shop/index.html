@@ -274,7 +274,7 @@
 <div id="cam"></div>
 <div id="lock"><img src="../icon.png" alt=""><div class="who" id="lockWho"></div><div style="margin-bottom:10px" id="lockAsk">Enter PIN</div><input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><div id="lockMsg" class="muted" style="margin-top:8px"></div></div>
 
-<script src="../sync.js?v=10"></script>
+<script src="../sync.js?v=11"></script>
 <script src="../buying-log/qrcode.min.js"></script>
 <script>
 /* ============ Dorset Gold & Jewellery · Shop ============
@@ -600,7 +600,7 @@ function renderStock(){
       ${thumbOf(s) ? `<img class="thumb" src="${thumbOf(s)}" alt="">` : '<div class="thumb"></div>'}
       <span class="r">${gbp(s.price, 0)}${num(s.cost) ? `<div class="muted" style="font-weight:400;font-size:12px">cost ${gbp(s.cost, 0)}</div>` : ""}</span><b>${esc(s.desc || "Piece")}</b>
       <span class="muted">${esc(s.no)}${s.cat ? " · " + esc(s.cat) : ""}${s.carat ? " · " + esc(s.carat) : ""}${s.weight ? " · " + esc(s.weight) + "g" : ""}${stStatus(s) !== "sold" ? ` · <span style="${d >= 90 ? "color:var(--amber)" : ""}">${d} day${d === 1 ? "" : "s"} in stock</span>` : ""}</span>
-      <div>${stStatus(s) === "res" ? '<span class="pill due">Reserved</span>' : stStatus(s) === "sold" ? '<span class="pill out">Sold</span>' : ""}${s.listed ? `<span class="pill">${esc(s.listed)}</span>` : ""}${stStatus(s) !== "sold" && !s.tagged ? '<span class="pill">No price tag</span>' : ""}</div></div>`; }).join("")
+      <div>${stStatus(s) !== "sold" ? holdPill(s.holdUntil) : ""}${stStatus(s) === "res" ? '<span class="pill due">Reserved</span>' : stStatus(s) === "sold" ? '<span class="pill out">Sold</span>' : ""}${s.listed ? `<span class="pill">${esc(s.listed)}</span>` : ""}${stStatus(s) !== "sold" && !s.tagged ? '<span class="pill">No price tag</span>' : ""}</div></div>`; }).join("")
     : `<p class="muted">${all.length ? "Nothing matches." : "No stock yet. Add a piece, or add pieces you bought to sell (they show above once bought in the Buy log)."}</p>`;
   renderKeepBuys(); renderCheckInfo();
 }
@@ -621,7 +621,7 @@ function renderKeepBuys(){
 function stockFromBuy(rid, i){
   const r = blRecs.find(x => x.id === rid), it = r && r.items[i]; if (!it) return;
   const car = (typeof BL_CARAT !== "undefined" && BL_CARAT[it.purity]) || "Other";
-  editStock(null, {desc: it.desc || "", carat: car, weight: it.weight || "", hallmark: it.hallmark || "", cost: num(it.price) || "", buyRef: rid + ":" + i, buyReceipt: r.receipt, buyAt: r.createdAt, _newPhotos: (it.photos || []).filter(p => String(p).startsWith("data:")).slice(0, 6)});
+  editStock(null, {desc: it.desc || "", carat: car, weight: it.weight || "", hallmark: it.hallmark || "", cost: num(it.price) || "", buyRef: rid + ":" + i, buyReceipt: r.receipt, buyAt: r.createdAt, holdUntil: r.holdUntil || "", _newPhotos: (it.photos || []).filter(p => String(p).startsWith("data:")).slice(0, 6)});
 }
 
 function editStock(id, pre){
@@ -692,7 +692,7 @@ function viewStock(id){
     ${melt ? `<tr><td>Melt value today</td><td>${gbp(melt)}</td></tr>` : ""}
     <tr><td>Status</td><td>${stStatus(s) === "in" ? "In stock" : stStatus(s) === "res" ? "Reserved" : "Sold"}</td></tr>
     <tr><td>Listed</td><td>${esc(s.listed || "Not yet")}</td></tr><tr><td>Added</td><td>${fmtD(s.added)}${s.addedBy ? " by " + esc(s.addedBy) : ""}${stStatus(s) !== "sold" ? ` (${d} day${d === 1 ? "" : "s"} ago)` : ""}</td></tr>
-    ${s.buyReceipt ? `<tr><td>Bought</td><td>Buy log ${esc(s.buyReceipt)}${s.buyAt ? ", " + fmtD(s.buyAt) : ""}</td></tr>` : ""}
+    ${s.buyReceipt ? `<tr><td>Bought</td><td>Buy log ${esc(s.buyReceipt)}${s.buyAt ? ", " + fmtD(s.buyAt) : ""}${onHold(s.holdUntil) ? `<br><b style="color:var(--amber)">On hold until ${fmtD(s.holdUntil)}</b>` : ""}</td></tr>` : ""}
     <tr><td>Price tag</td><td>${s.tagged ? "Printed " + fmtD(s.tagged) : "Not printed"}</td></tr>
     ${sale ? `<tr><td>Sale</td><td><a href="#" onclick="viewSale('${sale._id}');return false" style="color:var(--gold2)">${esc(sale.no)}</a></td></tr>` : ""}</table>
     ${stStatus(s) !== "sold" ? `<button class="btn" onclick="newSale(null,'${s._id}')">Sell this piece</button>` : ""}
@@ -921,6 +921,7 @@ function saleForm(){
     if (paid > total + 0.004) return toast("That's more than the total");
     if (!draft.custId && paid < total - 0.004) return toast("Deposits need a named customer so you know who owes it");
     if (!idOk(draft.custId, total + px, () => saleForm())) return;
+    if (!holdOk(draft.items.filter(i => i.stockId).map(i => (get("forsale").find(x => x._id === i.stockId) || {}).holdUntil || ""), "A piece in this sale")) return;
     if (cash && !cashOk(draft.custId, cash)) return;
     const list = get("sales"), now = new Date().toISOString();
     const sale = {_id: uid(), no: nextNo(list, "S"), at: now, by: who(), custId: draft.custId,
@@ -1182,6 +1183,9 @@ function tradeForm(){
     const tot = td.lines.reduce((t, l) => t + priceOf(l), 0), paid = num($("td_pay").value);
     if (paid > tot + 0.004) return toast("That's more than the total");
     if ($("td_how").value === "Cash" && !cashOk(td.custId, paid)) return;
+    { const hb = [...new Set(td.lines.map(l => l.bagId).filter(Boolean))].map(id => get("safebags").find(b => b._id === id)).filter(Boolean).map(bagHold);
+      const hp = td.lines.filter(l => l.stockId).map(l => (get("forsale").find(x => x._id === l.stockId) || {}).holdUntil || "");
+      if (!holdOk(hb.concat(hp), "Some of this")) return; }
     const list = get("sales"), now = new Date().toISOString(), mmRef = Math.round(td.lines.reduce((t, l) => t + mmOf(l), 0) * 100) / 100;
     const sale = {_id: uid(), no: nextNo(list, "T"), trade: true, at: now, by: who(), custId: td.custId, discount: 0, notes: td.notes.trim(), collected: now,
       mmRef: mmRef || 0, mmDate: mm ? mm.date : "",
@@ -1202,6 +1206,11 @@ function tradeForm(){
    bought and put it into the safe in one tap. A buy is only ever put into one bag (the bag keeps its receipt numbers). */
 const BL_CARAT = {"9ct (375)": "9ct", "14ct (585)": "14ct", "18ct (750)": "18ct", "22ct (916)": "22ct", "24ct (999)": "24ct",
   "Sterling (925)": "Silver 925", "Britannia (958)": "Silver 958", "Fine silver (999)": "Silver 999", "Platinum (950)": "Platinum 950", "Palladium (950)": "Palladium 950"};
+const onHold = d => !!d && d > today();
+const holdPill = d => onHold(d) ? `<span class="pill due">On hold until ${fmtD(d)}</span>` : "";
+const bagHold = b => (b.buyIds || []).map(id => (blRecs.find(r => r.id === id) || {}).holdUntil || "").concat(b.holdUntil || "").sort().pop() || "";
+/* warns before melting or selling on anything still in its holding period; true = go ahead */
+function holdOk(dates, what){ const d = dates.filter(onHold).sort().pop(); return !d || confirm(`${what} is on hold until ${fmtD(d)}, in case it turns out to be stolen. Go ahead anyway?`); }
 const bagOfBuy = id => get("safebags").find(b => (b.buyIds || []).includes(id));
 const buyLines = r => (r.items || []).filter(i => !i.keep && BL_CARAT[i.purity] && num(i.weight) > 0);
 function renderBuys(){
@@ -1210,7 +1219,7 @@ function renderBuys(){
   const row = r => { const b = bagOfBuy(r.id), g = buyLines(r).reduce((t, i) => t + num(i.weight), 0);
     return `<div class="item" style="cursor:default"><span class="r">${gbp(r.total)}</span><b>${esc(r.receipt)} · ${esc([(r.seller || {}).first, (r.seller || {}).last].filter(Boolean).join(" ") || "Seller")}</b>
       <span class="muted">${fmtDT(r.createdAt)}${(r.payment || {}).method ? " · " + esc(r.payment.method) : ""}${g ? ` · ${g.toFixed(2)}g to melt` : ""}${r.staff ? " · " + esc(r.staff) : ""}</span>
-      ${b ? `<div><span class="pill ok" onclick="viewBag('${b._id}')" style="cursor:pointer">In bag ${esc(b.no)}${b.outAt ? " (out)" : ""}</span></div>` : ""}${window.DGSync && DGSync.joined && DGSync.joined() ? `<div><a href="#" class="muted" style="font-size:13px" onclick="showHistory('r:${esc(r.id)}');return false">History of changes</a></div>` : ""}</div>`; };
+      <div>${b ? `<span class="pill ok" onclick="viewBag('${b._id}')" style="cursor:pointer">In bag ${esc(b.no)}${b.outAt ? " (out)" : ""}</span>` : ""}${holdPill(r.holdUntil)}${r.stolenCheck ? '<span class="pill">Stolen-goods check done</span>' : ""}</div>${window.DGSync && DGSync.joined && DGSync.joined() ? `<div><a href="#" class="muted" style="font-size:13px" onclick="showHistory('r:${esc(r.id)}');return false">History of changes</a></div>` : ""}</div>`; };
   $("buyWait").innerHTML = wait.length ? wait.map(r => row(r) + `<div class="row" style="margin:-4px 0 8px"><button class="btn small" onclick="buyToSafe(['${r.id}'])">Put in the safe</button><button class="btn small ghost" onclick="buyNoSafe('${r.id}')">Not going in the safe</button></div>`).join("")
       + (wait.length > 1 ? `<button class="btn ghost" onclick="buyToSafe(${esc(JSON.stringify(wait.map(r => r.id)))})">Put all ${wait.length} in one bag</button>` : "")
     : '<p class="muted">Nothing waiting. Gold and silver from new buys show here, ready to go into the safe.</p>';
@@ -1223,7 +1232,7 @@ function buyToSafe(ids){
   const recs = blRecs.filter(r => ids.includes(r.id) && !bagOfBuy(r.id)); if (!recs.length) return;
   const sum = {}; recs.forEach(r => buyLines(r).forEach(i => { const c = BL_CARAT[i.purity]; sum[c] = (sum[c] || 0) + num(i.weight); }));
   const lines = Object.entries(sum).map(([carat, g]) => ({carat, g: g.toFixed(2)}));
-  editBag(null, {lines, desc: "Buys " + recs.map(r => r.receipt).join(", "), buyIds: recs.map(r => r.id)});
+  editBag(null, {lines, desc: "Buys " + recs.map(r => r.receipt).join(", "), buyIds: recs.map(r => r.id), holdUntil: recs.map(r => r.holdUntil || "").sort().pop() || ""});
 }
 
 /* ============ SAFE LOG ============ */
@@ -1237,7 +1246,7 @@ function renderSafe(){
   const pure = inn.reduce((t, b) => t + bagPure(b), 0);
   $("safeTotal").innerHTML = inn.length ? `<div class="big">${inn.length} bag${inn.length > 1 ? "s" : ""} · ${inn.reduce((t, b) => t + bagGrams(b), 0).toFixed(1)}g</div>
     <p class="muted" style="margin:2px 0 8px">${pure.toFixed(2)}g pure gold${mm && mm.pure_g ? `, about <b>${gbp(pure * mm.pure_g, 0)}</b> at Mastermelt's price (${fmtD(mm.date)})` : ""}</p>` : "";
-  const row = b => `<div class="item" onclick="viewBag('${b._id}')"><span class="r">${bagGrams(b).toFixed(1)}g</span><b>Bag ${esc(b.no)}</b>
+  const row = b => `<div class="item" onclick="viewBag('${b._id}')"><span class="r">${bagGrams(b).toFixed(1)}g</span><b>Bag ${esc(b.no)}${!b.outAt ? holdPill(bagHold(b)) : ""}</b>
     <span class="muted">${b.outAt ? `Out ${fmtD(b.outAt)} · ${esc(b.outTo || "")}` : `In ${fmtD(b.inAt)}${b.by ? " · " + esc(b.by) : ""}`}${b.desc ? " · " + esc(b.desc) : ""}</span></div>`;
   $("safeIn").innerHTML = inn.length ? inn.map(row).join("") : '<p class="muted">The safe log is empty.</p>';
   $("safeOut").innerHTML = out.length ? out.slice(0, 50).map(row).join("") : '<p class="muted">Nothing booked out yet.</p>';
@@ -1282,14 +1291,14 @@ function viewBag(id){
   const pure = bagPure(b);
   openSheet(`Bag ${b.no}`, `
     <p class="muted" style="margin-top:0">In ${fmtDT(b.inAt)}${b.by ? " · " + esc(b.by) : ""}${b.outAt ? `<br>Out ${fmtDT(b.outAt)} · ${esc(b.outTo)}${b.outBy ? " · " + esc(b.outBy) : ""}` : ""}</p>
-    ${b.desc ? `<p>${esc(b.desc)}</p>` : ""}
+    ${b.desc ? `<p>${esc(b.desc)}</p>` : ""}${!b.outAt && onHold(bagHold(b)) ? `<div class="alert wn">On hold until ${fmtD(bagHold(b))}. Don't melt or sell it on before then.</div>` : ""}
     <table>${b.lines.map(l => `<tr><td>${esc(l.carat)}</td><td>${num(l.g).toFixed(2)}g</td></tr>`).join("")}<tr><td><b>Total</b></td><td><b>${bagGrams(b).toFixed(2)}g</b></td></tr>
     ${pure ? `<tr><td>Pure gold</td><td>${pure.toFixed(2)}g${mm && mm.pure_g ? ` · about ${gbp(pure * mm.pure_g, 0)}` : ""}</td></tr>` : ""}</table>
     ${b.notes ? `<p class="muted">${esc(b.notes)}</p>` : ""}
     ${!b.outAt ? `<label>Booking it out to</label><select id="bo_to"><option>Mastermelt</option><option>Another refiner</option><option>Sold as it is</option><option>Back to stock</option><option>Other</option></select>
       <button class="btn" id="bo_go">Book it out of the safe</button><button class="btn ghost" onclick="td={custId:'',lines:[],notes:''};get('safebags').filter(x=>x._id==='${b._id}').forEach(x=>x.lines.forEach(l=>td.lines.push({kind:'scrap',carat:l.carat,g:String(l.g),ppg:'',bagId:x._id,bagNo:x.no})));tradeForm()">Sell this bag to a contact</button><button class="btn ghost" onclick="editBag('${b._id}')">Edit</button>` : ""}
     ${b.saleId ? `<button class="btn ghost" onclick="viewSale('${b.saleId}')">See the sale</button>` : ""}${histBtn("safebags", b._id)}`);
-  if ($("bo_go")) $("bo_go").onclick = () => { if (!confirm(`Book bag ${b.no} out to ${$("bo_to").value}?`)) return;
+  if ($("bo_go")) $("bo_go").onclick = () => { if ($("bo_to").value !== "Back to stock" && !holdOk([bagHold(b)], `Bag ${b.no}`)) return; if (!confirm(`Book bag ${b.no} out to ${$("bo_to").value}?`)) return;
     const list = get("safebags"), x = list.find(y => y._id === id); x.outAt = new Date().toISOString(); x.outTo = $("bo_to").value; x.outBy = who(); put("safebags", list); closeSheet(); toast(`Bag ${b.no} booked out`); renderAll(); };
 }
 
