@@ -130,7 +130,7 @@
       <div id="openSales"></div>
     </div>
     <div class="card">
-      <h2>End-of-day cash-up</h2>
+      <h2>Till and cash-up</h2>
       <label>Day</label><input id="cuDay" type="date">
       <div id="cashup"></div>
     </div>
@@ -238,6 +238,13 @@
       <div id="recState" class="muted"></div>
     </div>
     <div class="card">
+      <h2>Receipts</h2>
+      <p class="muted" style="margin-top:0">The shop's name, address and phone come from the Buy log's Settings. Add your returns policy here: it's printed on every customer receipt.</p>
+      <label>Returns policy</label><textarea id="cfg_policy" placeholder="e.g. Unworn items can be returned within 14 days with this receipt. This doesn't affect your statutory rights."></textarea>
+      <label>Last line of the receipt</label><input id="cfg_footer" placeholder="Thank you for your custom.">
+      <button class="btn ghost" id="cfg_save">Save</button>
+    </div>
+    <div class="card">
       <h2>Back up</h2>
       <p class="muted" style="margin-top:0">Saves all sales, stock, customers (with their ID photos) and the safe log to one file. It holds customers' ID, so keep it somewhere private.</p>
       <button class="btn ghost" onclick="backup()">Back up now</button>
@@ -259,7 +266,7 @@
 <div id="cam"></div>
 <div id="lock"><img src="../icon.png" alt=""><div class="who" id="lockWho"></div><div style="margin-bottom:10px" id="lockAsk">Enter PIN</div><input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><div id="lockMsg" class="muted" style="margin-top:8px"></div></div>
 
-<script src="../sync.js?v=8"></script>
+<script src="../sync.js?v=9"></script>
 <script>
 /* ============ Dorset Gold & Jewellery · Shop ============
    Sales & deposits, stock for sale, customers and the safe log.
@@ -268,7 +275,7 @@
    Separate app for now; "Link with Gold Trader" in Settings brings in Buy log sellers and My gold stock. */
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const gbp = (n, d = 2) => "£" + (Number(n) || 0).toLocaleString("en-GB", {minimumFractionDigits: d, maximumFractionDigits: d});
+const gbp = (n, d = 2) => (Number(n) < 0 ? "−£" : "£") + Math.abs(Number(n) || 0).toLocaleString("en-GB", {minimumFractionDigits: d, maximumFractionDigits: d});
 const today = () => new Date().toISOString().slice(0, 10);
 const fmtD = d => d ? new Date(d).toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"}) : "";
 const fmtDT = d => d ? new Date(d).toLocaleString("en-GB", {day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"}) : "";
@@ -620,20 +627,24 @@ function viewStock(id){
 }
 
 /* ============ SALES & DEPOSITS ============ */
-const saleTotal = s => s.items.reduce((t, i) => t + num(i.price), 0) - num(s.discount);
+const pxTotal = s => (s.px || []).reduce((t, p) => t + num(p.amount), 0);
+const itemsTotal = s => s.items.reduce((t, i) => t + num(i.price), 0);
+const saleTotal = s => itemsTotal(s) - num(s.discount) - pxTotal(s);           // what the customer owes in money
 const salePaid = s => (s.payments || []).reduce((t, p) => t + num(p.amount), 0);
+const saleRefunded = s => (s.refunds || []).reduce((t, r) => t + num(r.amount), 0);
 const saleDue = s => Math.round((saleTotal(s) - salePaid(s)) * 100) / 100;
 const saleOpen = s => !s.void && (saleDue(s) > 0.004 || !s.collected);
+const overdue = s => saleOpen(s) && saleDue(s) > 0.004 && s.dueBy && s.dueBy < today();
 function saleRow(s){
-  const due = saleDue(s), c = s.custId ? findCust(s.custId) : null;
-  return `<div class="item" onclick="viewSale('${s._id}')"><span class="r">${gbp(saleTotal(s))}${due > 0.004 ? `<div class="muted" style="font-weight:600;color:var(--amber)">${gbp(due)} to pay</div>` : ""}</span>
+  const due = saleDue(s), c = s.custId ? findCust(s.custId) : null, rf = saleRefunded(s);
+  return `<div class="item" onclick="viewSale('${s._id}')"><span class="r">${gbp(saleTotal(s))}${!s.void && due > 0.004 ? `<div class="muted" style="font-weight:600;color:var(--amber)">${gbp(due)} to pay</div>` : ""}${rf ? `<div class="muted" style="font-weight:600">${gbp(rf)} refunded</div>` : ""}</span>
     <b>${esc(s.no)} · ${c ? custLabel(c) : esc(s.custName || "Walk-in")}${s.trade ? '<span class="pill ok">Trade</span>' : ""}</b><span class="muted">${fmtD(s.at)} · ${esc(s.items.map(i => i.desc).join(", "))}</span>
-    ${s.void ? '<span class="pill out">Cancelled</span>' : due > 0.004 ? '<span class="pill due">Balance owing</span>' : !s.collected ? '<span class="pill due">Paid, waiting to collect</span>' : ""}</div>`;
+    ${s.void ? '<span class="pill out">Cancelled</span>' : overdue(s) ? `<span class="pill" style="border-color:#6a2a22;color:#f08a7c">Overdue since ${fmtD(s.dueBy)}</span>` : due > 0.004 ? `<span class="pill due">Balance owing${s.dueBy ? " by " + fmtD(s.dueBy) : ""}</span>` : !s.collected ? '<span class="pill due">Paid, waiting to collect</span>' : ""}</div>`;
 }
 function renderSales(){
   const all = get("sales").slice().sort((a, b) => b.at.localeCompare(a.at));
-  const open = all.filter(saleOpen);
-  $("openSales").innerHTML = open.length ? open.map(saleRow).join("") + `<div class="muted" style="margin-top:8px">Owed to you in total: <b style="color:var(--amber)">${gbp(open.reduce((t, s) => t + Math.max(0, saleDue(s)), 0))}</b></div>`
+  const open = all.filter(saleOpen).sort((a, b) => (overdue(b) - overdue(a)) || b.at.localeCompare(a.at));
+  $("openSales").innerHTML = open.length ? open.map(saleRow).join("") + `<div class="muted" style="margin-top:8px">Owed to you in total: <b style="color:var(--amber)">${gbp(open.reduce((t, s) => t + Math.max(0, saleDue(s)), 0))}</b>${open.some(overdue) ? ` · <b style="color:#f08a7c">${open.filter(overdue).length} overdue</b>` : ""}</div>`
     : '<p class="muted">Nothing owing. Sales with a deposit, a balance to pay or an item waiting to be collected show here.</p>';
   const q = $("saleQ").value.trim().toLowerCase();
   const done = all.filter(s => !saleOpen(s) && (!q || (s.no + " " + (s.custName || "") + " " + (findCust(s.custId) || {}).name + " " + s.items.map(i => i.desc).join(" ")).toLowerCase().includes(q)));
@@ -641,31 +652,80 @@ function renderSales(){
   renderCashup();
 }
 $("saleQ").addEventListener("input", renderSales);
-$("cuDay").value = today(); $("cuDay").addEventListener("change", renderCashup);
+
+/* ============ TILL BOOK: float, cash in and out, banking and the count ============
+   Expected cash = opening float + cash taken on sales − cash refunds − cash paid for gold bought (Buy log)
+                   + money paid in − money paid out − money banked. Shared with the team, one record per entry. */
+const tillDay = d => get("till").filter(x => x.day === d);
+function cashOnDay(day){
+  const r = {sales: 0, refunds: 0, buys: 0, byMethod: {}, rows: []};
+  get("sales").forEach(s => {
+    (s.payments || []).forEach(p => { if ((p.at || "").slice(0, 10) !== day) return; r.byMethod[p.method] = (r.byMethod[p.method] || 0) + num(p.amount); if (p.method === "Cash") r.sales += num(p.amount); r.rows.push({s, p}); });
+    (s.refunds || []).forEach(f => { if ((f.at || "").slice(0, 10) !== day) return; r.byMethod[f.method] = (r.byMethod[f.method] || 0) - num(f.amount); if (f.method === "Cash") r.refunds += num(f.amount); r.rows.push({s, p: Object.assign({}, f, {amount: -num(f.amount), refund: 1})}); });
+  });
+  blRecs.forEach(b => { if ((b.createdAt || "").slice(0, 10) === day && (b.payment || {}).method === "Cash") r.buys += num(b.total); });
+  return r;
+}
 function renderCashup(){
-  const day = $("cuDay").value || today(), by = {}, rows = [];
-  get("sales").forEach(s => (s.payments || []).forEach(p => { if ((p.at || "").slice(0, 10) === day){ by[p.method] = (by[p.method] || 0) + num(p.amount); rows.push({s, p}); } }));
-  const total = Object.values(by).reduce((a, b) => a + b, 0), cups = JSON.parse(localStorage.getItem("shopCashups") || "{}"), counted = cups[day] || "";
+  const day = $("cuDay").value || today(), es = tillDay(day), c = cashOnDay(day);
+  const one = k => es.find(x => x.kind === k), float = one("float"), count = one("count");
+  const sum = k => es.filter(x => x.kind === k).reduce((t, x) => t + num(x.amount), 0);
+  const ins = sum("in"), outs = sum("out"), bank = sum("bank");
+  const expected = num(float && float.amount) + c.sales - c.refunds - c.buys + ins - outs - bank;
+  const prev = get("till").filter(x => x.kind === "count" && x.day < day).sort((a, b) => b.day.localeCompare(a.day))[0];
+  const taken = Object.values(c.byMethod).reduce((a, b) => a + b, 0);
   $("cashup").innerHTML = `
-    <table style="margin-top:8px">${PAY.map(m => `<tr><td>${m}</td><td>${gbp(by[m] || 0)}</td></tr>`).join("")}<tr><td><b>Taken in total</b></td><td><b>${gbp(total)}</b></td></tr></table>
-    <label>Cash counted in the till for this day (£)</label><input id="cuCount" type="number" inputmode="decimal" value="${esc(counted)}" placeholder="${(by.Cash || 0).toFixed(2)}">
+    <label>Opening float (£)</label><input id="tl_float" type="number" inputmode="decimal" value="${float ? esc(float.amount) : ""}" placeholder="${prev ? "last count " + num(prev.amount).toFixed(2) : "0.00"}">
+    <table style="margin-top:8px">
+      <tr><td>Opening float</td><td>${gbp(num(float && float.amount))}</td></tr>
+      <tr><td>Cash taken on sales</td><td>${gbp(c.sales)}</td></tr>
+      ${c.refunds ? `<tr><td>Cash refunds</td><td>−${gbp(c.refunds)}</td></tr>` : ""}
+      <tr><td>Cash paid for gold bought (Buy log)</td><td>${c.buys ? "−" : ""}${gbp(c.buys)}</td></tr>
+      ${es.filter(x => ["in", "out", "bank"].includes(x.kind)).map(x => `<tr><td>${x.kind === "in" ? "Paid in" : x.kind === "out" ? "Paid out" : "Banked"}: ${esc(x.note || "")} <span class="muted">${esc(x.by || "")}</span> <a href="#" style="color:var(--muted)" onclick="delTill('${x._id}');return false">remove</a></td><td>${x.kind === "in" ? "" : "−"}${gbp(x.amount)}</td></tr>`).join("")}
+      <tr><td><b>Cash that should be in the till</b></td><td><b>${gbp(expected)}</b></td></tr></table>
+    ${expected < -0.004 ? `<div class="alert wn">More cash has gone out than came in. Check the opening float, and that every cash payment and buy is recorded.</div>` : ""}
+    <div class="row" style="margin-top:4px"><button class="btn small ghost" onclick="tillEntry('in')">+ Paid in</button><button class="btn small ghost" onclick="tillEntry('out')">− Paid out</button><button class="btn small ghost" onclick="tillEntry('bank')">Banked</button></div>
+    <label>Cash counted in the till (£)</label><input id="tl_count" type="number" inputmode="decimal" value="${count ? esc(count.amount) : ""}" placeholder="${expected.toFixed(2)}">
     <div id="cuDiff"></div>
-    ${rows.length ? `<details style="margin-top:10px"><summary class="muted">${rows.length} payment${rows.length > 1 ? "s" : ""} on this day</summary>${rows.map(({s, p}) => `<div class="item" onclick="viewSale('${s._id}')"><span class="r">${gbp(p.amount)}</span><b>${esc(s.no)}</b><span class="muted">${esc(p.method)} · ${fmtDT(p.at)}${p.by ? " · " + esc(p.by) : ""}</span></div>`).join("")}</details>` : ""}`;
-  const diff = () => { const v = $("cuCount").value, d = num(v) - (by.Cash || 0);
-    $("cuDiff").innerHTML = v === "" ? "" : Math.abs(d) < 0.005 ? '<div class="pill ok" style="margin:8px 0 0">Cash matches</div>' : `<div class="warn">Cash is <b>${gbp(Math.abs(d))} ${d > 0 ? "over" : "short"}</b> against the cash payments recorded.</div>`; };
-  $("cuCount").oninput = () => { const c = JSON.parse(localStorage.getItem("shopCashups") || "{}"); c[day] = $("cuCount").value; localStorage.setItem("shopCashups", JSON.stringify(c)); diff(); };
+    <details style="margin-top:10px"><summary class="muted">All takings this day: ${gbp(taken)}</summary>
+      <table>${PAY.map(m => `<tr><td>${m}</td><td>${gbp(c.byMethod[m] || 0)}</td></tr>`).join("")}</table>
+      ${c.rows.map(({s, p}) => `<div class="item" onclick="viewSale('${s._id}')"><span class="r">${gbp(p.amount)}</span><b>${esc(s.no)}${p.refund ? " · refund" : ""}</b><span class="muted">${esc(p.method)} · ${fmtDT(p.at)}${p.by ? " · " + esc(p.by) : ""}</span></div>`).join("")}</details>`;
+  const diff = () => { const v = $("tl_count").value, d = num(v) - expected;
+    $("cuDiff").innerHTML = v === "" ? "" : Math.abs(d) < 0.005 ? '<div class="pill ok" style="margin:8px 0 0">Cash matches</div>' : `<div class="warn">The till is <b>${gbp(Math.abs(d))} ${d > 0 ? "over" : "short"}</b>.</div>`; };
+  const setOne = (kind, val) => { const list = get("till"), x = list.find(y => y.day === day && y.kind === kind);
+    if (val === ""){ if (x) put("till", list.filter(y => y !== x)); return; }
+    if (x){ x.amount = num(val); x.by = who(); x.at = new Date().toISOString(); } else list.push({_id: uid(), day, kind, amount: num(val), by: who(), at: new Date().toISOString()}); put("till", list); };
+  $("tl_float").onchange = () => { setOne("float", $("tl_float").value); renderCashup(); };
+  $("tl_count").oninput = diff; $("tl_count").onchange = () => setOne("count", $("tl_count").value);
   diff();
 }
+function tillEntry(kind){
+  const day = $("cuDay").value || today();
+  openSheet(kind === "in" ? "Cash paid into the till" : kind === "out" ? "Cash paid out of the till" : "Cash taken to the bank", `
+    <label>Amount (£)</label><input id="te_amt" type="number" inputmode="decimal">
+    <label>${kind === "bank" ? "Reference (optional)" : "What for"}</label><input id="te_note" placeholder="${kind === "out" ? "e.g. window cleaner, postage" : kind === "in" ? "e.g. change from the bank" : "paying-in slip number"}">
+    <button class="btn" id="te_go">Save</button>`);
+  $("te_go").onclick = () => { const a = num($("te_amt").value); if (!(a > 0)) return toast("Enter the amount"); if (kind !== "bank" && !$("te_note").value.trim()) return toast("Say what it was for");
+    const list = get("till"); list.push({_id: uid(), day, kind, amount: a, note: $("te_note").value.trim(), by: who(), at: new Date().toISOString()}); put("till", list); closeSheet(); renderCashup(); };
+}
+function delTill(id){ if (!confirm("Remove this entry?")) return; put("till", get("till").filter(x => x._id !== id)); renderCashup(); }
+$("cuDay").value = today(); $("cuDay").addEventListener("change", renderCashup);
+(function moveOldCounts(){ try { const old = JSON.parse(localStorage.getItem("shopCashups") || "{}"), list = get("till"); let n = 0;
+  Object.entries(old).forEach(([d, v]) => { if (v !== "" && !list.some(x => x.day === d && x.kind === "count")){ list.push({_id: uid(), day: d, kind: "count", amount: num(v), by: who(), at: new Date().toISOString()}); n++; } });
+  if (n) put("till", list); localStorage.removeItem("shopCashups"); } catch(e){} })();
+
+/* ============ NEW SALE ============ */
 let draft = null;
+const discAmount = (v, sub) => { const t = String(v || "").trim(); if (/%$/.test(t)) return Math.round(sub * num(t) / 100 * 100) / 100; return num(t); };
 function newSale(custId, stockId){
-  draft = {custId: custId || "", custName: "", items: [], discount: "", notes: ""};
-  if (stockId){ const s = get("forsale").find(x => x._id === stockId); if (s) draft.items.push({desc: s.desc + (s.carat ? ` (${s.carat})` : ""), price: s.price, stockId}); }
-  if (!draft.items.length) draft.items.push({desc: "", price: ""});
+  draft = {custId: custId || "", items: [], discount: "", notes: "", px: [], pays: [{amount: "", method: "Cash"}], dueBy: ""};
+  if (stockId){ const s = get("forsale").find(x => x._id === stockId); if (s) draft.items.push(stockLine(s)); }
+  if (!draft.items.length) draft.items.push({desc: "", price: "", details: ""});
   saleForm();
 }
+const stockLine = s => ({desc: s.desc, price: s.price, stockId: s._id, details: [s.carat, s.weight ? s.weight + "g" : "", s.detail].filter(Boolean).join(", ") + (s.no ? ` (${s.no})` : "")});
 function saleForm(){
   const c = draft.custId ? findCust(draft.custId) : null;
-  const inStock = get("forsale").filter(s => stStatus(s) === "in" && !draft.items.some(i => i.stockId === s._id));
   openSheet("New sale", `
     <h2>Who is buying?</h2>
     ${c ? `<div class="item" style="cursor:default"><b>${custLabel(c)}</b><span class="muted">${[c.phone, c.pc].filter(Boolean).map(esc).join(" · ")}</span> <button class="btn small ghost" onclick="draft.custId='';saleForm()">Change</button></div>
@@ -673,22 +733,48 @@ function saleForm(){
       : `<input id="sf_cq" placeholder="Search name, phone or postcode" autocomplete="off"><div id="sf_cres"></div>
          <div class="row"><button class="btn ghost" id="sf_newc">+ New customer</button><button class="btn ghost" id="sf_walk">${draft.walk ? "✓ " : ""}Walk-in, no details</button></div>`}
     <h2 style="margin-top:16px">Items</h2>
-    <div id="sf_items">${draft.items.map((it, i) => `<div class="line"><input data-i="${i}" data-k="desc" value="${esc(it.desc)}" placeholder="Item"${it.stockId ? " readonly" : ""}><input data-i="${i}" data-k="price" type="number" inputmode="decimal" value="${esc(it.price)}" placeholder="£" style="max-width:100px"><button class="x" onclick="draft.items.splice(${i},1);saleForm()">×</button></div>`).join("")}</div>
-    <div class="row"><button class="btn ghost" onclick="draft.items.push({desc:'',price:''});saleForm()">+ Add an item</button>
-      ${inStock.length ? `<select id="sf_stock" style="margin-top:12px"><option value="">+ From stock…</option>${inStock.map(s => `<option value="${s._id}">${esc(s.no)} · ${esc(s.desc)} · ${gbp(s.price, 0)}</option>`).join("")}</select>` : ""}</div>
-    <label>Discount (£)</label><input id="sf_disc" type="number" inputmode="decimal" value="${esc(draft.discount)}">
+    <div id="sf_items">${draft.items.map((it, i) => `<div class="card" style="padding:10px;margin:8px 0">
+      <div class="line"><input data-i="${i}" data-k="desc" value="${esc(it.desc)}" placeholder="Item, e.g. 18ct sapphire ring"${it.stockId ? " readonly" : ""}><input data-i="${i}" data-k="price" type="number" inputmode="decimal" value="${esc(it.price)}" placeholder="£" style="max-width:110px"><button class="x" data-del="${i}">×</button></div>
+      <input data-i="${i}" data-k="details" value="${esc(it.details)}" placeholder="Details for the receipt: metal, weight, hallmark, stones, size" style="margin-top:6px;font-size:14px"></div>`).join("")}</div>
+    <div class="row"><button class="btn ghost" onclick="draft.items.push({desc:'',price:'',details:''});saleForm()">+ Add an item</button><button class="btn ghost" id="sf_stockBtn">+ From stock</button></div>
+    <div id="sf_stockBox" style="display:none"><input id="sf_sq" placeholder="Search stock number or description" autocomplete="off" style="margin-top:10px"><div id="sf_sres"></div></div>
+    <h2 style="margin-top:16px">Part exchange</h2>
+    ${draft.px.map((p, i) => `<div class="item" style="cursor:default"><span class="r">−${gbp(p.amount)}</span><b>Old gold traded in · ${esc(p.receipt)}</b><span class="muted">Bought through the Buy log, with ID</span> <button class="btn small ghost" data-pxdel="${i}">Remove</button></div>`).join("")}
+    <button class="btn ghost" id="sf_px">+ Part exchange (customer trading in old gold)</button>
+    <div class="row"><div><label>Discount (£ or %)</label><input id="sf_disc" value="${esc(draft.discount)}" placeholder="e.g. 50 or 10%"></div><div></div></div>
     <label>Notes (sizing, engraving, collection date)</label><input id="sf_notes" value="${esc(draft.notes)}">
-    <div class="big" id="sf_total" style="margin-top:14px"></div>
+    <div class="big" id="sf_total" style="margin-top:14px"></div><div class="muted" id="sf_sub"></div>
     <h2 style="margin-top:14px">Payment now</h2>
-<p class="muted" style="margin:0">Sales of ${gbp(ID_AT, 0)} or more need the customer's ID on file.</p>
-    <div class="row"><div><label>Amount paid today (£)</label><input id="sf_pay" type="number" inputmode="decimal" placeholder="full amount or deposit"></div><div><label>How</label><select id="sf_how">${PAY.map(m => `<option>${m}</option>`).join("")}</select></div></div>
+    <p class="muted" style="margin:0">Sales of ${gbp(ID_AT, 0)} or more need the customer's ID on file.</p>
+    <div id="sf_pays">${draft.pays.map((p, i) => `<div class="line"><input data-p="${i}" data-k="amount" type="number" inputmode="decimal" value="${esc(p.amount)}" placeholder="${i ? "amount" : "full amount or deposit"}"><select data-p="${i}" data-k="method" style="max-width:170px">${PAY.map(m => `<option${p.method === m ? " selected" : ""}>${m}</option>`).join("")}</select>${i ? `<button class="x" data-pdel="${i}">×</button>` : ""}</div>`).join("")}</div>
+    <button class="btn small ghost" style="margin-top:8px" id="sf_split">+ Split the payment (e.g. part cash, part card)</button>
+    <div id="sf_dueRow" style="display:none"><label>Balance to be paid by</label><input id="sf_due" type="date" value="${esc(draft.dueBy)}"></div>
     <label style="display:flex;align-items:center;gap:8px;color:var(--text)"><input id="sf_coll" type="checkbox" style="width:auto" checked> Customer is taking it today</label>
     <button class="btn" id="sf_save">Save sale</button>`);
-  const tot = () => { $("sf_total").textContent = "Total " + gbp(draft.items.reduce((t, i) => t + num(i.price), 0) - num(draft.discount)); };
-  document.querySelectorAll("#sf_items input").forEach(inp => inp.oninput = () => { draft.items[+inp.dataset.i][inp.dataset.k] = inp.value; tot(); });
+  const sub = () => draft.items.reduce((t, i) => t + num(i.price), 0);
+  const tot = () => {
+    const sb = sub(), d = discAmount(draft.discount, sb), px = draft.px.reduce((t, p) => t + num(p.amount), 0), total = sb - d - px, paid = draft.pays.reduce((t, p) => t + num(p.amount), 0);
+    $("sf_total").textContent = (total < 0 ? "We owe the customer " + gbp(-total) : "Total " + gbp(total));
+    $("sf_sub").textContent = (d || px) ? `Items ${gbp(sb)}${d ? ` · discount −${gbp(d)}` : ""}${px ? ` · part exchange −${gbp(px)}` : ""}` : "";
+    $("sf_dueRow").style.display = paid > 0.004 && paid < total - 0.004 ? "" : "none";
+    return total;
+  };
+  document.querySelectorAll("#sf_items [data-k]").forEach(inp => inp.oninput = () => { draft.items[+inp.dataset.i][inp.dataset.k] = inp.value; tot(); });
+  document.querySelectorAll("#sf_items [data-del]").forEach(b => b.onclick = () => { draft.items.splice(+b.dataset.del, 1); saleForm(); });
+  document.querySelectorAll("#sf_pays [data-k]").forEach(inp => inp.oninput = inp.onchange = () => { draft.pays[+inp.dataset.p][inp.dataset.k] = inp.value; tot(); });
+  document.querySelectorAll("#sf_pays [data-pdel]").forEach(b => b.onclick = () => { draft.pays.splice(+b.dataset.pdel, 1); saleForm(); });
+  document.querySelectorAll("[data-pxdel]").forEach(b => b.onclick = () => { draft.px.splice(+b.dataset.pxdel, 1); saleForm(); });
+  $("sf_split").onclick = () => { draft.pays.push({amount: "", method: draft.pays[0].method === "Card" ? "Cash" : "Card"}); saleForm(); };
   $("sf_disc").oninput = () => { draft.discount = $("sf_disc").value; tot(); };
   $("sf_notes").oninput = () => { draft.notes = $("sf_notes").value; };
-  if ($("sf_stock")) $("sf_stock").onchange = () => { const s = get("forsale").find(x => x._id === $("sf_stock").value); if (!s) return; draft.items = draft.items.filter(i => i.desc || i.price); draft.items.push({desc: s.desc + (s.carat ? ` (${s.carat})` : ""), price: s.price, stockId: s._id}); saleForm(); };
+  $("sf_due").onchange = () => { draft.dueBy = $("sf_due").value; };
+  $("sf_stockBtn").onclick = () => { $("sf_stockBox").style.display = ""; $("sf_sq").focus(); stockRes(); };
+  const stockRes = () => { const q = $("sf_sq").value.trim().toLowerCase();
+    const hits = get("forsale").filter(s => stStatus(s) === "in" && !draft.items.some(i => i.stockId === s._id) && (!q || (s.no + " " + s.desc + " " + (s.carat || "") + " " + (s.detail || "")).toLowerCase().includes(q))).slice(0, 8);
+    $("sf_sres").innerHTML = hits.length ? hits.map(s => `<div class="item" data-st="${s._id}" style="overflow:hidden">${s.photo ? `<img class="thumb" src="${s.photo}" alt="">` : ""}<span class="r">${gbp(s.price, 0)}</span><b>${esc(s.desc)}</b><span class="muted">${esc(s.no)}${s.carat ? " · " + esc(s.carat) : ""}</span></div>`).join("") : '<p class="muted">Nothing in stock matches.</p>';
+    $("sf_sres").querySelectorAll("[data-st]").forEach(e => e.onclick = () => { const s = get("forsale").find(x => x._id === e.dataset.st); draft.items = draft.items.filter(i => i.desc || i.price); draft.items.push(stockLine(s)); saleForm(); }); };
+  $("sf_sq").oninput = stockRes;
+  $("sf_px").onclick = () => pxPick();
   if (!c){
     const res = () => { const q = $("sf_cq").value.trim().toLowerCase(), qd = q.replace(/\D/g, ""); if (q.length < 2){ $("sf_cres").innerHTML = ""; return; }
       const hits = custAll().filter(x => (x.name || "").toLowerCase().includes(q) || (qd.length >= 4 && (x.phone || "").replace(/\D/g, "").includes(qd)) || (x.pc || "").toLowerCase().replace(/\s/g, "").includes(q.replace(/\s/g, ""))).slice(0, 6);
@@ -703,41 +789,86 @@ function saleForm(){
     if (!draft.items.length) return toast("Add at least one item");
     if (draft.items.some(i => !(i.desc || "").trim() || !(num(i.price) > 0))) return toast("Every item needs a name and a price");
     if (!draft.custId && !draft.walk) return toast("Choose the customer, or tick walk-in");
-    const total = draft.items.reduce((t, i) => t + num(i.price), 0) - num(draft.discount), paid = num($("sf_pay").value);
+    if (draft.px.length && !draft.custId) return toast("A part exchange needs the customer named");
+    const sb = sub(), disc = discAmount(draft.discount, sb), px = draft.px.reduce((t, p) => t + num(p.amount), 0), total = sb - disc - px;
+    if (disc < 0 || disc > sb) return toast("Check the discount");
+    if (total < -0.004) return toast("The part exchange is worth more than the items. Pay the difference for the gold in the Buy log instead.");
+    const pays = draft.pays.filter(p => num(p.amount) > 0), paid = pays.reduce((t, p) => t + num(p.amount), 0), cash = pays.filter(p => p.method === "Cash").reduce((t, p) => t + num(p.amount), 0);
     if (paid > total + 0.004) return toast("That's more than the total");
     if (!draft.custId && paid < total - 0.004) return toast("Deposits need a named customer so you know who owes it");
-    if (!idOk(draft.custId, total, () => saleForm())) return;
-    if ($("sf_how").value === "Cash" && !cashOk(draft.custId, paid)) return;
+    if (!idOk(draft.custId, total + px, () => saleForm())) return;
+    if (cash && !cashOk(draft.custId, cash)) return;
     const list = get("sales"), now = new Date().toISOString();
-    const sale = {_id: uid(), no: nextNo(list, "S"), at: now, by: who(), custId: draft.custId, items: draft.items.map(i => ({desc: i.desc.trim(), price: num(i.price), stockId: i.stockId || ""})),
-      discount: num(draft.discount), notes: draft.notes.trim(), payments: paid > 0 ? [{at: now, amount: paid, method: $("sf_how").value, by: who()}] : [], collected: $("sf_coll").checked && paid >= total - 0.004 ? now : ""};
-    if (!$("sf_coll").checked && paid >= total - 0.004) sale.collected = "";
+    const sale = {_id: uid(), no: nextNo(list, "S"), at: now, by: who(), custId: draft.custId,
+      items: draft.items.map(i => ({desc: i.desc.trim(), price: num(i.price), stockId: i.stockId || "", details: (i.details || "").trim()})),
+      discount: disc, discountPct: /%$/.test(String(draft.discount).trim()) ? num(draft.discount) : 0, px: draft.px.map(p => ({buyId: p.buyId, receipt: p.receipt, amount: num(p.amount)})),
+      notes: draft.notes.trim(), payments: pays.map(p => ({at: now, amount: num(p.amount), method: p.method, by: who()})),
+      dueBy: paid < total - 0.004 ? draft.dueBy : "", collected: $("sf_coll").checked && paid >= total - 0.004 ? now : ""};
     list.push(sale); put("sales", list);
     markStockSold(sale);
+    try { sessionStorage.removeItem("shopDraft"); } catch(e){}
     closeSheet(); toast(`Sale ${sale.no} saved`); renderAll(); viewSale(sale._id);
   };
 }
+/* part exchange: the trade-in is a purchase, so it goes through the Buy log (ID, photos, signature), paid as "Part exchange" */
+function pxPick(){
+  const used = new Set(get("sales").flatMap(s => (s.px || []).map(p => p.buyId)).concat(draft.px.map(p => p.buyId)));
+  const recent = blRecs.filter(r => (r.payment || {}).method === "Part exchange" && !used.has(r.id) && (Date.now() - new Date(r.createdAt)) < 3 * 864e5);
+  openSheet("Part exchange", `<p class="muted" style="margin-top:0">The old gold is something you're buying, so it's recorded in the Buy log with the customer's ID, photos and signature. Choose <b>Part exchange</b> as the payment there. You'll come straight back to this sale with its value taken off.</p>
+    <button class="btn" id="px_go">Open the Buy log for the trade-in</button>
+    ${recent.length ? `<h2 style="margin-top:16px">Or use one already done</h2>` + recent.map(r => `<div class="item" data-r="${r.id}"><span class="r">${gbp(r.total)}</span><b>${esc(r.receipt)} · ${esc([(r.seller || {}).first, (r.seller || {}).last].join(" "))}</b><span class="muted">${fmtDT(r.createdAt)}</span></div>`).join("") : ""}
+    <button class="btn ghost" onclick="saleForm()">Back to the sale</button>`);
+  $("px_go").onclick = () => { try { sessionStorage.setItem("shopDraft", JSON.stringify(draft)); } catch(e){} location.href = "../buying-log/?from=shop&px=1"; };
+  $("shBody").querySelectorAll("[data-r]").forEach(e => e.onclick = () => addPx(blRecs.find(r => r.id === e.dataset.r)));
+}
+function addPx(r){
+  if (!r) return;
+  draft.px.push({buyId: r.id, receipt: r.receipt, amount: num(r.total)});
+  if (!draft.custId){ const sl = r.seller || {}, ph = (sl.phone || "").replace(/\D/g, "").slice(-10);
+    const m = get("customers").find(c => ph.length >= 9 && (c.phone || "").replace(/\D/g, "").slice(-10) === ph); if (m) draft.custId = m._id; }
+  saleForm();
+  if (!draft.custId) toast("Now choose or add the customer (Bring in their details from the Buy log when adding them)");
+}
+async function resumeAfterPx(){   // coming back from the Buy log
+  const id = new URLSearchParams(location.search).get("px"); let d = null;
+  try { d = JSON.parse(sessionStorage.getItem("shopDraft") || "null"); } catch(e){}
+  if (!d) return;
+  history.replaceState(null, "", location.pathname);
+  draft = d;
+  if (!id){ saleForm(); return; }
+  await loadBuyLogSellers();
+  const r = blRecs.find(x => x.id === id);
+  if (r && !draft.px.some(p => p.buyId === r.id)) addPx(r); else saleForm();
+}
 function markStockSold(sale){
   const st = get("forsale"); let ch = false;
-  sale.items.forEach(i => { if (!i.stockId) return; const s = st.find(x => x._id === i.stockId); if (s){ s.status = !sale.trade && (saleDue(sale) > 0.004 || !sale.collected) ? "res" : "sold"; s.saleId = sale._id; ch = true; } });
+  sale.items.forEach(i => { if (!i.stockId || i.returned) return; const s = st.find(x => x._id === i.stockId); if (s){ s.status = !sale.trade && (saleDue(sale) > 0.004 || !sale.collected) ? "res" : "sold"; s.saleId = sale._id; ch = true; } });
   if (ch) put("forsale", st);
 }
+
+/* ============ ONE SALE: payments, refunds, reminders, receipts ============ */
 function viewSale(id){
   const s = get("sales").find(x => x._id === id); if (!s) return;
-  const c = s.custId ? findCust(s.custId) : null, due = saleDue(s);
+  const c = s.custId ? findCust(s.custId) : null, due = saleDue(s), net = salePaid(s) - saleRefunded(s);
   openSheet(s.no, `
     <p class="muted" style="margin-top:0">${fmtDT(s.at)}${s.by ? " · by " + esc(s.by) : ""}<br>${c ? `<a href="#" onclick="viewCustomer('${esc(c._id)}');return false" style="color:var(--gold2)">${custLabel(c)}</a> ${esc([c.phone, c.pc].filter(Boolean).join(" · "))}` : "Walk-in"}</p>
-    <table>${s.items.map(i => `<tr><td>${esc(i.desc)}${itemDetail(i)}</td><td>${gbp(i.price)}</td></tr>`).join("")}
-    ${s.discount ? `<tr><td>Discount</td><td>−${gbp(s.discount)}</td></tr>` : ""}<tr><td><b>Total</b></td><td><b>${gbp(saleTotal(s))}</b></td></tr></table>
+    <table>${s.items.map(i => `<tr><td>${esc(i.desc)}${i.details ? `<div class="muted">${esc(i.details)}</div>` : ""}${itemDetail(i)}${i.returned ? `<div><span class="pill out">Returned ${fmtD(i.returned)}</span></div>` : ""}</td><td>${gbp(i.price)}</td></tr>`).join("")}
+    ${s.discount ? `<tr><td>Discount${s.discountPct ? ` (${s.discountPct}%)` : ""}</td><td>−${gbp(s.discount)}</td></tr>` : ""}
+    ${(s.px || []).map(p => `<tr><td>Part exchange (old gold, Buy log ${esc(p.receipt)})</td><td>−${gbp(p.amount)}</td></tr>`).join("")}
+    <tr><td><b>Total</b></td><td><b>${gbp(saleTotal(s))}</b></td></tr></table>
     ${s.trade && s.mmRef ? `<p class="muted">Mastermelt would have paid ${gbp(s.mmRef)} for the scrap and coins on this sale (${fmtD(s.mmDate)} price). You got <b style="color:${tradeVsMM(s) >= 0 ? "var(--up)" : "var(--down)"}">${tradeVsMM(s) >= 0 ? gbp(tradeVsMM(s)) + " more" : gbp(-tradeVsMM(s)) + " less"}</b>.</p>` : ""}
     <h2 style="margin-top:14px">Payments</h2>
-    ${(s.payments || []).length ? `<table>${s.payments.map(p => `<tr><td>${fmtDT(p.at)} · ${esc(p.method)}${p.by ? ` · ${esc(p.by)}` : ""}</td><td>${gbp(p.amount)}</td></tr>`).join("")}</table>` : '<p class="muted">No payments yet.</p>'}
-    <div class="big" style="margin-top:10px;${due > 0.004 ? "color:var(--amber)" : ""}">${s.void ? "Cancelled" : due > 0.004 ? gbp(due) + " to pay" : "Paid in full"}</div>
+    ${(s.payments || []).length || (s.refunds || []).length ? `<table>${(s.payments || []).map(p => `<tr><td>${fmtDT(p.at)} · ${esc(p.method)}${p.by ? ` · ${esc(p.by)}` : ""}</td><td>${gbp(p.amount)}</td></tr>`).join("")}
+      ${(s.refunds || []).map(r => `<tr><td>${fmtDT(r.at)} · <b>Refund</b> by ${esc(r.method)}${r.by ? ` · ${esc(r.by)}` : ""}<div class="muted">${esc(r.reason)}</div></td><td>−${gbp(r.amount)}</td></tr>`).join("")}</table>` : '<p class="muted">No payments yet.</p>'}
+    <div class="big" style="margin-top:10px;${due > 0.004 && !s.void ? "color:var(--amber)" : ""}">${s.void ? "Cancelled" : due > 0.004 ? gbp(due) + " to pay" : "Paid in full"}</div>
+    ${!s.void && due > 0.004 && s.dueBy ? `<p class="muted" style="margin:2px 0 0">${overdue(s) ? `<b style="color:#f08a7c">Overdue:</b> was due by ` : "Due by "}${fmtD(s.dueBy)}</p>` : ""}
     ${s.notes ? `<p class="muted">${esc(s.notes)}</p>` : ""}
-    ${!s.void && due > 0.004 ? `<div class="row" style="margin-top:6px"><div><label>Take a payment (£)</label><input id="vp_amt" type="number" inputmode="decimal" placeholder="${due.toFixed(2)}"></div><div><label>How</label><select id="vp_how">${PAY.map(m => `<option>${m}</option>`).join("")}</select></div></div><button class="btn" id="vp_go">Record payment</button>` : ""}
+    ${!s.void && due > 0.004 ? `<div class="row" style="margin-top:6px"><div><label>Take a payment (£)</label><input id="vp_amt" type="number" inputmode="decimal" placeholder="${due.toFixed(2)}"></div><div><label>How</label><select id="vp_how">${PAY.map(m => `<option>${m}</option>`).join("")}</select></div></div><button class="btn" id="vp_go">Record payment</button>
+      ${c && c.phone ? `<button class="btn ghost" id="vp_remind">Text a reminder about the balance</button>` : ""}` : ""}
     ${!s.void && due <= 0.004 && !s.collected ? `<button class="btn" id="vp_coll">Customer has collected it</button>` : ""}
     ${!s.void && s.collected ? `<p class="muted">Collected ${fmtDT(s.collected)}</p>` : ""}
-    <button class="btn ghost" onclick="receipt('${s._id}')">Show receipt</button>
+    <div class="row"><button class="btn ghost" onclick="receipt('${s._id}')">Print receipt</button>${c && c.email ? `<button class="btn ghost" onclick="sendReceipt('${s._id}','email')">Email it</button>` : ""}${c && c.phone ? `<button class="btn ghost" onclick="sendReceipt('${s._id}','text')">Text it</button>` : ""}</div>
+    ${!s.void && net > 0.004 ? `<button class="btn ghost" onclick="refundForm('${s._id}')">Refund or return</button>` : ""}
     ${histBtn("sales", s._id)}
     ${!s.void && !(s.payments || []).length ? `<button class="btn red" id="vp_void">Cancel this sale</button>` : ""}`);
   if ($("vp_go")) $("vp_go").onclick = () => {
@@ -748,28 +879,97 @@ function viewSale(id){
     const list = get("sales"), x = list.find(y => y._id === id); x.payments = (x.payments || []).concat({at: new Date().toISOString(), amount: amt, method: $("vp_how").value, by: who()});
     put("sales", list); markStockSold(x); toast(saleDue(x) > 0.004 ? `Payment saved. ${gbp(saleDue(x))} still to pay` : "Paid in full"); renderAll(); viewSale(id);
   };
+  if ($("vp_remind")) $("vp_remind").onclick = () => {
+    const msg = `Hi ${(c.name || "").split(" ")[0]}, this is ${bizName()}. Just a reminder that ${gbp(due)} is still to pay on your ${s.items.map(i => i.desc).join(", ")} (${s.no})${s.dueBy ? `, due by ${fmtD(s.dueBy)}` : ""}. Thank you.`;
+    location.href = `sms:${c.phone.replace(/\s/g, "")}?&body=${encodeURIComponent(msg)}`;
+  };
   if ($("vp_coll")) $("vp_coll").onclick = () => { const list = get("sales"), x = list.find(y => y._id === id); x.collected = new Date().toISOString(); put("sales", list); markStockSold(x); renderAll(); viewSale(id); };
-  if ($("vp_void")) $("vp_void").onclick = () => { if (!confirm("Cancel this sale? Any stock on it goes back to In stock.")) return;
-    const list = get("sales"), x = list.find(y => y._id === id); x.void = new Date().toISOString(); put("sales", list);
-    const st = get("forsale"); x.items.forEach(i => { const p = st.find(z => z._id === i.stockId); if (p){ p.status = "in"; p.saleId = ""; } }); put("forsale", st);
-    const bags = get("safebags"); let back = 0; bags.forEach(b => { if (b.saleId === x._id){ b.outAt = ""; b.outTo = ""; b.outBy = ""; b.saleId = ""; back++; } }); if (back) put("safebags", bags);
-    renderAll(); closeSheet(); };
+  if ($("vp_void")) $("vp_void").onclick = () => { if (!confirm("Cancel this sale? Any stock on it goes back to In stock.")) return; voidSale(id); closeSheet(); };
+}
+function voidSale(id){
+  const list = get("sales"), x = list.find(y => y._id === id); x.void = new Date().toISOString(); x.voidBy = who(); put("sales", list);
+  const st = get("forsale"); x.items.forEach(i => { const p = st.find(z => z._id === i.stockId); if (p && p.saleId === x._id){ p.status = "in"; p.saleId = ""; } }); put("forsale", st);
+  const bags = get("safebags"); let back = 0; bags.forEach(b => { if (b.saleId === x._id){ b.outAt = ""; b.outTo = ""; b.outBy = ""; b.saleId = ""; back++; } }); if (back) put("safebags", bags);
+  renderAll();
+}
+/* refunds: money back (any method), optionally with items returned to stock; or cancel the whole order and refund the deposit */
+function refundForm(id){
+  const s = get("sales").find(x => x._id === id); if (!s) return;
+  const net = Math.round((salePaid(s) - saleRefunded(s)) * 100) / 100, due = saleDue(s);
+  const lastMethod = ((s.payments || []).slice(-1)[0] || {}).method || "Cash";
+  openSheet("Refund or return · " + s.no, `
+    <p class="muted" style="margin-top:0">${gbp(net)} has been paid on this sale and not refunded.</p>
+    <h2>What's coming back?</h2>
+    ${s.items.map((i, n) => i.returned ? `<p class="muted">${esc(i.desc)}: already returned</p>` : `<label style="display:flex;align-items:center;gap:8px;color:var(--text)"><input type="checkbox" data-ri="${n}" style="width:auto"> ${esc(i.desc)} · ${gbp(i.price)}</label>`).join("")}
+    <p class="muted" style="margin:6px 0 0">Leave these unticked for money back only (e.g. a price adjustment).</p>
+    ${s.items.some(i => i.stockId && !i.returned) ? `<label style="display:flex;align-items:center;gap:8px;color:var(--text);margin-top:10px"><input id="rf_restock" type="checkbox" style="width:auto" checked> Put returned stock pieces back in stock</label>` : ""}
+    ${due > 0.004 ? `<label style="display:flex;align-items:center;gap:8px;color:var(--text);margin-top:10px"><input id="rf_cancel" type="checkbox" style="width:auto"> Cancel the whole order (the ${gbp(due)} balance won't be owed)</label>` : ""}
+    <div class="row"><div><label>Refund amount (£)</label><input id="rf_amt" type="number" inputmode="decimal" placeholder="up to ${net.toFixed(2)}"></div><div><label>Refunded by</label><select id="rf_how">${PAY.map(m => `<option${m === lastMethod ? " selected" : ""}>${m}</option>`).join("")}</select></div></div>
+    <label>Reason</label><select id="rf_why"><option value="">Choose…</option><option>Faulty</option><option>Changed their mind</option><option>Wrong size</option><option>Not as described</option><option>Order cancelled</option><option>Price adjustment</option><option>Other</option></select>
+    <input id="rf_note" placeholder="More detail (optional)" style="margin-top:6px">
+    <button class="btn" id="rf_go">Record the refund</button>
+    <p class="muted">Card refunds go back to the same card through your card machine. This records it here.</p>`);
+  const sum = () => { const t = [...document.querySelectorAll("[data-ri]:checked")].reduce((a, e) => a + num(s.items[+e.dataset.ri].price), 0); if (t) $("rf_amt").value = Math.min(t, net).toFixed(2); };
+  document.querySelectorAll("[data-ri]").forEach(e => e.onchange = sum);
+  if ($("rf_cancel")) $("rf_cancel").onchange = () => { if ($("rf_cancel").checked){ $("rf_amt").value = net.toFixed(2); $("rf_why").value = "Order cancelled"; } };
+  $("rf_go").onclick = () => {
+    const amt = num($("rf_amt").value), why = $("rf_why").value, items = [...document.querySelectorAll("[data-ri]:checked")].map(e => +e.dataset.ri), cancel = $("rf_cancel") && $("rf_cancel").checked;
+    if (amt < 0 || amt > net + 0.004) return toast(`The refund can be up to ${gbp(net)}`);
+    if (!(amt > 0) && !items.length && !cancel) return toast("Enter the refund amount");
+    if (!why) return toast("Choose the reason");
+    if ($("rf_how").value === "Cash" && amt > 0){ const c = cashOnDay(today()), fl = tillDay(today()).find(x => x.kind === "float"); if (fl && num(fl.amount) + c.sales - c.refunds - c.buys < amt - 0.004 && !confirm("That's more cash than the till should hold. Go ahead?")) return; }
+    const list = get("sales"), x = list.find(y => y._id === id), now = new Date().toISOString();
+    if (amt > 0) x.refunds = (x.refunds || []).concat({at: now, amount: amt, method: $("rf_how").value, reason: why + ($("rf_note").value.trim() ? ": " + $("rf_note").value.trim() : ""), items, by: who()});
+    items.forEach(n => { x.items[n].returned = now; });
+    put("sales", list);
+    if (items.length && (!$("rf_restock") || $("rf_restock").checked)){ const st = get("forsale"); items.forEach(n => { const p = st.find(z => z._id === x.items[n].stockId); if (p){ p.status = "in"; p.saleId = ""; } }); put("forsale", st); }
+    if (cancel) voidSale(id);
+    toast(amt > 0 ? `Refund of ${gbp(amt)} recorded` : "Return recorded"); renderAll(); viewSale(id);
+  };
 }
 function pickSaleForPayment(){
   const open = get("sales").filter(s => !s.void && saleDue(s) > 0.004);
   openSheet("Which sale is the money for?", open.length ? open.map(saleRow).join("") : '<p class="muted">No sales with a balance owing. Start a new sale first.</p>');
 }
+let blSettings = {};
+const bizName = () => blSettings.biz || "Dorset Gold & Jewellery";
+const shopCfg = () => get("shopcfg").find(x => x._id === "cfg") || {};
+function receiptLines(s){
+  const c = s.custId ? findCust(s.custId) : null, L = [];
+  L.push(bizName()); if (blSettings.addr) L.push(blSettings.addr.replace(/\n/g, ", ")); if (blSettings.phone) L.push(blSettings.phone);
+  L.push("", `${s.trade ? "Trade invoice" : "Receipt"} ${s.no} · ${fmtDT(s.at)}`, c ? c.name : "Walk-in customer", "");
+  s.items.forEach(i => { L.push(`${i.desc}  ${gbp(i.price)}${i.returned ? " (returned)" : ""}`); if (i.details) L.push("  " + i.details); });
+  if (s.discount) L.push(`Discount${s.discountPct ? ` (${s.discountPct}%)` : ""}  −${gbp(s.discount)}`);
+  (s.px || []).forEach(p => L.push(`Part exchange (${p.receipt})  −${gbp(p.amount)}`));
+  L.push(`Total  ${gbp(saleTotal(s))}`, "");
+  (s.payments || []).forEach(p => L.push(`${fmtD(p.at)} paid by ${p.method}  ${gbp(p.amount)}`));
+  (s.refunds || []).forEach(r => L.push(`${fmtD(r.at)} refunded by ${r.method}  −${gbp(r.amount)}`));
+  L.push(s.void ? "Cancelled" : saleDue(s) > 0.004 ? `Balance to pay: ${gbp(saleDue(s))}${s.dueBy ? " by " + fmtD(s.dueBy) : ""}` : "Paid in full");
+  if (s.notes) L.push("", s.notes);
+  const cfg = shopCfg(); if (cfg.policy && !s.trade) L.push("", cfg.policy); L.push("", cfg.footer || "Thank you for your custom.");
+  return L;
+}
+function sendReceipt(id, how){
+  const s = get("sales").find(x => x._id === id), c = s && findCust(s.custId); if (!c) return;
+  const body = receiptLines(s).join("\n");
+  if (how === "email") location.href = `mailto:${encodeURIComponent(c.email)}?subject=${encodeURIComponent(`Your receipt from ${bizName()} (${s.no})`)}&body=${encodeURIComponent(body)}`;
+  else location.href = `sms:${c.phone.replace(/\s/g, "")}?&body=${encodeURIComponent(body)}`;
+}
 function receipt(id){
   const s = get("sales").find(x => x._id === id); if (!s) return;
-  const c = s.custId ? findCust(s.custId) : null, w = window.open("", "_blank");
+  const c = s.custId ? findCust(s.custId) : null, w = window.open("", "_blank"), cfg = shopCfg();
   if (!w) return toast("Allow pop-ups to show the receipt");
-  w.document.write(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Receipt ${esc(s.no)}</title>
-    <style>body{font:15px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;max-width:420px;margin:24px auto;padding:0 16px;color:#111}h1{font-size:20px;margin:0}td{padding:4px 0}td:last-child{text-align:right}table{width:100%;border-collapse:collapse}.t td{border-top:1px solid #ccc;font-weight:700}</style></head><body>
-    <h1>Dorset Gold &amp; Jewellery</h1><p>${s.trade ? "Trade invoice" : "Receipt"} <b>${esc(s.no)}</b><br>${fmtDT(s.at)}<br>${c ? esc(c.name) : "Walk-in customer"}</p>
-    <table>${s.items.map(i => `<tr><td>${esc(i.desc)}${itemDetail(i)}</td><td>${gbp(i.price)}</td></tr>`).join("")}${s.discount ? `<tr><td>Discount</td><td>−${gbp(s.discount)}</td></tr>` : ""}<tr class="t"><td>Total</td><td>${gbp(saleTotal(s))}</td></tr></table>
-    <p>${(s.payments || []).map(p => `${fmtD(p.at)}: ${esc(p.method)} ${gbp(p.amount)}`).join("<br>")}</p>
-    <p><b>${saleDue(s) > 0.004 ? "Balance to pay: " + gbp(saleDue(s)) : "Paid in full"}</b></p>${s.notes ? `<p>${esc(s.notes)}</p>` : ""}
-    <p style="color:#666;font-size:13px">Thank you for your custom.</p><script>setTimeout(()=>print(),400)<\/script></body></html>`);
+  w.document.write(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>${s.trade ? "Invoice" : "Receipt"} ${esc(s.no)}</title>
+    <style>body{font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;max-width:440px;margin:24px auto;padding:0 16px;color:#111}h1{font-size:20px;margin:0}td{padding:4px 0;vertical-align:top}td:last-child{text-align:right;white-space:nowrap;padding-left:10px}table{width:100%;border-collapse:collapse}.t td{border-top:1px solid #ccc;font-weight:700}.d{color:#555;font-size:12px}.s{color:#555;font-size:12px;white-space:pre-line}</style></head><body>
+    <h1>${esc(bizName())}</h1><div class="s">${esc([blSettings.addr, blSettings.phone].filter(Boolean).join("\n"))}</div>
+    <p>${s.trade ? "Trade invoice" : "Receipt"} <b>${esc(s.no)}</b><br>${fmtDT(s.at)}${s.by ? " · served by " + esc(s.by) : ""}<br>${c ? esc(c.name) : "Walk-in customer"}</p>
+    <table>${s.items.map(i => `<tr><td>${esc(i.desc)}${i.returned ? " <i>(returned)</i>" : ""}${i.details ? `<div class="d">${esc(i.details)}</div>` : ""}${itemDetail(i).replace(/class="muted"/g, 'class="d"')}</td><td>${gbp(i.price)}</td></tr>`).join("")}
+    ${s.discount ? `<tr><td>Discount${s.discountPct ? ` (${s.discountPct}%)` : ""}</td><td>−${gbp(s.discount)}</td></tr>` : ""}
+    ${(s.px || []).map(p => `<tr><td>Part exchange (old gold, ${esc(p.receipt)})</td><td>−${gbp(p.amount)}</td></tr>`).join("")}
+    <tr class="t"><td>Total</td><td>${gbp(saleTotal(s))}</td></tr></table>
+    <p>${(s.payments || []).map(p => `${fmtD(p.at)}: paid by ${esc(p.method)} ${gbp(p.amount)}`).concat((s.refunds || []).map(r => `${fmtD(r.at)}: refunded by ${esc(r.method)} −${gbp(r.amount)}`)).join("<br>")}</p>
+    <p><b>${s.void ? "Cancelled" : saleDue(s) > 0.004 ? "Balance to pay: " + gbp(saleDue(s)) + (s.dueBy ? " by " + fmtD(s.dueBy) : "") : "Paid in full"}</b></p>${s.notes ? `<p>${esc(s.notes)}</p>` : ""}
+    ${cfg.policy && !s.trade ? `<p class="s">${esc(cfg.policy)}</p>` : ""}<p class="s">${esc(cfg.footer || "Thank you for your custom.")}</p><script>setTimeout(()=>print(),400)<\/script></body></html>`);
   w.document.close();
 }
 
@@ -970,10 +1170,12 @@ function viewBag(id){
 }
 
 /* ============ SETTINGS, LOCK, BACKUP ============ */
+$("cfg_save").onclick = () => { const list = get("shopcfg").filter(x => x._id !== "cfg"); list.push(Object.assign({}, shopCfg(), {_id: "cfg", policy: $("cfg_policy").value.trim(), footer: $("cfg_footer").value.trim(), by: who()})); put("shopcfg", list); toast("Saved"); };
 $("linkGT").value = linked() ? "on" : "off";
 $("linkGT").onchange = async () => { localStorage.setItem("shopLinkGT", $("linkGT").value); await loadBuyLogSellers(); renderAll(); toast($("linkGT").value === "on" ? "Linked with Gold Trader" : "Kept separate"); };
 function renderSettings(){
   renderStaff(); renderStatus();
+  const cfg = shopCfg(); if (document.activeElement !== $("cfg_policy")) $("cfg_policy").value = cfg.policy || ""; if (document.activeElement !== $("cfg_footer")) $("cfg_footer").value = cfg.footer || "";
   const j = window.DGSync && DGSync.joined && DGSync.joined();
   $("teamState").innerHTML = j ? `This device is in the team as <b>${esc(DGSync.me())}</b>. Sales, stock, customers and the safe log are shared with the team, locked with your passphrase.`
     : `This phone hasn't joined the team, so everything stays on this phone only. Join the team in Gold Trader (Team page) to share it with Mike.`;
@@ -984,7 +1186,7 @@ async function loadPin(){
   try {
     const db = await new Promise((res, rej) => { const r = indexedDB.open("dj-buylog", 1); r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains("records")) d.createObjectStore("records", {keyPath: "id"}); if (!d.objectStoreNames.contains("kv")) d.createObjectStore("kv"); }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
     const s = await new Promise(res => { const q = db.transaction("kv").objectStore("kv").get("settings"); q.onsuccess = () => res(q.result || {}); q.onerror = () => res({}); });
-    pinHash = s.pinHash || ""; retainYears = parseFloat(s.retain) || 6;
+    pinHash = s.pinHash || ""; retainYears = parseFloat(s.retain) || 6; blSettings = s;
   } catch(e){}
   renderSettings();
   let signed = ""; try { signed = sessionStorage.getItem("shopUser") || ""; } catch(e){}
@@ -1064,7 +1266,7 @@ function renderStatus(){
 }
 window.addEventListener("dgsync-status", renderStatus);
 setInterval(renderStatus, 20000);
-const KIND = {sales: "Sale", forsale: "Stock piece", customers: "Customer", safebags: "Safe bag", stock: "My gold lot", buys: "Buying entry", sent: "Refiner batch", visits: "Diary visit", cash: "Cash entry", staff: "Staff"};
+const KIND = {sales: "Sale", forsale: "Stock piece", customers: "Customer", safebags: "Safe bag", stock: "My gold lot", buys: "Buying entry", sent: "Refiner batch", visits: "Diary visit", cash: "Cash entry", staff: "Staff", till: "Till entry", shopcfg: "Receipt settings"};
 function docLabel(id){
   const [k, ...r] = id.split(":");
   if (k === "a"){ const key = r[0], iid = r.slice(1).join(":"), x = get(key).find(y => y._id === iid), name = KIND[key] || key;
@@ -1119,7 +1321,7 @@ async function showHistory(id){
 }
 const histBtn = (key, id) => window.DGSync && DGSync.joined && DGSync.joined() ? `<button class="btn ghost" onclick="showHistory('a:${key}:${esc(id)}')">History of changes</button>` : "";
 async function backup(){
-  const data = {app: "dgj-shop", version: 2, exportedAt: new Date().toISOString(), sales: get("sales"), forsale: get("forsale"), customers: get("customers"), safebags: get("safebags"), staff: get("staff"), photos: {}};
+  const data = {app: "dgj-shop", version: 2, exportedAt: new Date().toISOString(), sales: get("sales"), forsale: get("forsale"), customers: get("customers"), safebags: get("safebags"), staff: get("staff"), till: get("till"), shopcfg: get("shopcfg"), photos: {}};
   for (const c of data.customers) for (const p of (c.photos || [])) if (p.ref && !data.photos[p.ref]) data.photos[p.ref] = await photoSrc(p);
   const blob = new Blob([JSON.stringify(data)], {type: "application/json"}), name = `shop-backup-${today()}.json`, file = new File([blob], name, {type: "application/json"});
   if (navigator.canShare && navigator.canShare({files: [file]})) navigator.share({files: [file], title: name}).catch(() => {});
@@ -1137,7 +1339,7 @@ window.addEventListener("dgsync-applied", () => { renderAll(); let u = ""; try {
 if (!who() && !staffAll().length && !(window.DGSync && DGSync.joined && DGSync.joined())){ /* not in the team: ask once who's using this phone, for "by" on records */
   setTimeout(() => { if (!localStorage.getItem("shopWho")){ const n = prompt("Your first name (shown on the sales and bags you record)"); if (n) localStorage.setItem("shopWho", n.trim()); renderAll(); } }, 800);
 }
-loadBuyLogSellers().then(() => { const k = JSON.parse(localStorage.getItem("shopNoSafe") || "[]"); blRecs.forEach(r => { if (k.includes(r.id)) r.noSafe = true; }); renderAll(); });
+loadBuyLogSellers().then(() => { setTimeout(resumeAfterPx, 300); const k = JSON.parse(localStorage.getItem("shopNoSafe") || "[]"); blRecs.forEach(r => { if (k.includes(r.id)) r.noSafe = true; }); renderAll(); });
 window.addEventListener("pageshow", e => { if (e.persisted) loadBuyLogSellers().then(renderAll); });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) loadBuyLogSellers().then(() => { const k = JSON.parse(localStorage.getItem("shopNoSafe") || "[]"); blRecs.forEach(r => { if (k.includes(r.id)) r.noSafe = true; }); renderAll(); }); });
 loadPin();

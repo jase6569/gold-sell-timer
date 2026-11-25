@@ -131,7 +131,7 @@
 
 <header>
   <a href="../" class="back" aria-label="Back to Gold Trader">‹</a>
-  <script>try{if(new URLSearchParams(location.search).get('from')==='shop')sessionStorage.setItem('blFrom','shop');if(sessionStorage.getItem('blFrom')==='shop'){var _b=document.currentScript.previousElementSibling;_b.href='../shop/';_b.setAttribute('aria-label','Back to Shop');}}catch(e){}</script>
+  <script>try{if(new URLSearchParams(location.search).get('px')==='1')sessionStorage.setItem('blPx','1');if(new URLSearchParams(location.search).get('from')==='shop')sessionStorage.setItem('blFrom','shop');if(sessionStorage.getItem('blFrom')==='shop'){var _b=document.currentScript.previousElementSibling;_b.href='../shop/';_b.setAttribute('aria-label','Back to Shop');}}catch(e){}</script>
   <img class="logo" src="../logo.png" alt="">
   <div><h1>Buying Log<small>Dorset Gold &amp; Jewellery</small></h1></div>
   <div class="spacer"></div>
@@ -236,6 +236,7 @@
             <option>Cash</option>
             <option>Cheque</option>
             <option>Card refund / other</option>
+            <option>Part exchange</option>
           </select></div>
         <div><label>Payment reference</label><input id="f_payref" autocomplete="off" placeholder="Bank ref, cheque no."></div>
       </div>
@@ -362,7 +363,7 @@
 <input type="file" id="lotCamIn" accept="image/*" capture="environment" class="hidden">
 <input type="file" id="galleryIn" accept="image/*" multiple class="hidden">
 
-<script src="../sync.js?v=8"></script>
+<script src="../sync.js?v=9"></script>
 <script src="../keep.js?v=1"></script>
 <script src="qrcode.min.js"></script>
 <script>if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../sw.js", {scope: "../"}).catch(() => {}));</script>
@@ -708,10 +709,12 @@ $('#saveBtn').onclick = async () => {
   if (window.DGSync && DGSync.joined()) rec._who = DGSync.me();
   if (visitId) rec.visit = visitId;
   await putRecord(rec); checkBackupDue();
+  let pxBack = false; try { pxBack = sessionStorage.getItem('blPx') === '1' && rec.payment.method === 'Part exchange'; } catch(e){}
   allCache = [];
   const grams = addToMyGold(rec); logBuys(rec);
   if (v('#f_staff')!==settings.staff){ settings.staff = v('#f_staff'); await saveSettingsObj(); }
   if (visitId){ try { const vs = JSON.parse(localStorage.getItem('visits') || '[]'), v = vs.find(x => x._id === visitId); if (v){ v.status = 'done'; v.receipt = rec.receipt; v.total = rec.total; localStorage.setItem('visits', JSON.stringify(vs)); } } catch(e){} visitId = null; history.replaceState(null, '', location.pathname); }
+  if (pxBack){ try { sessionStorage.removeItem('blPx'); } catch(e){} if (window.DGSync && DGSync.joined()) await DGSync.syncNow(); location.href = '../shop/?px=' + encodeURIComponent(rec.id); return; }
   resetForm();
   toast('Saved ' + rec.receipt + (grams ? ` · ${grams.toFixed(2)}g added to My gold` : ''));
   openRecord(rec.id, {justSaved:true});
@@ -1214,11 +1217,16 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) retur
   resetForm();
   prefillFromVisit();
   prefillFromOffer();
+  pxMode();
   requestAnimationFrame(sizeSig);
   checkBackupDue();
   try { if (new URLSearchParams(location.search).get('backup')) { history.replaceState(null, '', location.pathname); showTab('new'); window.scrollTo(0, 0); } } catch(e){}
 })();
 })();
+/* part exchange from the Shop app: this purchase is the customer's trade-in, paid against a sale */
+function pxMode(){ try { if (sessionStorage.getItem('blPx') === '1'){ document.querySelector('#f_pay').value = 'Part exchange'; document.querySelector('#f_pay').dispatchEvent(new Event('change'));
+  const n = document.createElement('div'); n.className = 'alert warn'; n.style.margin = '12px 16px 0'; n.innerHTML = '<b>Part exchange</b> for a sale in the Shop app. Record the old gold here with the customer\'s ID as normal. When you save, you go straight back to the sale with its value taken off.';
+  const m = document.querySelector('main') || document.body; if (!document.getElementById('pxNote')){ n.id = 'pxNote'; m.insertBefore(n, m.firstChild); } } } catch(e){} }
 </script>
 </body>
 </html>
