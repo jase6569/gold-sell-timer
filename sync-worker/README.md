@@ -25,6 +25,10 @@ This is what lets Jase and Mike share one app. It stores stock, the Buy log (rec
 
 Nothing is ever thrown away. When anything is changed or deleted, the version it replaces is kept (still encrypted) in a `history` table, made automatically. The Shop app shows this under Settings, then Activity (who changed what, and when), and on each sale, bag, piece and customer under **History of changes**, where any earlier version can be put back. Cloudflare also keeps its own copy of the whole database for restoring to any point in the last 7 days on the free plan (D1 Time Travel).
 
+## Nightly backup at midnight
+
+A second D1 database, `dg-backup`, bound to the Worker as `BACKUP`, holds a copy of every version of everything (still encrypted). Cron Triggers at `0 0 * * *` and `0 23 * * *` (UTC) run the Worker; whichever is midnight in the UK (GMT in winter, BST in summer) copies everything new or changed since the last run. Versions and backups older than 7 years are removed each night. Erasing a customer or deleting a purchase record removes its old versions from the backup too. The Shop app shows the last run under Settings, Data protection.
+
 ## Changing the passphrase
 
 Set a new `AUTH_HASH` from the new passphrase. Then, on each phone, **Leave the team** and join again with the new passphrase. Data already on the server was locked with the old passphrase, so the first phone to rejoin should be the one with the most complete copy, which then uploads everything again.

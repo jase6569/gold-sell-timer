@@ -412,7 +412,7 @@
 <input type="file" id="lotCamIn" accept="image/*" capture="environment" class="hidden">
 <input type="file" id="galleryIn" accept="image/*" multiple class="hidden">
 
-<script src="../sync.js?v=13"></script>
+<script src="../sync.js?v=14"></script>
 <script src="../keep.js?v=1"></script>
 <script src="qrcode.min.js"></script>
 <script>if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../sw.js", {scope: "../"}).catch(() => {}));</script>
@@ -538,7 +538,7 @@ $('#camIn').onchange = async e => {
   catch(err){ toast(err.message); }
 };
 function renderIdPhotos(){
-  $('#idScanBox').classList.toggle('hidden', !idPhotos.some(p => p.label === 'ID front'));
+  $('#idScanBox').classList.toggle('hidden', settings.aiId === 'off' || !idPhotos.some(p => p.label === 'ID front'));
   $('#idPhotos').innerHTML = idPhotos.map((p,i)=>`<div class="ph"><img src="${p.src}" data-i="${i}"><button data-rm="${i}">×</button><span>${esc(p.label)}</span></div>`).join('');
   $$('#idPhotos [data-rm]').forEach(b => b.onclick = () => { idPhotos.splice(+b.dataset.rm,1); renderIdPhotos(); });
   $$('#idPhotos img').forEach(im => im.onclick = () => viewImage(im.src));
@@ -918,6 +918,14 @@ async function openRecord(id, opts={}){
     if (!confirm((window.DGSync && DGSync.joined() ? 'Delete this record for everyone in the team? ' : 'Delete this record permanently? ') + 'Its gold is also taken out of My gold. This cannot be undone, and you may need it if the police ask.')) return;
     if (prompt('Type DELETE to confirm')!=='DELETE') return;
     const n = removeFromMyGold(r); unlogBuys(r); await delRecord(r.id); allCache=[]; toast('Record deleted' + (n ? ' and removed from My gold' : '')); close();
+    // data protection: a deleted purchase record goes from the team server's history and backup too, with its photos
+    if (window.DGSync && DGSync.joined && DGSync.joined() && DGSync.forget){ (async () => {
+      const hashOf = async v => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v)))].map(x => x.toString(16).padStart(2, '0')).join('');
+      const srcs = [].concat((r.idPhotos || []).map(p => p.src), (r.lotPhotos || []).map(p => p.src), (r.items || []).flatMap(i => i.photos || []), [r.signature]).filter(v => typeof v === 'string' && v.startsWith('data:'));
+      let keep = new Set(); try { JSON.parse(localStorage.getItem('customers') || '[]').forEach(c => (c.photos || []).forEach(p => keep.add(p.ref))); } catch(e){}
+      const refs = []; for (const v of srcs){ const h = 'dgph:' + await hashOf(v); if (!keep.has(h)) refs.push(h); }
+      try { await DGSync.forget('r:' + r.id, refs); } catch(e){ toast('Deleted here. The server copy will be cleared next time: ' + e.message); }
+    })(); }
   };
 }
 

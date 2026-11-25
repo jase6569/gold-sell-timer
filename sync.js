@@ -15,7 +15,7 @@ const SYNC_URL = "https://dg-sync.maximus6569.workers.dev";   // the team sync W
 const LS = window.localStorage, P = "dgs:";
 const ARRAYS = ["stock", "buys", "sent", "visits", "cash", "sales", "customers", "safebags", "forsale", "staff", "till", "shopcfg", "stockchecks", "sends", "safechecks", "valuations"];         // lists in localStorage, synced item by item
 const SCALARS = ["refiner", "ownPct", "pmM", "buyin"];               // shared settings: refiner price, margin, buying-in
-const BL_SHARED = ["biz", "addr", "phone", "prefix", "retain", "revLink", "revMsg", "icoDone", "icoNum", "dpEmail", "offerPct", "holdDays", "cmAt"];   // Buy log settings everyone shares
+const BL_SHARED = ["biz", "addr", "phone", "prefix", "retain", "revLink", "revMsg", "icoDone", "icoNum", "dpEmail", "offerPct", "holdDays", "cmAt", "aiId"];   // Buy log settings everyone shares
 const BL_DB = "dj-buylog";
 const enc = new TextEncoder(), dec = new TextDecoder();
 const rawGet = k => LS.getItem(k);
@@ -333,6 +333,7 @@ async function forget(id, refs){
   try { await post("/forget", {id, photos: hashes}); } catch(e){ throw new Error(e.status === 404 ? "The team server needs its update first." : e.message); }
   for (const h of hashes) await sDel("photos", h);
 }
+async function backupStatus(){ if (!joined()) return null; try { return await post("/backupstatus", {}); } catch(e){ return e.status === 404 ? {old: true} : null; } }
 function setActor(name){ try { if (name) sessionStorage.setItem(P + "actor", name); else sessionStorage.removeItem(P + "actor"); } catch(e){} }
 
 /* ---------- hooks for the Buy log page ---------- */
@@ -343,7 +344,7 @@ const settingsChanged = () => enqueue("b:settings");
 window.DGSync = {
   configured: () => !!SYNC_URL, joined, me, join, leave, syncNow, serverCode,
   status: () => Object.assign({pending: Object.keys(queue()).length}, jget(P + "st", {})),
-  recordChanged, recordDeleted, settingsChanged, history, activity, restore, setActor, actor, putPhoto, getPhoto, forget, people: () => jget(P + "people", ["Jase", "Mike"])
+  recordChanged, recordDeleted, settingsChanged, history, activity, restore, setActor, actor, putPhoto, getPhoto, forget, backupStatus, people: () => jget(P + "people", ["Jase", "Mike"])
 };
 
 let looping = false;

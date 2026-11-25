@@ -200,7 +200,7 @@
     <div class="card">
       <h2>Customers</h2>
       <p class="muted" style="margin-top:0" id="custSum"></p>
-      <div class="chips" id="custChips"><button data-f="all" class="on">Everyone</button><button data-f="buyers">Buy from us</button><button data-f="sellers">Sell to us</button><button data-f="trade">Trade</button><button data-f="wants">Looking for</button><button data-f="soon">Birthdays &amp; anniversaries</button><button data-f="review">ID to review</button></div>
+      <div class="chips" id="custChips"><button data-f="all" class="on">Everyone</button><button data-f="buyers">Buy from us</button><button data-f="sellers">Sell to us</button><button data-f="trade">Trade</button><button data-f="wants">Looking for</button><button data-f="soon">Birthdays &amp; anniversaries</button><button data-f="review">Data to review</button></div>
       <div class="row"><input id="custQ" placeholder="Search name, phone, postcode or customer number"><select id="custSort" style="max-width:220px"><option value="name">A to Z</option><option value="recent">Seen most recently</option><option value="spent">Spent the most</option><option value="sold">Sold us the most</option></select></div>
       <div class="row"><button class="btn" onclick="editCustomer()">+ New customer</button><button class="btn ghost" onclick="exportMarketing()">Export marketing list</button></div>
       <div id="custList" style="margin-top:10px"></div>
@@ -316,9 +316,15 @@
       <button class="btn ghost" id="cfg_valSave">Save</button>
     </div>
     <div class="card">
-      <h2>Back up</h2>
-      <p class="muted" style="margin-top:0">Saves all sales, stock, customers (with their ID photos), the till and the safe log to one file. It holds customers' ID, so keep it somewhere private. Purchase records have their own backup in the Buy log's Settings.</p>
-      <button class="btn ghost" onclick="backup()">Back up now</button>
+      <h2>Data protection</h2>
+      <div id="dpList"></div>
+      <label style="display:flex;align-items:center;gap:8px;color:var(--text);margin-top:12px"><input id="dp_ai" type="checkbox" style="width:auto"> Read ID photos with AI (sends the photo to OpenAI to fill in the form; shared with the Buy log)</label>
+      <div class="row"><button class="btn ghost" onclick="showNotice()">Privacy notice for customers</button><button class="btn ghost" onclick="openHelp('gdpr')">How the app handles personal data</button></div>
+    </div>
+    <div class="card">
+      <h2>Backups</h2>
+      <p class="muted" style="margin-top:0">Every night at midnight the team server copies everything (still encrypted) to a separate backup database in your Cloudflare account. For your own copy, <b>Back up now</b> saves a file locked with a password you choose: it holds customers' ID, so keep the file and the password apart. Purchase records have their own backup in the Buy log.</p>
+      <div class="row"><button class="btn ghost" onclick="backup()">Back up now</button><button class="btn ghost" onclick="restorePick()">Restore from a backup file</button></div>
     </div>
   </section>
 </main>
@@ -337,7 +343,7 @@
 <div id="cam"></div>
 <div id="lock"><img src="../icon.png" alt=""><div class="who" id="lockWho"></div><div style="margin-bottom:10px" id="lockAsk">Enter PIN</div><input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><div id="lockMsg" class="muted" style="margin-top:8px"></div></div>
 
-<script src="../sync.js?v=13"></script>
+<script src="../sync.js?v=14"></script>
 <script src="../buying-log/qrcode.min.js"></script>
 <script>
 /* ============ Dorset Gold & Jewellery · Shop ============
@@ -413,17 +419,17 @@ function renderCustomers(){
   const q = $("custQ").value.trim().toLowerCase(), qd = q.replace(/\D/g, ""), sort = $("custSort").value;
   const sales = get("sales"), all = custAll();
   const keep = c => custF === "all" || (custF === "buyers" ? sales.some(x => x.custId === c._id && !x.void) : custF === "sellers" ? (c.buys || []).length > 0 : custF === "trade" ? c.trade
-    : custF === "wants" ? (c.wants || []).some(w => !w.done) : custF === "soon" ? comingUp(c).length > 0 : c.src === "shop" && pastRetention(c));
-  const list = all.filter(keep).filter(c => !q || (c.name || "").toLowerCase().includes(q) || (c.pc || "").toLowerCase().replace(/\s/g, "").includes(q.replace(/\s/g, "")) || (qd.length >= 4 && (c.phone || "").replace(/\D/g, "").includes(qd)) || (c.no || "").toLowerCase().includes(q));
+    : custF === "wants" ? (c.wants || []).some(w => !w.done) : custF === "soon" ? comingUp(c).length > 0 : c.src === "shop" && (pastRetention(c) || custStale(c)));
+  const list = all.filter(keep).filter(c => !c.erasedAt || q).filter(c => !q || (c.name || "").toLowerCase().includes(q) || (c.pc || "").toLowerCase().replace(/\s/g, "").includes(q.replace(/\s/g, "")) || (qd.length >= 4 && (c.phone || "").replace(/\D/g, "").includes(qd)) || (c.no || "").toLowerCase().includes(q));
   const ex = new Map(list.map(c => [c._id, {spent: custSpent(c, sales), sold: custSold(c), last: custLast(c, sales)}]));
   list.sort(sort === "recent" ? (a, b) => ex.get(b._id).last.localeCompare(ex.get(a._id).last) : sort === "spent" ? (a, b) => ex.get(b._id).spent - ex.get(a._id).spent
     : sort === "sold" ? (a, b) => ex.get(b._id).sold - ex.get(a._id).sold : (a, b) => (a.name || "").localeCompare(b.name || ""));
   const nB = all.filter(c => sales.some(x => x.custId === c._id && !x.void)).length, nS = all.filter(c => (c.buys || []).length).length, nT = all.filter(c => c.trade).length;
   $("custSum").textContent = `${all.length} ${all.length === 1 ? "person" : "people"}: ${nB} ${nB === 1 ? "has" : "have"} bought from you, ${nS} ${nS === 1 ? "has" : "have"} sold to you, ${nT} trade contact${nT === 1 ? "" : "s"}.`;
-  const EMPTY = {all: "No customers yet. Add one, or start a sale and add them there. People who sell to you in the Buy log appear here too.", buyers: "No one has bought from you yet.", sellers: "No one has sold to you in the Buy log yet.", trade: "No trade contacts yet. Tick \"Trade contact\" when adding a dealer or buyer you sell to.", wants: "No one is waiting for anything. Add what a customer is looking for on their record, and you'll see it here when matching stock comes in.", soon: "No birthdays or anniversaries in the next 30 days. Add them on a customer's record.", review: "No ID is due for review."};
+  const EMPTY = {all: "No customers yet. Add one, or start a sale and add them there. People who sell to you in the Buy log appear here too.", buyers: "No one has bought from you yet.", sellers: "No one has sold to you in the Buy log yet.", trade: "No trade contacts yet. Tick \"Trade contact\" when adding a dealer or buyer you sell to.", wants: "No one is waiting for anything. Add what a customer is looking for on their record, and you'll see it here when matching stock comes in.", soon: "No birthdays or anniversaries in the next 30 days. Add them on a customer's record.", review: "Nothing is past the retention period."};
   $("custList").innerHTML = list.length ? list.slice(0, 300).map(c => { const x = ex.get(c._id), up = comingUp(c), w = (c.wants || []).filter(y => !y.done);
     return `<div class="item" onclick="viewCustomer('${esc(c._id)}')"><span class="r" style="font-weight:600">${x.spent ? gbp(x.spent, 0) + '<div class="muted" style="font-weight:400;font-size:12px">spent</div>' : ""}${x.sold ? `<div class="muted" style="font-weight:400;font-size:12px">sold us ${gbp(x.sold, 0)}</div>` : ""}</span>
-      <b>${esc(c.name || "No name")}${c.trade ? '<span class="pill ok">Trade</span>' : ""}${c.src === "buylog" ? '<span class="pill">Seller</span>' : ""}${c.src === "shop" && idDone(c) ? (pastRetention(c) ? '<span class="pill due">ID due for review</span>' : idExpired(c) ? '<span class="pill due">ID expired</span>' : '<span class="pill ok">ID on file</span>') : ""}</b>
+      <b>${esc(c.name || "No name")}${custStale(c) ? '<span class="pill due">No activity for over ' + retainYears + ' years</span>' : ""}${c.trade ? '<span class="pill ok">Trade</span>' : ""}${c.src === "buylog" ? '<span class="pill">Seller</span>' : ""}${c.src === "shop" && idDone(c) ? (pastRetention(c) ? '<span class="pill due">ID due for review</span>' : idExpired(c) ? '<span class="pill due">ID expired</span>' : '<span class="pill ok">ID on file</span>') : ""}</b>
       <span class="muted">${[c.no, c.phone, c.pc].filter(Boolean).map(esc).join(" · ")}${x.last ? " · last seen " + fmtD(x.last) : ""}</span>
       ${up.length || w.length ? `<div>${up.map(u => `<span class="pill due">${u.label} ${u.when.toLocaleDateString("en-GB", {day: "numeric", month: "short"})}</span>`).join("")}${w.length ? `<span class="pill ok">Looking for: ${esc(w.map(y => y.text).join(", ").slice(0, 60))}</span>` : ""}</div>` : ""}</div>`; }).join("")
     : `<p class="muted">${q ? "No customer matches that." : EMPTY[custF]}</p>`;
@@ -568,7 +574,7 @@ function editCustomer(id, then, trade, needId, fromRec){
     box.querySelectorAll("[data-take]").forEach(e => e.onclick = async () => { const l = e.dataset.take, src = await takePhoto((SHOTS.find(x => x[0] === l) || [])[1]); if (!src) return; shots.push({label: l, src}); drawShots(); checks(); });
     box.querySelectorAll("[data-view]").forEach(e => e.onclick = async ev => { if (ev.target.dataset.rm) return; const sh = shots.find(x => x.label === e.dataset.view); showImg(await photoSrc(sh)); });
     box.querySelectorAll("[data-rm]").forEach(e => e.onclick = ev => { ev.stopPropagation(); const i = shots.findIndex(x => x.label === e.dataset.rm); if (i >= 0) shots.splice(i, 1); drawShots(); checks(); });
-    $("c_read").style.display = shots.some(x => x.label === "ID front") ? "" : "none";
+    $("c_read").style.display = aiOn() && shots.some(x => x.label === "ID front") ? "" : "none";
   };
   const checks = () => {
     const out = [], exp = $("c_idexp").value, age = ageOn($("c_dob").value), pd = $("c_poaDate").value;
@@ -692,6 +698,7 @@ function viewCustomer(id){
       ${c.poa ? `<tr><td>Proof of address</td><td>${esc(c.poa)}${c.poaDate ? ", " + fmtD(c.poaDate) : ""}</td></tr>` : ""}${c.idAt ? `<tr><td>Checked</td><td>${fmtD(c.idAt)}${c.idBy ? " by " + esc(c.idBy) : ""}</td></tr>` : ""}</table>
       <div class="shots" id="vc_shots">${(c.photos || []).map((p, i) => `<div class="shot have" data-i="${i}"><img alt=""><span>${esc(p.label)}</span></div>`).join("")}</div>`
       : `<p class="muted">${c.idRemovedAt ? `ID removed ${fmtD(c.idRemovedAt)}${c.idRemovedBy ? " by " + esc(c.idRemovedBy) : ""}.` : c.trade ? "" : `No ID on file. Needed for a sale of ${gbp(ID_AT, 0)} or more.`}</p>`) : ""}
+    ${custStale(c) ? `<div class="alert wn">No sales or purchases for over ${retainYears} years. Erase their personal data unless you still need it (their sales stay, without their name).</div>` : ""}
     ${c.src === "shop" && pastRetention(c) ? `<div class="alert wn">No sale for over ${retainYears} years, so their ID is due for review. Remove it unless you still need it.</div>` : ""}
     ${c.src === "shop" && idDone(c) ? `<button class="btn ghost" onclick="removeId('${esc(c._id)}')">Remove their ID details and photos</button>` : ""}
     ${(() => { const vs = get("valuations").filter(v => v.custId === c._id); return c.src === "shop" ? `<h2 style="margin-top:16px">Valuations</h2>${vs.map(v => `<div class="item" onclick="viewVal('${v._id}')"><span class="r">${gbp(valTotal(v), 0)}</span><b>${esc(v.no)}${v.reviewBy && v.reviewBy <= today() ? '<span class="pill due">Due for revaluation</span>' : ""}</b><span class="muted">${fmtD(v.at)} · ${v.items.length} item${v.items.length > 1 ? "s" : ""}</span></div>`).join("")}<button class="btn small ghost" onclick="newVal('${esc(c._id)}')">+ New valuation for ${esc((c.name || "them").split(" ")[0])}</button>` : ""; })()}
@@ -700,7 +707,11 @@ function viewCustomer(id){
       return ts.length ? `<p class="muted" style="margin-top:0">${ts.length} trade sale${ts.length > 1 ? "s" : ""} · ${gbp(v, 0)}${g ? ` · ${g.toFixed(1)}g scrap` : ""}${d ? ` · <b style="color:${d >= 0 ? "var(--up)" : "var(--down)"}">${d >= 0 ? "+" : "−"}${gbp(Math.abs(d), 0)} against Mastermelt</b>` : ""}</p>` : ""; })() : ""}
     ${sales.length ? sales.map(s => `<div class="item" onclick="viewSale('${s._id}')"><span class="r">${gbp(saleTotal(s))}</span><b>${esc(s.no)}</b><span class="muted">${fmtD(s.at)} · ${esc(s.items.map(i => i.desc).join(", "))}</span></div>`).join("") : '<p class="muted">Nothing yet.</p>'}
     ${(c.buys || []).length ? `<h2 style="margin-top:16px">Sold to us (Buy log)</h2>` + c.buys.slice().sort((a, b) => b.at.localeCompare(a.at)).map(b => `<div class="item" style="cursor:default"><span class="r">${gbp(b.total)}</span><b>${esc(b.receipt)}</b><span class="muted">${fmtD(b.at)}</span></div>`).join("") + `<p class="muted">Sold to you ${c.buys.length} time${c.buys.length > 1 ? "s" : ""}, ${gbp(custSold(c))} in total.</p>` : ""}
-    ${c.src === "shop" ? `<button class="btn ghost" onclick="editCustomer('${c._id}')">Edit details</button>${histBtn("customers", c._id)}` : `<p class="muted">Has sold to you, but isn't a Shop customer yet. Their details and ID are in the Buy log.</p><button class="btn ghost" id="vc_make">Make them a Shop customer</button>`}
+    <details style="margin-top:12px"><summary class="muted">Their data (access and erasure requests)</summary>
+      <button class="btn small ghost" style="margin-top:8px" onclick="subjectAccess('${esc(c._id)}')">Everything we hold about them</button>
+      ${c.src === "shop" && !c.erasedAt ? `<button class="btn small red" style="margin-top:8px" onclick="eraseCustomer('${esc(c._id)}')">Erase their personal data</button>` : ""}
+      ${c.src !== "shop" ? '<p class="muted">Their purchase records must be kept until the retention period ends; after that, delete them in the Buy log.</p>' : ""}</details>
+    ${c.erasedAt ? `<p class="muted">Personal data erased ${fmtD(c.erasedAt)} by ${esc(c.erasedBy || "")}.</p>` : c.src === "shop" ? `<button class="btn ghost" onclick="editCustomer('${c._id}')">Edit details</button>${histBtn("customers", c._id)}` : `<p class="muted">Has sold to you, but isn't a Shop customer yet. Their details and ID are in the Buy log.</p><button class="btn ghost" id="vc_make">Make them a Shop customer</button>`}
     ${c.trade ? `<button class="btn" onclick="newTradeSale('${esc(c._id)}')">Sell to ${esc((c.name || "them").split(" ")[0])}</button>` : `<button class="btn" onclick="newSale('${esc(c._id)}')">Start a sale for ${esc((c.name || "them").split(" ")[0])}</button>`}`);
 }
 
@@ -1611,12 +1622,13 @@ async function blSettingsSave(patch){
 }
 function fillBizRules(){ const s = blSettings || {}, set = (k, v) => { if (document.activeElement !== $(k)) $(k).value = v; };
   set("bz_name", s.biz || "Dorset Gold & Jewellery"); set("bz_addr", s.addr || ""); set("bz_phone", s.phone || ""); set("br_hold", s.holdDays ?? "14"); set("br_cm", s.cmAt || "1000"); set("br_offer", s.offerPct || ""); }
+$("dp_ai").onchange = async () => { await blSettingsSave({aiId: $("dp_ai").checked ? "on" : "off"}); toast($("dp_ai").checked ? "AI ID reading on" : "AI ID reading off: details are typed in"); renderAll(); };
 $("bz_save").onclick = async () => { if (!$("bz_name").value.trim()) return toast("Add the business name"); await blSettingsSave({biz: $("bz_name").value.trim(), addr: $("bz_addr").value.trim(), phone: $("bz_phone").value.trim()}); toast("Business details saved"); };
 $("br_save").onclick = async () => { const o = $("br_offer").value.trim(); if (o && !(+o > 0 && +o <= 100)) return toast("The offer % should be between 1 and 100");
   await blSettingsSave({holdDays: String(Math.max(0, Math.round(+($("br_hold").value || 14)))), cmAt: $("br_cm").value.trim() || "1000", offerPct: o}); toast("Buying rules saved"); };
 window.addEventListener("dgsync-applied", e => { if (e.detail && e.detail.settings) loadPin(); });
 function renderSettings(){
-  renderStaff(); renderStatus(); fillBizRules();
+  renderStaff(); renderStatus(); fillBizRules(); renderDP().catch(() => {}); $("dp_ai").checked = aiOn();
   const cfg = shopCfg(); if (document.activeElement !== $("cfg_policy")) $("cfg_policy").value = cfg.policy || "";
   [["cfg_valFee", cfg.valFee || ""], ["cfg_valQuals", cfg.valQuals || ""], ["cfg_valBasis", cfg.valBasis || VAL_BASIS], ["cfg_valTerms", cfg.valTerms || VAL_TERMS]].forEach(([k, v]) => { if (document.activeElement !== $(k)) $(k).value = v; }); if (document.activeElement !== $("cfg_footer")) $("cfg_footer").value = cfg.footer || "";
   const j = window.DGSync && DGSync.joined && DGSync.joined();
@@ -1789,13 +1801,6 @@ async function showHistory(id){
   } catch(e){ $("shBody").innerHTML = `<p class="muted">${esc(e.message)}</p>`; }
 }
 const histBtn = (key, id) => window.DGSync && DGSync.joined && DGSync.joined() ? `<button class="btn ghost" onclick="showHistory('a:${key}:${esc(id)}')">History of changes</button>` : "";
-async function backup(){
-  const data = {app: "dgj-shop", version: 2, exportedAt: new Date().toISOString(), sales: get("sales"), forsale: get("forsale"), customers: get("customers"), safebags: get("safebags"), staff: get("staff"), till: get("till"), shopcfg: get("shopcfg"), stockchecks: get("stockchecks"), sends: get("sends"), safechecks: get("safechecks"), valuations: get("valuations"), photos: {}};
-  for (const c of data.customers.concat(data.forsale, data.valuations.flatMap(v => v.items))) for (const p of (c.photos || [])) if (p.ref && !data.photos[p.ref]) data.photos[p.ref] = await photoSrc(p);
-  const blob = new Blob([JSON.stringify(data)], {type: "application/json"}), name = `shop-backup-${today()}.json`, file = new File([blob], name, {type: "application/json"});
-  if (navigator.canShare && navigator.canShare({files: [file]})) navigator.share({files: [file], title: name}).catch(() => {});
-  else { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); }
-}
 
 /* ============ REPORTS AND THE ACCOUNTANT EXPORT ============
    Everything for a chosen period, worked out from the records themselves: sales made, money taken and refunded
@@ -2041,6 +2046,148 @@ async function printVal(id){
 }
 
 $("rp_per").onchange = renderReports; $("rp_from").onchange = renderReports; $("rp_to").onchange = renderReports;
+/* ============ DATA PROTECTION ============
+   Encrypted backups (with restore), the right of access (everything we hold about someone), the right to erasure
+   (a customer anonymised everywhere, including the server's history and backup), a privacy notice built from
+   your details, the AI ID-reading switch, and a checklist. */
+const aiOn = () => (blSettings || {}).aiId !== "off";
+const enc8 = new TextEncoder(), dec8 = new TextDecoder();
+const toB64 = u8 => { let s = ""; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+const fromB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function pwKey(pw, salt){ const base = await crypto.subtle.importKey("raw", enc8.encode(pw), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({name: "PBKDF2", salt, iterations: 250000, hash: "SHA-256"}, base, {name: "AES-GCM", length: 256}, false, ["encrypt", "decrypt"]); }
+function askPassword(title, confirmIt){
+  return new Promise(done => {
+    openSheet(title, `<p class="muted" style="margin-top:0">${confirmIt ? "The backup holds customers' details and ID, so it's locked with a password. Use at least 10 characters and keep it somewhere safe: without it the file can't be opened." : "Type the password the backup was locked with."}</p>
+      <label>Password</label><input id="pw1" type="password" autocomplete="new-password">${confirmIt ? '<label>Type it again</label><input id="pw2" type="password" autocomplete="new-password">' : ""}
+      <button class="btn" id="pw_go">${confirmIt ? "Lock and save the backup" : "Open the backup"}</button>`);
+    setTimeout(() => $("pw1").focus(), 50);
+    $("pw_go").onclick = () => { const a = $("pw1").value; if (confirmIt){ if (a.length < 10) return toast("Use at least 10 characters"); if (a !== $("pw2").value) return toast("The two passwords don't match"); } closeSheet(); done(a); };
+    $("sheet").addEventListener("click", function h(e){ if (e.target.id === "sheet"){ $("sheet").removeEventListener("click", h); done(""); } });
+  });
+}
+async function backup(){
+  const pw = await askPassword("Lock the backup", true); if (!pw) return;
+  toast("Making the backup…");
+  const data = {app: "dgj-shop", version: 3, exportedAt: new Date().toISOString(), sales: get("sales"), forsale: get("forsale"), customers: get("customers"), safebags: get("safebags"), staff: get("staff"), till: get("till"), shopcfg: get("shopcfg"),
+    stockchecks: get("stockchecks"), sends: get("sends"), safechecks: get("safechecks"), valuations: get("valuations"), photos: {}};
+  for (const c of data.customers.concat(data.forsale, data.valuations.flatMap(v => v.items))) for (const p of (c.photos || [])) if (p.ref && !data.photos[p.ref]) data.photos[p.ref] = await photoSrc(p);
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({name: "AES-GCM", iv}, await pwKey(pw, salt), enc8.encode(JSON.stringify(data))));
+  const body = JSON.stringify({app: "dgj-shop-locked", version: 3, made: data.exportedAt, salt: toB64(salt), iv: toB64(iv), data: toB64(ct)});
+  const name = `shop-backup-${today()}.dgbackup`, blob = new Blob([body], {type: "application/octet-stream"}), file = new File([blob], name, {type: "application/octet-stream"});
+  localStorage.setItem("shopLastBackup", new Date().toISOString());
+  if (coarse && navigator.canShare && navigator.canShare({files: [file]})) navigator.share({files: [file], title: name}).catch(() => {});   // phones: save to Drive or Files
+  else { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }   // computers: a download
+  renderSettings(); toast("Backup saved, locked with your password");
+}
+function restorePick(){ const f = document.createElement("input"); f.type = "file"; f.accept = ".dgbackup,.json"; f.onchange = () => f.files[0] && restoreFile(f.files[0]); f.click(); }
+async function restoreFile(file){
+  let j; try { j = JSON.parse(await file.text()); } catch(e){ return toast("That isn't a backup file"); }
+  let data = j;
+  if (j.app === "dgj-shop-locked"){ const pw = await askPassword("Open the backup", false); if (!pw) return;
+    try { data = JSON.parse(dec8.decode(await crypto.subtle.decrypt({name: "AES-GCM", iv: fromB64(j.iv)}, await pwKey(pw, fromB64(j.salt)), fromB64(j.data)))); } catch(e){ return toast("Wrong password, or the file is damaged"); } }
+  if (data.app !== "dgj-shop") return toast("That isn't a Shop backup");
+  const keys = ["sales", "forsale", "customers", "safebags", "staff", "till", "shopcfg", "stockchecks", "sends", "safechecks", "valuations"];
+  const adds = {}; keys.forEach(k => { const cur = get(k), have = new Set(cur.map(x => x._id)), add = (data[k] || []).filter(x => x && x._id && !have.has(x._id)); adds[k] = add; });
+  const n = Object.values(adds).reduce((t, a) => t + a.length, 0);
+  if (!n) return toast("Nothing to restore: everything in the backup is already here");
+  if (!confirm(`Restore ${n} record${n > 1 ? "s" : ""} from the backup made ${fmtD(data.exportedAt)}? Only records missing here are added; nothing here is changed.`)) return;
+  const refMap = {};
+  for (const [ref, src] of Object.entries(data.photos || {})) if (src && window.DGSync && DGSync.putPhoto) refMap[ref] = await DGSync.putPhoto(src);
+  keys.forEach(k => { if (!adds[k].length) return; const fix = x => { (x.photos || []).forEach(p => { if (refMap[p.ref]) p.ref = refMap[p.ref]; }); (x.items || []).forEach(fix); return x; }; put(k, get(k).concat(adds[k].map(fix))); });
+  renderAll(); toast(`${n} record${n > 1 ? "s" : ""} restored`);
+}
+
+/* right of access: everything held about one person, from the Shop and the Buy log, to print or give them as a file */
+function personRecords(c){
+  const recs = blRecs.filter(r => (c.buys || []).some(b => b.id === r.id));
+  const sales = c.src === "shop" ? get("sales").filter(s => s.custId === c._id) : [];
+  const vals = c.src === "shop" ? get("valuations").filter(v => v.custId === c._id) : [];
+  return {recs, sales, vals};
+}
+async function subjectAccess(cid){
+  const c = findCust(cid); if (!c) return;
+  const {recs, sales, vals} = personRecords(c), shop = c.src === "shop" ? get("customers").find(x => x._id === c._id) : null;
+  const w = window.open("", "_blank"); if (!w) return toast("Allow pop-ups to show it");
+  const custPh = shop ? await Promise.all((shop.photos || []).map(async p => [p.label, await photoSrc(p)])) : [];
+  const L = (k, v) => v ? `<tr><td>${k}</td><td>${esc(v)}</td></tr>` : "";
+  w.document.write(`<!DOCTYPE html><html><head><title>Personal data held: ${esc(c.name)}</title><style>body{font:13px/1.45 -apple-system,Segoe UI,Roboto,sans-serif;max-width:780px;margin:20px auto;padding:0 16px;color:#000}h1{font-size:19px}h2{font-size:15px;border-bottom:1px solid #000;margin-top:22px}table{width:100%;border-collapse:collapse}td{padding:3px 6px 3px 0;border-bottom:1px solid #ddd;vertical-align:top}td:first-child{width:190px;color:#444}img{height:120px;margin:4px;border:1px solid #ccc}</style></head><body>
+    <h1>Personal data ${esc(bizName())} holds about ${esc(c.name)}</h1><p>Prepared ${fmtDT(new Date().toISOString())} by ${esc(who())}.</p>
+    ${shop ? `<h2>Customer record</h2><table>${L("Customer number", shop.no)}${L("Name", shop.name)}${L("Phone", shop.phone)}${L("Email", shop.email)}${L("Address", [shop.addr, shop.pc].filter(Boolean).join(", "))}${L("Date of birth", shop.dob && fmtD(shop.dob))}
+      ${L("Photo ID", [shop.idtype, shop.idnum, shop.idexp && "expires " + fmtD(shop.idexp)].filter(Boolean).join(", "))}${L("Proof of address", shop.poa)}${L("Ring size", shop.ringSize)}${L("Birthday", shop.birthday && fmtD(shop.birthday))}${L("Anniversary", shop.anniversary && fmtD(shop.anniversary))}
+      ${L("Metal they like", shop.likesMetal)}${L("Notes", shop.notes)}${L("Marketing", shop.mkText || shop.mkEmail ? `Agreed to ${[shop.mkText ? "texts" : "", shop.mkEmail ? "emails" : ""].filter(Boolean).join(" and ")} on ${fmtD(shop.mkAt)}` : "Not agreed")}
+      ${L("Looking for", (shop.wants || []).filter(x => !x.done).map(x => x.text).join("; "))}${L("Added", shop.added && fmtD(shop.added))}</table>${custPh.map(([l, s]) => s ? `<img src="${s}" title="${esc(l)}">` : "").join("")}` : ""}
+    ${sales.length ? `<h2>Purchases from us</h2><table>${sales.map(s => `<tr><td>${fmtD(s.at)} · ${esc(s.no)}</td><td>${esc(s.items.map(i => i.desc + " " + gbp(i.price)).join("; "))} · total ${gbp(saleTotal(s))}${(s.payments || []).length ? " · paid by " + esc([...new Set(s.payments.map(p => p.method))].join(", ")) : ""}</td></tr>`).join("")}</table>` : ""}
+    ${vals.length ? `<h2>Valuations</h2><table>${vals.map(v => `<tr><td>${fmtD(v.at)} · ${esc(v.no)}</td><td>${esc(v.items.map(i => i.desc + " " + gbp(i.value)).join("; "))}</td></tr>`).join("")}</table>` : ""}
+    ${recs.length ? `<h2>Items sold to us (purchase records)</h2>${recs.map(r => { const sl = r.seller || {}; return `<table>${L("Receipt", r.receipt + ", " + fmtD(r.createdAt))}${L("Name", [sl.first, sl.last].join(" "))}${L("Date of birth", sl.dob && fmtD(sl.dob))}${L("Address", [sl.addr, sl.pc].filter(Boolean).join(", "))}${L("Phone", sl.phone)}${L("Email", sl.email)}
+      ${L("Photo ID", [sl.idtype, sl.idnum].filter(Boolean).join(", "))}${L("Proof of address", sl.poa)}${L("Items", (r.items || []).map(i => i.desc + " " + gbp(i.price)).join("; "))}${L("Paid", gbp(r.total) + " by " + ((r.payment || {}).method || ""))}</table>
+      ${(r.idPhotos || []).map(p => String(p.src).startsWith("data:") ? `<img src="${p.src}" title="${esc(p.label)}">` : "").join("")}`; }).join("")}` : ""}
+    <h2>Why we hold it and for how long</h2><p>${esc(privacyNotice().split("\n\n").slice(2, 6).join(" "))}</p>
+    <script>setTimeout(()=>print(),600)<\/script></body></html>`);
+  w.document.close();
+  const blob = new Blob([JSON.stringify({person: c.name, prepared: new Date().toISOString(), customer: shop ? Object.assign({}, shop, {photos: (shop.photos || []).map(p => p.label)}) : null, sales, valuations: vals,
+    purchaseRecords: recs.map(r => Object.assign({}, r, {idPhotos: (r.idPhotos || []).map(p => p.label), lotPhotos: (r.lotPhotos || []).map(p => p.label), signature: r.signature ? "signature image held" : ""}))}, null, 2)], {type: "application/json"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `data-held-${(c.name || "customer").replace(/\W+/g, "-").toLowerCase()}-${today()}.json`; a.click();
+}
+
+/* right to erasure: the customer's details go everywhere (here, other devices, the server's history and backup);
+   sales stay, without the name, because sales records must be kept for HMRC; purchase records stay until their retention ends */
+function eraseCustomer(cid){ withManager("Erasing a customer's personal data", () => eraseOk(cid)); }
+async function eraseOk(cid){
+  const c = get("customers").find(x => x._id === cid); if (!c) return;
+  const recs = personRecords(findCust(cid) || c).recs;
+  if (!confirm(`Erase ${c.name}'s personal data? Their name, contact details, ID, photos, notes and dates go from every device, the team server's history and its backup. Their sales stay (as "Erased customer ${c.no}") because sales records must be kept.${recs.length ? ` ${recs.length} purchase record${recs.length > 1 ? "s" : ""} in the Buy log stay until their retention period ends, as the law expects.` : ""} This can't be undone.`)) return;
+  const refs = (c.photos || []).map(p => p.ref).filter(Boolean), keep = new Set();
+  for (const r of blRecs) for (const p of (r.idPhotos || []).concat(r.lotPhotos || [])) if (String(p.src).startsWith("data:")) keep.add("dgph:" + await sha(p.src));
+  get("customers").forEach(x => { if (x._id !== cid) (x.photos || []).forEach(p => keep.add(p.ref)); });
+  const list = get("customers"), i = list.findIndex(x => x._id === cid), now = new Date().toISOString();
+  list[i] = {_id: c._id, no: c.no, name: `Erased customer ${c.no}`, erasedAt: now, erasedBy: who() + (approvedBy ? `, approved by ${approvedBy}` : ""), added: c.added, trade: !!c.trade};
+  put("customers", list);
+  const vl = get("valuations"), vids = []; vl.forEach(v => { if (v.custId === cid){ v.custName = `Erased customer ${c.no}`; v.custAddr = ""; vids.push(v._id); } }); if (vids.length) put("valuations", vl);
+  renderAll(); closeSheet(); toast("Erased here. Clearing the server copies…");
+  try { if (window.DGSync && DGSync.joined && DGSync.joined()){ await DGSync.forget("a:customers:" + cid, refs.filter(r => !keep.has(r))); for (const v of vids) await DGSync.forget("a:valuations:" + v, []); } toast(`${c.name}'s personal data has been erased`); }
+  catch(e){ toast("Erased here; the server copy will need clearing again: " + e.message); }
+}
+/* privacy notice for customers, built from the business details */
+function privacyNotice(){
+  const s = blSettings || {}, biz = s.biz || "Dorset Gold & Jewellery", yrs = +s.retain || 6;
+  const contact = [s.phone ? "phone " + s.phone : "", s.dpEmail ? "email " + s.dpEmail : "", s.addr ? "write to " + s.addr.replace(/\n/g, ", ") : ""].filter(Boolean).join(", or ");
+  return [`How ${biz} uses your details`,
+    `Who we are: ${biz}, jewellers and buyers of gold, silver, jewellery, coins and watches. We're responsible for the personal details you give us${s.icoNum ? " (ICO registration " + s.icoNum + ")" : ""}.${contact ? " Contact us: " + contact + "." : ""}`,
+    `When you buy from us: your name and contact details, what you bought and how you paid, and anything you choose to tell us (ring size, birthday, what you're looking for). For a purchase of £1,000 or more we also record your photo ID and proof of address. We use these to sell to you, give you receipts, hold items for you, take payments and deal with returns, and because the law requires us to keep sales records.`,
+    `When you sell to us: your name, date of birth, address, contact details, photo ID, proof of address, photos of you and the items, what we paid and your signed declaration. Second-hand gold dealers are expected to keep these so stolen goods can be traced and the police helped if they ask.`,
+    `Marketing: we only send you offers or news if you've agreed, and you can stop them at any time by telling us.`,
+    `Who sees your details: only our staff. We share them with the police or other authorities only when the law requires it. Our records are kept on our own devices and on a secure service (Cloudflare) where they're encrypted so only we can read them, with a copy taken every night.${aiOn() ? " To save typing, ID photos may be read by an AI service (OpenAI) that fills in our form; it doesn't keep them for its own use." : ""}`,
+    `How long: sales and purchase records for ${yrs} years, as the law expects. Photo ID taken when you buy from us is reviewed and removed once it's no longer needed. Other details are removed if you haven't bought from or sold to us for ${yrs} years.`,
+    `Your rights: you can ask for a copy of the details we hold about you, ask us to correct them, ask us to delete them (we'll delete everything the law doesn't require us to keep), and object to how we use them. If you're unhappy with how we handle your details, please tell us first; you can also complain to the Information Commissioner's Office at ico.org.uk or on 0303 123 1113.`].join("\n\n");
+}
+function showNotice(){
+  openSheet("Privacy notice for customers", `<p class="muted" style="margin-top:0">Built from your business details. Display it in the shop and give it to anyone who asks. Check it describes what you do.</p>
+    <div class="card" style="white-space:pre-wrap;font-size:15px">${esc(privacyNotice())}</div>
+    <div class="row"><button class="btn" id="pn_print">Print it</button><button class="btn ghost" id="pn_copy">Copy the text</button></div>`);
+  $("pn_print").onclick = () => { const w = window.open("", "_blank"); if (!w) return toast("Allow pop-ups to print"); w.document.write(`<!DOCTYPE html><html><head><title>Privacy notice</title><style>body{font:14px/1.55 Georgia,serif;max-width:680px;margin:30px auto;padding:0 18px;white-space:pre-wrap}</style></head><body>${esc(privacyNotice())}<script>setTimeout(()=>print(),300)<\/script></body></html>`); w.document.close(); };
+  $("pn_copy").onclick = async () => { try { await navigator.clipboard.writeText(privacyNotice()); toast("Copied"); } catch(e){ toast("Select the text and copy it"); } };
+}
+/* retention: whole customer records with no activity for the retention period */
+const custStale = c => c.src === "shop" && !c.erasedAt && (() => { const l = custLast(c, get("sales")); return l && (Date.now() - new Date(l)) / (365.25 * 864e5) > retainYears; })();
+/* checklist */
+async function renderDP(){
+  if (!$("dpList")) return;
+  const s = blSettings || {}, st = staffAll(), j = window.DGSync && DGSync.joined && DGSync.joined(), lastB = localStorage.getItem("shopLastBackup");
+  const bs = j && DGSync.backupStatus ? await DGSync.backupStatus() : null;
+  const ok = (good, text, fix) => `<div class="item" style="cursor:default"><b><span style="color:${good ? "var(--up)" : "var(--amber)"}">${good ? "✓" : "!"}</span> ${text}</b>${!good && fix ? `<span class="muted">${fix}</span>` : ""}</div>`;
+  const nightly = bs && bs.set && bs.last ? (Date.now() - new Date(bs.last)) < 36 * 3600e3 : false;
+  $("dpList").innerHTML =
+    ok(!!s.icoDone, "Registered with the ICO" + (s.icoNum ? " (" + esc(s.icoNum) + ")" : ""), "The business must register with the ICO and pay the data protection fee. Record it in the Buy log, Settings, once done.") +
+    ok(!!s.dpEmail, "Contact for data requests set", "Add an email for data requests in the Buy log, Settings, so it appears on the privacy notice.") +
+    ok(st.length > 0 && st.some(x => x.mgr), "Everyone signs in with their own PIN, with a manager", "Add staff PINs above, and tick Manager for at least one person.") +
+    ok(j, "This device saves to the encrypted team server", "Join the team in Gold Trader, Team, Sharing.") +
+    ok(nightly, bs && bs.set ? (bs.last ? `Nightly backup ran ${fmtDT(bs.last)}` : "Nightly backup set up, first run at midnight") : "Nightly backup at midnight", bs && bs.old ? "The team server needs its update." : bs && !bs.set ? "The backup database isn't connected yet." : "Waiting for the first midnight run.") +
+    ok(lastB && (Date.now() - new Date(lastB)) < 31 * 864e5, lastB ? `Your own locked backup: ${fmtD(lastB)}` : "Your own locked backup", "Take one a month with Back up now, and keep the file and password apart.") +
+    ok(!custAll().some(custStale) && !custAll().some(c => c.src === "shop" && pastRetention(c)), "No customer data past the retention period", "Customers, Data to review: erase or remove what you no longer need.");
+}
+
 /* ============ GUIDE AND HELP ============
    The ? at the top opens help for the page you're on, with every other topic one tap away and a search. */
 const HELP = [
@@ -2128,6 +2275,15 @@ const HELP = [
     <li><b>Data protection:</b> you hold customers' details and ID, so the business needs to be registered with the ICO, and only keep ID as long as you need it.</li>
     <li><b>Marketing:</b> only send offers to customers who agreed.</li></ul>
     <p class="muted">This is a summary, not legal advice. Check anything you're unsure of with your local police licensing team, HMRC or the ICO.</p>`},
+  {id: "gdpr", page: "set", t: "How the app handles personal data", b: `
+    <ul><li><b>Only what's needed:</b> ID for buyers is only required at £1,000 or more; marketing only with consent, recorded with who and when.</li>
+    <li><b>Locked down:</b> everything is encrypted with the business passphrase before it leaves a device, so neither Cloudflare nor anyone else can read it. Each person signs in with their own PIN, managers approve sensitive actions, and every change is logged.</li>
+    <li><b>Backed up:</b> every night at midnight to a separate database, still encrypted. Your own backups are locked with a password.</li>
+    <li><b>Not kept forever:</b> earlier versions and backups older than 7 years are removed automatically. Customers with no activity for the retention period show under <b>Data to review</b>.</li>
+    <li><b>Someone asks what you hold:</b> open their record, <b>Their data</b>, <b>Everything we hold about them</b>. Give them the printout or file within one month.</li>
+    <li><b>Someone asks to be deleted:</b> <b>Erase their personal data</b> (a manager approves). It goes from every device, the server's history and the backup. Sales stay without their name, and purchase records stay until their retention ends, because the law requires both.</li>
+    <li><b>AI ID reading</b> sends the ID photo to OpenAI to fill in the form. Switch it off in Settings, Data protection if you'd rather type the details.</li>
+    <li><b>A device is lost or stolen:</b> it's locked by PIN, and the data on the server stays encrypted. Change the business passphrase (it locks the lost device out) and, if customers' details could be at risk, consider whether you need to tell the ICO within 72 hours.</li></ul>`},
   {id: "trouble", page: "", t: "If something's not right", b: `
     <ul><li><b>Bar at the top is amber:</b> changes are waiting for signal; they go up on their own.</li>
     <li><b>Bar is red ("not joined"):</b> this device isn't in the team. Join in Gold Trader, Team, Sharing.</li>

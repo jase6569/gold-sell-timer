@@ -8,7 +8,12 @@
 // POST /push  {docs: [...]}   -> {rev}  (a document is only replaced by a newer one: last change wins)
 // POST /history {id}          -> {versions: [{at, who, del, data, current}]}   every saved version of one item, newest first
 // POST /recent {before, limit} -> {changes: [{id, at, who, del}]}              who changed what, newest first (no contents)
-// POST /forget {id, photos}   -> {ok}   erase an item's earlier versions and the listed photos (removing ID after the retention period)
+// POST /forget {id, photos}   -> {ok}   erase an item's earlier versions and the listed photos, here and in the backup
+// POST /backupstatus {}       -> {last, items, size}  when the nightly backup last ran
+//
+// Nightly backup (needs a second D1 database bound as BACKUP and a Cron Trigger, see README.md): at midnight UK time
+// every new or changed item (still encrypted) is copied into the backup database, which keeps every version.
+// Versions and backups older than 7 years are removed each night, so personal data isn't kept forever.
 //
 // Nothing is ever thrown away: when an item is changed or deleted, the version it replaces is kept in "history"
 // (still encrypted). Photos are never changed once sent, so they aren't copied.
@@ -51,7 +56,46 @@ async function setup(db){
   ready = true;
 }
 
+/* ---------- nightly backup ---------- */
+let bready = false;
+async function setupBackup(b){
+  if (bready) return;
+  await b.batch([
+    b.prepare("CREATE TABLE IF NOT EXISTS bdocs (id TEXT NOT NULL, at TEXT NOT NULL, who TEXT, del INTEGER NOT NULL DEFAULT 0, data TEXT, copied TEXT NOT NULL, PRIMARY KEY (id, at))"),
+    b.prepare("CREATE INDEX IF NOT EXISTS bdocs_copied ON bdocs(copied)"),
+    b.prepare("CREATE TABLE IF NOT EXISTS bruns (at TEXT PRIMARY KEY, items INTEGER, copied INTEGER, upto INTEGER)")
+  ]);
+  bready = true;
+}
+const londonHour = d => +new Intl.DateTimeFormat("en-GB", {timeZone: "Europe/London", hour: "numeric", hourCycle: "h23"}).format(d);
+async function runBackup(env){
+  await setup(env.DB); await setupBackup(env.BACKUP);
+  const last = await env.BACKUP.prepare("SELECT upto FROM bruns ORDER BY at DESC LIMIT 1").first();
+  let since = last ? last.upto : 0, copied = 0; const now = new Date().toISOString(), started = Date.now();
+  // copy every item changed since the last run (photos included), a page at a time, still encrypted
+  while (Date.now() - started < 25000){
+    const {results} = await env.DB.prepare("SELECT id, rev, at, who, del, data FROM docs WHERE rev > ? ORDER BY rev LIMIT 50").bind(since).all();
+    if (!results.length) break;
+    await env.BACKUP.batch(results.map(r => env.BACKUP.prepare("INSERT OR IGNORE INTO bdocs (id, at, who, del, data, copied) VALUES (?, ?, ?, ?, ?, ?)").bind(r.id, r.at, r.who, r.del, r.data, now)));
+    copied += results.length; since = results[results.length - 1].rev;
+  }
+  const items = (await env.DB.prepare("SELECT COUNT(*) AS n FROM docs WHERE del = 0").first()).n;
+  await env.BACKUP.prepare("INSERT OR REPLACE INTO bruns (at, items, copied, upto) VALUES (?, ?, ?, ?)").bind(now, items, copied, since).run();
+  // data protection: nothing older than 7 years is kept, in the history or the backup (the current version of each item stays)
+  const cut = new Date(Date.now() - 7 * 365.25 * 864e5).toISOString();
+  await env.DB.prepare("DELETE FROM history WHERE replaced < ?").bind(cut).run();
+  await env.BACKUP.prepare("DELETE FROM bdocs WHERE at < ?1 AND EXISTS (SELECT 1 FROM bdocs b2 WHERE b2.id = bdocs.id AND b2.at > bdocs.at)").bind(cut).run();
+  await env.BACKUP.prepare("DELETE FROM bruns WHERE at < ?").bind(cut).run();
+  return {copied, items};
+}
+
 export default {
+  // Cron Triggers at 23:00 and 00:00 UTC: whichever is midnight in the UK (GMT or BST) does the backup
+  async scheduled(event, env, ctx){
+    if (!env.DB || !env.BACKUP) return;
+    if (londonHour(new Date(event.scheduledTime || Date.now())) !== 0) return;
+    ctx.waitUntil(runBackup(env));
+  },
   async fetch(req, env){
     const origin = req.headers.get("Origin") || "";
     const allowed = ALLOWED.concat(String(env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean));
@@ -120,7 +164,22 @@ export default {
       for (const h of photos) st.push(env.DB.prepare("UPDATE meta SET v = v + 1 WHERE k = 'rev'"),
         env.DB.prepare("UPDATE docs SET del = 1, data = NULL, at = ?2, rev = (SELECT v FROM meta WHERE k = 'rev') WHERE id = ?1").bind("p:" + h, new Date().toISOString()));
       await env.DB.batch(st);
+      if (env.BACKUP){   // the backup keeps only the current version of an erased item, and none of its photos
+        await setupBackup(env.BACKUP);
+        const cur = await env.DB.prepare("SELECT at FROM docs WHERE id = ?").bind(id).first();
+        const bs = [env.BACKUP.prepare("DELETE FROM bdocs WHERE id = ?1 AND at <> ?2").bind(id, cur ? cur.at : "")];
+        for (const h of photos) bs.push(env.BACKUP.prepare("DELETE FROM bdocs WHERE id = ?").bind("p:" + h));
+        await env.BACKUP.batch(bs);
+      }
       return reply({ok: 1}, 200, origin);
+    }
+
+    if (path === "/backupstatus"){
+      if (!env.BACKUP) return reply({set: false}, 200, origin);
+      await setupBackup(env.BACKUP);
+      const m = await env.BACKUP.prepare("SELECT at, items, copied FROM bruns ORDER BY at DESC LIMIT 1").first();
+      const n = await env.BACKUP.prepare("SELECT COUNT(*) AS n FROM bdocs").first();
+      return reply({set: true, last: m ? m.at : null, copied: m ? m.copied : 0, items: m ? m.items : 0, versions: n ? n.n : 0}, 200, origin);
     }
 
     if (path === "/recent"){
