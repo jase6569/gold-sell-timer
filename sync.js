@@ -319,6 +319,9 @@ async function restore(id, data){
   else throw new Error("Can't restore that");
   window.dispatchEvent(new CustomEvent("dgsync-applied", {detail: {arrays: kind === "a" ? [rest[0]] : [], records: kind === "r", settings: false}}));
 }
+// photos kept apart from the lists (so they don't fill the browser's small list storage), sent once each like Buy log photos
+async function putPhoto(dataUrl){ const h = await sha(dataUrl); await sPut("photos", h, dataUrl); if (joined() && !sentPhotos().includes(h)) enqueue("p:" + h); return "dgph:" + h; }
+async function getPhoto(ref){ if (!ref) return ""; if (!String(ref).startsWith("dgph:")) return ref; return (await sGet("photos", ref.slice(5))) || ""; }
 function setActor(name){ try { if (name) sessionStorage.setItem(P + "actor", name); else sessionStorage.removeItem(P + "actor"); } catch(e){} }
 
 /* ---------- hooks for the Buy log page ---------- */
@@ -329,7 +332,7 @@ const settingsChanged = () => enqueue("b:settings");
 window.DGSync = {
   configured: () => !!SYNC_URL, joined, me, join, leave, syncNow, serverCode,
   status: () => Object.assign({pending: Object.keys(queue()).length}, jget(P + "st", {})),
-  recordChanged, recordDeleted, settingsChanged, history, activity, restore, setActor, actor, people: () => jget(P + "people", ["Jase", "Mike"])
+  recordChanged, recordDeleted, settingsChanged, history, activity, restore, setActor, actor, putPhoto, getPhoto, people: () => jget(P + "people", ["Jase", "Mike"])
 };
 
 let looping = false;

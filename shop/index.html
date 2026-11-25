@@ -72,6 +72,17 @@
   .who{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;width:100%;max-width:420px;margin-bottom:14px}
   .who button{padding:14px 8px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:16px;font-weight:600}
   .who button.on{border-color:var(--gold);color:var(--gold2)}
+  .shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:8px}
+  .shot{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;border:1px dashed var(--line);background:#12110f;display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px;color:var(--muted);cursor:pointer;padding:6px}
+  .shot.have{border-style:solid;padding:0}.shot.need{border-color:#8a5a20;color:var(--amber)}
+  .shot img{width:100%;height:100%;object-fit:cover}
+  .shot span{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);color:#fff;font-size:11px;padding:3px}
+  .shot button{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;font-size:15px}
+  .alert{border-radius:10px;padding:10px 12px;margin-top:10px;font-size:14px;border:1px solid var(--line)}
+  .alert.bad{border-color:#6a2a22;color:#f3a296;background:rgba(224,93,79,.08)}.alert.okk{border-color:#2f6b4f;color:#9fe0bd}.alert.wn{border-color:#8a5a20;color:#f0c27a;background:rgba(227,163,59,.08)}
+  #cam{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:35;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:12px}
+  #cam video,#cam img{max-width:100%;max-height:70vh;border-radius:12px;background:#000}
+  #cam .row{max-width:520px;width:100%}
   .ver{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:10px}
   .ver .d{font-size:14px;margin-top:4px}.ver .d div{padding:2px 0;border-top:1px dashed var(--line)}
   @media (min-width:1000px){#sbar{padding-left:112px}}
@@ -228,7 +239,7 @@
     </div>
     <div class="card">
       <h2>Back up</h2>
-      <p class="muted" style="margin-top:0">Saves all sales, stock, customers and the safe log to one file.</p>
+      <p class="muted" style="margin-top:0">Saves all sales, stock, customers (with their ID photos) and the safe log to one file. It holds customers' ID, so keep it somewhere private.</p>
       <button class="btn ghost" onclick="backup()">Back up now</button>
     </div>
   </section>
@@ -245,9 +256,10 @@
 
 <div class="sheet" id="sheet"><div class="in"><div class="top"><h3 id="shTitle"></h3><button class="x" onclick="closeSheet()">×</button></div><div id="shBody"></div></div></div>
 <div class="toast" id="toast"></div>
+<div id="cam"></div>
 <div id="lock"><img src="../icon.png" alt=""><div class="who" id="lockWho"></div><div style="margin-bottom:10px" id="lockAsk">Enter PIN</div><input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><div id="lockMsg" class="muted" style="margin-top:8px"></div></div>
 
-<script src="../sync.js?v=6"></script>
+<script src="../sync.js?v=7"></script>
 <script>
 /* ============ Dorset Gold & Jewellery · Shop ============
    Sales & deposits, stock for sale, customers and the safe log.
@@ -313,7 +325,7 @@ function renderCustomers(){
     .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   $("custList").innerHTML = list.length ? list.slice(0, 200).map(c => {
     const bought = sales.filter(s => s.custId === c._id).length, sold = (c.buys || []).length;
-    return `<div class="item" onclick="viewCustomer('${esc(c._id)}')"><b>${esc(c.name || "No name")}${c.trade ? '<span class="pill ok">Trade</span>' : ""}${c.src === "buylog" ? '<span class="pill">Buy log</span>' : ""}</b>
+    return `<div class="item" onclick="viewCustomer('${esc(c._id)}')"><b>${esc(c.name || "No name")}${c.trade ? '<span class="pill ok">Trade</span>' : ""}${c.src === "buylog" ? '<span class="pill">Buy log</span>' : ""}${c.src === "shop" && !c.trade ? (idDone(c) ? '<span class="pill ok">ID checked</span>' : '<span class="pill due">No ID</span>') : ""}</b>
       <span class="muted">${[c.no, c.phone, c.pc].filter(Boolean).map(esc).join(" · ")}</span>
       <div class="muted">${bought ? `${bought} sale${bought > 1 ? "s" : ""}` : ""}${bought && sold ? " · " : ""}${sold ? `sold to us ${sold} time${sold > 1 ? "s" : ""}` : ""}</div></div>`;
   }).join("") : `<p class="muted">${q ? "No customer matches that." : "No customers yet. Add one, or start a sale and add them there."}</p>`;
@@ -321,29 +333,140 @@ function renderCustomers(){
 $("custQ").addEventListener("input", renderCustomers);
 let custF = "all";
 document.querySelectorAll("#custChips button").forEach(b => b.onclick = () => { custF = b.dataset.f; document.querySelectorAll("#custChips button").forEach(x => x.classList.toggle("on", x === b)); renderCustomers(); });
+/* ---------- taking photos: the camera on a phone or tablet, the webcam on a computer ---------- */
+const coarse = matchMedia("(pointer:coarse)").matches;
+function takePhoto(facing){   // resolves to a JPEG data URL, or "" if cancelled
+  return new Promise(done => {
+    const pickFile = () => { const f = document.createElement("input"); f.type = "file"; f.accept = "image/*"; if (coarse) f.setAttribute("capture", facing === "user" ? "user" : "environment");
+      f.onchange = async () => { const file = f.files[0]; if (!file) return done(""); try { done(await shrink(file, 1400, 0.82)); } catch(e){ toast("Couldn't open that photo"); done(""); } }; f.click(); };
+    if (coarse || !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return pickFile();
+    const cam = $("cam"); let stream = null;
+    const close = v => { if (stream) stream.getTracks().forEach(t => t.stop()); cam.style.display = "none"; cam.innerHTML = ""; done(v); };
+    cam.innerHTML = `<video autoplay playsinline muted></video><div class="muted" id="camMsg">Starting the camera…</div>
+      <div class="row"><button class="btn" id="camShot">📷 Take photo</button><button class="btn ghost" id="camFile">Choose a file</button><button class="btn ghost" id="camX">Cancel</button></div>`;
+    cam.style.display = "flex";
+    $("camX").onclick = () => close(""); $("camFile").onclick = () => { close("__file"); };
+    navigator.mediaDevices.getUserMedia({video: {facingMode: facing || "environment", width: {ideal: 1920}, height: {ideal: 1080}}}).then(st => { stream = st; cam.querySelector("video").srcObject = st; $("camMsg").textContent = "Hold the document flat, in good light, filling the frame."; })
+      .catch(() => { $("camMsg").textContent = "No camera found, or it's blocked. Choose a file instead."; });
+    $("camShot").onclick = () => { const v = cam.querySelector("video"); if (!stream || !v.videoWidth) return;
+      const k = Math.min(1, 1400 / Math.max(v.videoWidth, v.videoHeight)), c = document.createElement("canvas"); c.width = Math.round(v.videoWidth * k); c.height = Math.round(v.videoHeight * k);
+      c.getContext("2d").drawImage(v, 0, 0, c.width, c.height); close(c.toDataURL("image/jpeg", 0.82)); };
+  }).then(v => v === "__file" ? new Promise(done => { const f = document.createElement("input"); f.type = "file"; f.accept = "image/*"; f.onchange = async () => { const file = f.files[0]; if (!file) return done(""); try { done(await shrink(file, 1400, 0.82)); } catch(e){ done(""); } }; f.click(); }) : v);
+}
+function showImg(src){ const cam = $("cam"); cam.innerHTML = `<img src="${src}" alt=""><button class="btn ghost" style="max-width:240px" onclick="$('cam').style.display='none'">Close</button>`; cam.style.display = "flex"; }
+const photoSrc = async p => p.src || (window.DGSync && DGSync.getPhoto ? await DGSync.getPhoto(p.ref) : "");
+
+/* ---------- customers, with an ID check like the Buy log ---------- */
+const ID_TYPES = ["UK driving licence", "Passport", "National ID card", "Biometric residence permit", "Citizen card / PASS card", "Other photo ID"];
+const POA_TYPES = ["Address on photo ID", "Utility bill", "Bank statement", "Council tax bill", "Other"];
+const SHOTS = [["ID front", "environment"], ["ID back", "environment"], ["Proof of address", "environment"], ["Customer", "user"]];
+const ageOn = dob => { if (!dob) return null; const d = new Date(dob), n = new Date(); let a = n.getFullYear() - d.getFullYear(); if (n < new Date(n.getFullYear(), d.getMonth(), d.getDate())) a--; return a; };
+const idDone = c => !!(c && c.idnum && (c.photos || []).some(p => p.label === "ID front"));
 function editCustomer(id, then, trade){
   const c = (id && get("customers").find(x => x._id === id)) || (trade ? {trade: true} : {});
+  const shots = (c.photos || []).map(p => Object.assign({}, p));   // {label, ref} saved, or {label, src} just taken
   openSheet(id ? "Edit customer" : trade ? "New trade contact" : "New customer", `
-    <label>${c.trade ? "Name (person or business)" : "Full name"}</label><input id="c_name" value="${esc(c.name)}" autocomplete="off">
+    <label>${c.trade ? "Name (person or business)" : "Full name (as on their ID)"}</label><input id="c_name" value="${esc(c.name)}" autocomplete="off">
     <label style="display:flex;align-items:center;gap:8px;color:var(--text);margin-top:12px"><input id="c_trade" type="checkbox" style="width:auto"${c.trade ? " checked" : ""}> Trade contact (a dealer or buyer you sell to)</label>
-    <div class="row"><div><label>Phone</label><input id="c_phone" type="tel" value="${esc(c.phone)}"></div><div><label>Postcode</label><input id="c_pc" value="${esc(c.pc)}" style="text-transform:uppercase"></div></div>
-    <label>Email</label><input id="c_email" type="email" value="${esc(c.email)}">
+    <div class="row"><div><label>Date of birth</label><input id="c_dob" type="date" value="${esc(c.dob)}"></div><div><label>Phone</label><input id="c_phone" type="tel" value="${esc(c.phone)}"></div></div>
     <label>Address</label><input id="c_addr" value="${esc(c.addr)}">
+    <div class="row"><div><label>Postcode</label><input id="c_pc" value="${esc(c.pc)}" style="text-transform:uppercase"></div><div><label>Email</label><input id="c_email" type="email" value="${esc(c.email)}"></div></div>
+    <h2 style="margin-top:18px">ID check</h2>
+    <p class="muted" style="margin:0" id="c_idNote"></p>
+    <div class="row"><div><label>Photo ID</label><select id="c_idtype"><option value="">Choose…</option>${ID_TYPES.map(t => `<option${c.idtype === t ? " selected" : ""}>${t}</option>`).join("")}</select></div>
+      <div><label>ID number</label><input id="c_idnum" value="${esc(c.idnum)}" style="text-transform:uppercase" autocomplete="off"></div></div>
+    <div class="row"><div><label>ID expiry date</label><input id="c_idexp" type="date" value="${esc(c.idexp)}"></div>
+      <div><label>Proof of address</label><select id="c_poa"><option value="">Choose…</option>${POA_TYPES.map(t => `<option${c.poa === t ? " selected" : ""}>${t}</option>`).join("")}</select></div></div>
+    <div id="c_poaDateRow"><label>Date on the proof of address</label><input id="c_poaDate" type="date" value="${esc(c.poaDate)}"></div>
+    <label>Photos (tap to take)</label><div class="shots" id="c_shots"></div>
+    <button class="btn ghost" id="c_read" style="display:none">✨ Fill in the details from the ID photo</button><div id="c_readMsg"></div>
+    <div id="c_alerts"></div>
     <label>Notes (ring size, what they like, anything to remember)</label><textarea id="c_notes">${esc(c.notes)}</textarea>
     <button class="btn" id="c_save">Save customer</button>`);
-  $("c_save").onclick = () => {
+  const isTrade = () => $("c_trade").checked;
+  const need = label => !isTrade() && (label === "ID front" || label === "Customer" || (label === "Proof of address" && $("c_poa").value && $("c_poa").value !== "Address on photo ID"));
+  const drawShots = async () => {
+    const box = $("c_shots"); if (!box) return;
+    box.innerHTML = SHOTS.map(([l]) => { const sh = shots.find(x => x.label === l);
+      return sh ? `<div class="shot have" data-view="${l}"><img data-src="${l}" alt=""><span>${l}</span><button data-rm="${l}">×</button></div>` : `<div class="shot${need(l) ? " need" : ""}" data-take="${l}">📷<br>${l}${need(l) ? "<br>needed" : ""}</div>`; }).join("");
+    for (const im of box.querySelectorAll("img[data-src]")){ const sh = shots.find(x => x.label === im.dataset.src); im.src = await photoSrc(sh) || ""; }
+    box.querySelectorAll("[data-take]").forEach(e => e.onclick = async () => { const l = e.dataset.take, src = await takePhoto((SHOTS.find(x => x[0] === l) || [])[1]); if (!src) return; shots.push({label: l, src}); drawShots(); checks(); });
+    box.querySelectorAll("[data-view]").forEach(e => e.onclick = async ev => { if (ev.target.dataset.rm) return; const sh = shots.find(x => x.label === e.dataset.view); showImg(await photoSrc(sh)); });
+    box.querySelectorAll("[data-rm]").forEach(e => e.onclick = ev => { ev.stopPropagation(); const i = shots.findIndex(x => x.label === e.dataset.rm); if (i >= 0) shots.splice(i, 1); drawShots(); checks(); });
+    $("c_read").style.display = shots.some(x => x.label === "ID front") ? "" : "none";
+  };
+  const checks = () => {
+    const out = [], exp = $("c_idexp").value, age = ageOn($("c_dob").value), pd = $("c_poaDate").value;
+    $("c_poaDateRow").style.display = $("c_poa").value && $("c_poa").value !== "Address on photo ID" ? "" : "none";
+    $("c_idNote").textContent = isTrade() ? "Optional for trade contacts, but worth keeping." : "Needed for every customer: photo ID, proof of address and a photo of the customer.";
+    if (exp && new Date(exp + "T23:59") < new Date()) out.push(`<div class="alert bad">This ID expired on ${fmtD(exp)}. Ask for another.</div>`);
+    if (age !== null && age < 18) out.push(`<div class="alert bad">They are ${age}, under 18.</div>`);
+    if (pd && $("c_poaDate").offsetParent && (Date.now() - new Date(pd)) / 864e5 > 92) out.push(`<div class="alert wn">The proof of address is more than 3 months old. Ask for something more recent.</div>`);
+    $("c_alerts").innerHTML = out.join("");
+  };
+  ["c_dob", "c_idexp", "c_poaDate"].forEach(k => $(k).onchange = checks);
+  $("c_poa").onchange = () => { checks(); drawShots(); };
+  $("c_trade").onchange = () => { checks(); drawShots(); };
+  checks(); drawShots();
+  $("c_read").onclick = async () => {
+    const sh = shots.find(x => x.label === "ID front"); if (!sh) return;
+    const btn = $("c_read"); btn.disabled = true; btn.textContent = "Reading the ID…"; $("c_readMsg").innerHTML = "";
+    try {
+      const src = await photoSrc(sh);
+      const r = await fetch("https://gold-coin-scan.maximus6569.workers.dev/", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({mode: "id", photos: [src.split(",")[1]]})});
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.result) throw new Error(j.error || "Couldn't read the ID. Check your connection and try again.");
+      const d = j.result;
+      if (d.photo_ok === false){ $("c_readMsg").innerHTML = `<div class="alert wn">${esc(d.photo_tip || "The photo is hard to read. Retake it flat, in good light, filling the frame.")}</div>`; return; }
+      const filled = [], set = (k, val, label) => { val = String(val || "").trim(); if (val && !$(k).value.trim()){ $(k).value = val; filled.push(label); } };
+      const date = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || "")) ? v : "";
+      set("c_name", [d.first, d.last].filter(Boolean).join(" "), "name"); set("c_dob", date(d.dob), "date of birth");
+      set("c_idnum", String(d.idnum || "").toUpperCase().replace(/\s+/g, ""), "ID number"); set("c_idexp", date(d.idexp), "expiry");
+      set("c_addr", d.address, "address"); set("c_pc", String(d.postcode || "").toUpperCase(), "postcode");
+      if (ID_TYPES.includes(d.idtype) && !$("c_idtype").value){ $("c_idtype").value = d.idtype; filled.push("ID type"); }
+      const warn = (Array.isArray(d.warnings) ? d.warnings : []).map(w => esc(String(w).slice(0, 160))).filter(Boolean);
+      $("c_readMsg").innerHTML = `<div class="alert ${warn.length ? "wn" : "okk"}">${filled.length ? `Filled in: ${filled.join(", ")}. <b>Check every detail against the ID before saving.</b>` : "Nothing new to fill in: those boxes already have something in them."}${warn.length ? "<br>" + warn.join("<br>") : ""}</div>`;
+      checks();
+    } catch(e){ $("c_readMsg").innerHTML = `<div class="alert bad">${esc(e.message)}</div>`; }
+    finally { btn.disabled = false; btn.textContent = "✨ Fill in the details from the ID photo"; }
+  };
+  $("c_save").onclick = async () => {
     const name = $("c_name").value.trim(); if (!name) return toast("Add their name");
-    const list = get("customers"), rec = Object.assign({}, c, {name, phone: $("c_phone").value.trim(), pc: $("c_pc").value.trim().toUpperCase(), email: $("c_email").value.trim(), addr: $("c_addr").value.trim(), notes: $("c_notes").value.trim(), trade: $("c_trade").checked});
-    if (!rec._id){ rec._id = uid(); rec.no = nextNo(list, "C"); rec.added = new Date().toISOString(); list.push(rec); } else list[list.findIndex(x => x._id === rec._id)] = rec;
-    put("customers", list); closeSheet(); toast("Customer saved"); renderAll(); if (then) then(rec._id);
+    if (!isTrade()){
+      const miss = [];
+      if (!$("c_idtype").value) miss.push("the type of ID"); if (!$("c_idnum").value.trim()) miss.push("the ID number"); if (!$("c_dob").value) miss.push("date of birth");
+      if (!$("c_addr").value.trim() || !$("c_pc").value.trim()) miss.push("address and postcode"); if (!$("c_poa").value) miss.push("proof of address");
+      SHOTS.forEach(([l]) => { if (need(l) && !shots.some(x => x.label === l)) miss.push("a photo of the " + (l === "Customer" ? "customer" : l.toLowerCase().replace("id", "ID"))); });
+      if (miss.length) return toast("Still needed: " + miss.join(", "));
+      const exp = $("c_idexp").value; if (exp && new Date(exp + "T23:59") < new Date() && !confirm("This ID has expired. Save anyway?")) return;
+    }
+    const btn = $("c_save"); btn.disabled = true; btn.textContent = "Saving…";
+    try {
+      const photos = [];
+      for (const sh of shots){ if (sh.ref) photos.push({label: sh.label, ref: sh.ref}); else photos.push(window.DGSync && DGSync.putPhoto ? {label: sh.label, ref: await DGSync.putPhoto(sh.src)} : {label: sh.label, src: sh.src}); }
+      const nv = {idtype: $("c_idtype").value, idnum: $("c_idnum").value.trim().toUpperCase(), idexp: $("c_idexp").value, poa: $("c_poa").value, poaDate: $("c_poaDate").offsetParent ? $("c_poaDate").value : ""};
+      const idChanged = Object.keys(nv).some(k => (c[k] || "") !== nv[k]) || JSON.stringify((c.photos || []).map(p => p.ref)) !== JSON.stringify(photos.map(p => p.ref));
+      const list = get("customers"), rec = Object.assign({}, c, {name, phone: $("c_phone").value.trim(), pc: $("c_pc").value.trim().toUpperCase(), email: $("c_email").value.trim(), addr: $("c_addr").value.trim(),
+        notes: $("c_notes").value.trim(), trade: isTrade(), dob: $("c_dob").value, photos}, nv);
+      if (idChanged && rec.idnum && photos.some(p => p.label === "ID front")){ rec.idBy = who(); rec.idAt = new Date().toISOString(); }
+      if (!rec._id){ rec._id = uid(); rec.no = nextNo(list, "C"); rec.added = new Date().toISOString(); rec.addedBy = who(); list.push(rec); } else list[list.findIndex(x => x._id === rec._id)] = rec;
+      put("customers", list); closeSheet(); toast("Customer saved"); renderAll(); if (then) then(rec._id);
+    } catch(e){ toast("Couldn't save: " + e.message); btn.disabled = false; btn.textContent = "Save customer"; }
   };
 }
 function viewCustomer(id){
   const c = findCust(id); if (!c) return;
+  setTimeout(async () => { const box = $("vc_shots"); if (!box) return; for (const el of box.querySelectorAll("[data-i]")){ const p = (c.photos || [])[+el.dataset.i], src = await photoSrc(p);
+    if (src){ el.querySelector("img").src = src; el.onclick = () => showImg(src); } else el.querySelector("span").textContent += " (still downloading)"; } }, 0);
   const sales = get("sales").filter(s => s.custId === id).sort((a, b) => b.at.localeCompare(a.at));
   openSheet(c.name || "Customer", `
     <p class="muted" style="margin-top:0">${[c.no, c.phone, c.email, c.addr, c.pc].filter(Boolean).map(esc).join("<br>")}${c.added ? `<br>Added ${fmtD(c.added)}` : ""}</p>
     ${c.notes ? `<div class="warn" style="border-color:var(--line);background:none">${esc(c.notes)}</div>` : ""}
+    ${c.src === "shop" ? (idDone(c) ? `<h2 style="margin-top:16px">ID check</h2>
+      <table><tr><td>${esc(c.idtype)}</td><td><b>${esc(c.idnum)}</b></td></tr>${c.dob ? `<tr><td>Date of birth</td><td>${fmtD(c.dob)}</td></tr>` : ""}${c.idexp ? `<tr><td>ID expires</td><td>${fmtD(c.idexp)}${new Date(c.idexp + "T23:59") < new Date() ? ' <span class="pill due">Expired</span>' : ""}</td></tr>` : ""}
+      ${c.poa ? `<tr><td>Proof of address</td><td>${esc(c.poa)}${c.poaDate ? ", " + fmtD(c.poaDate) : ""}</td></tr>` : ""}${c.idAt ? `<tr><td>Checked</td><td>${fmtD(c.idAt)}${c.idBy ? " by " + esc(c.idBy) : ""}</td></tr>` : ""}</table>
+      <div class="shots" id="vc_shots">${(c.photos || []).map((p, i) => `<div class="shot have" data-i="${i}"><img alt=""><span>${esc(p.label)}</span></div>`).join("")}</div>`
+      : c.trade ? "" : `<div class="alert wn">No ID on file for this customer. Tap <b>Edit details</b> to add their ID, proof of address and photo.</div>`) : ""}
     <h2 style="margin-top:16px">Bought from us</h2>
     ${c.trade ? (() => { const ts = sales.filter(x => x.trade && !x.void), g = ts.reduce((t, x) => t + x.items.filter(i => i.kind === "scrap").reduce((a, i) => a + num(i.g), 0), 0), v = ts.reduce((t, x) => t + saleTotal(x), 0), d = ts.reduce((t, x) => t + tradeVsMM(x), 0);
       return ts.length ? `<p class="muted" style="margin-top:0">${ts.length} trade sale${ts.length > 1 ? "s" : ""} · ${gbp(v, 0)}${g ? ` · ${g.toFixed(1)}g scrap` : ""}${d ? ` · <b style="color:${d >= 0 ? "var(--up)" : "var(--down)"}">${d >= 0 ? "+" : "−"}${gbp(Math.abs(d), 0)} against Mastermelt</b>` : ""}</p>` : ""; })() : ""}
@@ -878,14 +1001,14 @@ async function showActivity(before){
 const FIELD = {name: "Name", phone: "Phone", email: "Email", addr: "Address", pc: "Postcode", notes: "Notes", trade: "Trade contact", no: "Number", desc: "Description",
   price: "Price", cost: "Cost", carat: "Metal", weight: "Weight (g)", detail: "Details", listed: "Listed on", status: "Status", items: "Items", payments: "Payments",
   discount: "Discount", collected: "Collected", void: "Cancelled", custId: "Customer", lines: "Weights", outAt: "Booked out", outTo: "Booked out to", saleId: "Sale",
-  seller: "Seller", total: "Total", payment: "Payment", flagged: "Flagged", gone: "Removed", by: "Recorded by", at: "Date"};
-const SKIP = new Set(["_id", "_who", "photo", "idPhotos", "lotPhotos", "signature", "pin"]);
+  seller: "Seller", dob: "Date of birth", idtype: "ID type", idnum: "ID number", idexp: "ID expiry", poa: "Proof of address", poaDate: "Proof of address dated", total: "Total", payment: "Payment", flagged: "Flagged", gone: "Removed", by: "Recorded by", at: "Date"};
+const SKIP = new Set(["_id", "_who", "photo", "photos", "idPhotos", "lotPhotos", "signature", "pin"]);
 const short = v => { if (v == null || v === "") return "(blank)"; if (Array.isArray(v)) return v.length + " item" + (v.length === 1 ? "" : "s"); if (typeof v === "object") return JSON.stringify(v).slice(0, 80); const t = String(v); return t.length > 80 ? t.slice(0, 80) + "…" : t; };
 function diffs(a, b){ // what changed from version a (older) to b
   if (!a) return ["Created"];
   const keys = new Set(Object.keys(a).concat(Object.keys(b))), out = [];
   keys.forEach(k => { if (SKIP.has(k)) return; if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) out.push(`${esc(FIELD[k] || k)}: ${esc(short(a[k]))} → <b>${esc(short(b[k]))}</b>`); });
-  if (["photo", "idPhotos", "lotPhotos"].some(k => JSON.stringify(a[k]) !== JSON.stringify(b[k]))) out.push("photos changed");
+  if (["photo", "photos", "idPhotos", "lotPhotos"].some(k => JSON.stringify(a[k]) !== JSON.stringify(b[k]))) out.push("photos changed");
   return out.length ? out : ["No visible change"];
 }
 async function showHistory(id){
@@ -908,8 +1031,9 @@ async function showHistory(id){
   } catch(e){ $("shBody").innerHTML = `<p class="muted">${esc(e.message)}</p>`; }
 }
 const histBtn = (key, id) => window.DGSync && DGSync.joined && DGSync.joined() ? `<button class="btn ghost" onclick="showHistory('a:${key}:${esc(id)}')">History of changes</button>` : "";
-function backup(){
-  const data = {app: "dgj-shop", version: 1, exportedAt: new Date().toISOString(), sales: get("sales"), forsale: get("forsale"), customers: get("customers"), safebags: get("safebags")};
+async function backup(){
+  const data = {app: "dgj-shop", version: 2, exportedAt: new Date().toISOString(), sales: get("sales"), forsale: get("forsale"), customers: get("customers"), safebags: get("safebags"), staff: get("staff"), photos: {}};
+  for (const c of data.customers) for (const p of (c.photos || [])) if (p.ref && !data.photos[p.ref]) data.photos[p.ref] = await photoSrc(p);
   const blob = new Blob([JSON.stringify(data)], {type: "application/json"}), name = `shop-backup-${today()}.json`, file = new File([blob], name, {type: "application/json"});
   if (navigator.canShare && navigator.canShare({files: [file]})) navigator.share({files: [file], title: name}).catch(() => {});
   else { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); }
