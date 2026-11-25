@@ -1,0 +1,15 @@
+{
+  "name": "Dorset Gold & Jewellery Shop",
+  "short_name": "Shop",
+  "description": "Sales and deposits, stock for sale, customers and the safe log.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0e0c",
+  "theme_color": "#0f0e0c",
+  "icons": [
+    {"src": "../icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "../apple-touch-icon.png", "sizes": "180x180", "type": "image/png"}
+  ]
+}
