@@ -113,6 +113,7 @@
 <header>
   <img src="../icon.png" alt="">
   <h1>Dorset Gold <span>&amp; Jewellery</span><small id="hdrSub">Shop · sales, stock, customers and safe</small></h1>
+  <button class="x" id="setBtn" title="Settings" aria-label="Settings" onclick="go('set')"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   <button class="x" id="helpBtn" title="Help and guide" aria-label="Help and guide" style="font-weight:800;color:var(--gold2)" onclick="openHelp()">?</button>
 </header>
 <div id="sbar" onclick="go('set')"><i></i><span id="sbarT">Checking…</span><b id="sbarU"></b></div>
@@ -137,6 +138,11 @@
       <label>Day</label><input id="cuDay" type="date">
       <div id="cashup"></div>
     </div>
+    </div>
+    <div class="card">
+      <h2>Insurance valuations</h2>
+      <button class="btn ghost" onclick="newVal()">+ New valuation certificate</button>
+      <div id="valList" style="margin-top:8px"></div>
     </div>
     <div class="card">
       <h2>Completed sales</h2>
@@ -233,6 +239,25 @@
     </div>
   </section>
 
+  <!-- ============ REPORTS ============ -->
+  <section id="p-rep" style="display:none">
+    <div class="card">
+      <h2>Reports</h2>
+      <div class="row"><select id="rp_per"><option value="month">This month</option><option value="lastmonth">Last month</option><option value="week">This week</option><option value="tax">This tax year (from 6 April)</option><option value="lasttax">Last tax year</option><option value="year">This calendar year</option><option value="custom">Choose dates</option></select>
+        <button class="btn ghost" style="margin-top:0" onclick="printReport()">Print or save as PDF</button></div>
+      <div class="row" id="rp_custom" style="display:none"><div><label>From</label><input id="rp_from" type="date"></div><div><label>To</label><input id="rp_to" type="date"></div></div>
+      <p class="muted" id="rp_head" style="margin:10px 0 0"></p>
+    </div>
+    <div id="rp_body"></div>
+    <div class="card">
+      <h2>For your accountant</h2>
+      <p class="muted" style="margin-top:0">Spreadsheet files (CSV, they open in Excel, Numbers or Google Sheets) for the period chosen above. Stock is as it stands today. No customers' ID or addresses are included.</p>
+      <button class="btn" onclick="exportFor('all')">Download all 7 files</button>
+      <div class="row" style="flex-wrap:wrap"><button class="btn small ghost" onclick="exportFor('sales')">Sales</button><button class="btn small ghost" onclick="exportFor('payments')">Payments and refunds</button><button class="btn small ghost" onclick="exportFor('purchases')">Purchases</button><button class="btn small ghost" onclick="exportFor('refining')">Refining</button></div>
+      <div class="row" style="flex-wrap:wrap"><button class="btn small ghost" onclick="exportFor('stock')">Stock valuation</button><button class="btn small ghost" onclick="exportFor('till')">Till</button><button class="btn small ghost" onclick="exportFor('valuations')">Valuations</button></div>
+    </div>
+  </section>
+
   <!-- ============ SETTINGS ============ -->
   <section id="p-set" style="display:none">
     <div class="card">
@@ -283,6 +308,14 @@
       <button class="btn ghost" id="cfg_save">Save</button>
     </div>
     <div class="card">
+      <h2>Valuation certificates</h2>
+      <p class="muted" style="margin-top:0">Printed on every insurance valuation. Check the wording suits you and your insurers.</p>
+      <div class="row"><div><label>Usual fee (£)</label><input id="cfg_valFee" type="number" inputmode="decimal"></div><div><label>Valuer's qualifications</label><input id="cfg_valQuals" placeholder="e.g. FGA DGA"></div></div>
+      <label>Basis of valuation</label><textarea id="cfg_valBasis"></textarea>
+      <label>Terms</label><textarea id="cfg_valTerms" style="min-height:110px"></textarea>
+      <button class="btn ghost" id="cfg_valSave">Save</button>
+    </div>
+    <div class="card">
       <h2>Back up</h2>
       <p class="muted" style="margin-top:0">Saves all sales, stock, customers (with their ID photos), the till and the safe log to one file. It holds customers' ID, so keep it somewhere private. Purchase records have their own backup in the Buy log's Settings.</p>
       <button class="btn ghost" onclick="backup()">Back up now</button>
@@ -296,7 +329,7 @@
   <button data-p="stock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 6 3-6M12 21 9 9M12 21l3-12"/></svg>Stock</button>
   <button data-p="cust"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.3-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14.5c2.4.2 4 1.8 4.5 4.5"/></svg>Customers</button>
   <button data-p="safe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="3.5"/><path d="M12 8.5V7M12 17v-1.5M6 20v1M18 20v1"/></svg>Safe</button>
-  <button data-p="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
+  <button data-p="rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Reports</button>
 </nav>
 
 <div class="sheet" id="sheet"><div class="in"><div class="top"><h3 id="shTitle"></h3><button class="x" onclick="closeSheet()">×</button></div><div id="shBody"></div></div></div>
@@ -304,7 +337,7 @@
 <div id="cam"></div>
 <div id="lock"><img src="../icon.png" alt=""><div class="who" id="lockWho"></div><div style="margin-bottom:10px" id="lockAsk">Enter PIN</div><input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><div id="lockMsg" class="muted" style="margin-top:8px"></div></div>
 
-<script src="../sync.js?v=12"></script>
+<script src="../sync.js?v=13"></script>
 <script src="../buying-log/qrcode.min.js"></script>
 <script>
 /* ============ Dorset Gold & Jewellery · Shop ============
@@ -661,6 +694,7 @@ function viewCustomer(id){
       : `<p class="muted">${c.idRemovedAt ? `ID removed ${fmtD(c.idRemovedAt)}${c.idRemovedBy ? " by " + esc(c.idRemovedBy) : ""}.` : c.trade ? "" : `No ID on file. Needed for a sale of ${gbp(ID_AT, 0)} or more.`}</p>`) : ""}
     ${c.src === "shop" && pastRetention(c) ? `<div class="alert wn">No sale for over ${retainYears} years, so their ID is due for review. Remove it unless you still need it.</div>` : ""}
     ${c.src === "shop" && idDone(c) ? `<button class="btn ghost" onclick="removeId('${esc(c._id)}')">Remove their ID details and photos</button>` : ""}
+    ${(() => { const vs = get("valuations").filter(v => v.custId === c._id); return c.src === "shop" ? `<h2 style="margin-top:16px">Valuations</h2>${vs.map(v => `<div class="item" onclick="viewVal('${v._id}')"><span class="r">${gbp(valTotal(v), 0)}</span><b>${esc(v.no)}${v.reviewBy && v.reviewBy <= today() ? '<span class="pill due">Due for revaluation</span>' : ""}</b><span class="muted">${fmtD(v.at)} · ${v.items.length} item${v.items.length > 1 ? "s" : ""}</span></div>`).join("")}<button class="btn small ghost" onclick="newVal('${esc(c._id)}')">+ New valuation for ${esc((c.name || "them").split(" ")[0])}</button>` : ""; })()}
     <h2 style="margin-top:16px">Bought from us</h2>
     ${c.trade ? (() => { const ts = sales.filter(x => x.trade && !x.void), g = ts.reduce((t, x) => t + x.items.filter(i => i.kind === "scrap").reduce((a, i) => a + num(i.g), 0), 0), v = ts.reduce((t, x) => t + saleTotal(x), 0), d = ts.reduce((t, x) => t + tradeVsMM(x), 0);
       return ts.length ? `<p class="muted" style="margin-top:0">${ts.length} trade sale${ts.length > 1 ? "s" : ""} · ${gbp(v, 0)}${g ? ` · ${g.toFixed(1)}g scrap` : ""}${d ? ` · <b style="color:${d >= 0 ? "var(--up)" : "var(--down)"}">${d >= 0 ? "+" : "−"}${gbp(Math.abs(d), 0)} against Mastermelt</b>` : ""}</p>` : ""; })() : ""}
@@ -1034,6 +1068,7 @@ function saleForm(){
       dueBy: paid < total - 0.004 ? draft.dueBy : "", collected: $("sf_coll").checked && paid >= total - 0.004 ? now : ""};
     list.push(sale); put("sales", list);
     markStockSold(sale);
+    if (draft.valId){ const vl = get("valuations"), v = vl.find(x => x._id === draft.valId); if (v){ v.feeSaleId = sale._id; put("valuations", vl); } }
     try { sessionStorage.removeItem("shopDraft"); } catch(e){}
     closeSheet(); toast(`Sale ${sale.no} saved`); renderAll(); viewSale(sale._id);
   };
@@ -1566,6 +1601,7 @@ function safeCheck(){
 }
 
 /* ============ SETTINGS, LOCK, BACKUP ============ */
+$("cfg_valSave").onclick = () => { const list = get("shopcfg").filter(x => x._id !== "cfg"); list.push(Object.assign({}, shopCfg(), {_id: "cfg", valFee: $("cfg_valFee").value, valQuals: $("cfg_valQuals").value.trim(), valBasis: $("cfg_valBasis").value.trim() || VAL_BASIS, valTerms: $("cfg_valTerms").value.trim() || VAL_TERMS, by: who()})); put("shopcfg", list); toast("Saved"); };
 $("cfg_save").onclick = () => { const list = get("shopcfg").filter(x => x._id !== "cfg"); list.push(Object.assign({}, shopCfg(), {_id: "cfg", policy: $("cfg_policy").value.trim(), footer: $("cfg_footer").value.trim(), by: who()})); put("shopcfg", list); toast("Saved"); };
 async function blSettingsSave(patch){
   const db = await new Promise((res, rej) => { const r = indexedDB.open("dj-buylog", 1); r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains("records")) d.createObjectStore("records", {keyPath: "id"}); if (!d.objectStoreNames.contains("kv")) d.createObjectStore("kv"); }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
@@ -1581,7 +1617,8 @@ $("br_save").onclick = async () => { const o = $("br_offer").value.trim(); if (o
 window.addEventListener("dgsync-applied", e => { if (e.detail && e.detail.settings) loadPin(); });
 function renderSettings(){
   renderStaff(); renderStatus(); fillBizRules();
-  const cfg = shopCfg(); if (document.activeElement !== $("cfg_policy")) $("cfg_policy").value = cfg.policy || ""; if (document.activeElement !== $("cfg_footer")) $("cfg_footer").value = cfg.footer || "";
+  const cfg = shopCfg(); if (document.activeElement !== $("cfg_policy")) $("cfg_policy").value = cfg.policy || "";
+  [["cfg_valFee", cfg.valFee || ""], ["cfg_valQuals", cfg.valQuals || ""], ["cfg_valBasis", cfg.valBasis || VAL_BASIS], ["cfg_valTerms", cfg.valTerms || VAL_TERMS]].forEach(([k, v]) => { if (document.activeElement !== $(k)) $(k).value = v; }); if (document.activeElement !== $("cfg_footer")) $("cfg_footer").value = cfg.footer || "";
   const j = window.DGSync && DGSync.joined && DGSync.joined();
   $("teamState").innerHTML = j ? `This device is in the team as <b>${esc(DGSync.me())}</b>. Sales, stock, customers and the safe log are shared with the team, locked with your passphrase.`
     : `This phone hasn't joined the team, so everything stays on this phone only. Join the team in Gold Trader (Team page) to share it with Mike.`;
@@ -1695,7 +1732,7 @@ function renderStatus(){
 }
 window.addEventListener("dgsync-status", renderStatus);
 setInterval(renderStatus, 20000);
-const KIND = {sales: "Sale", forsale: "Stock piece", customers: "Customer", safebags: "Safe bag", stock: "My gold lot", buys: "Buying entry", sent: "Refiner batch", visits: "Diary visit", cash: "Cash entry", staff: "Staff", till: "Till entry", shopcfg: "Receipt settings", stockchecks: "Stock check", sends: "Refiner send", safechecks: "Safe check"};
+const KIND = {sales: "Sale", forsale: "Stock piece", customers: "Customer", safebags: "Safe bag", stock: "My gold lot", buys: "Buying entry", sent: "Refiner batch", visits: "Diary visit", cash: "Cash entry", staff: "Staff", till: "Till entry", shopcfg: "Receipt settings", stockchecks: "Stock check", sends: "Refiner send", safechecks: "Safe check", valuations: "Valuation"};
 function docLabel(id){
   const [k, ...r] = id.split(":");
   if (k === "a"){ const key = r[0], iid = r.slice(1).join(":"), x = get(key).find(y => y._id === iid), name = KIND[key] || key;
@@ -1706,12 +1743,15 @@ function docLabel(id){
   if (k === "b") return "Buy log business settings";
   return id;
 }
+let actWho = "";
 async function showActivity(before){
   openSheet("Activity", '<p class="muted">Loading…</p>');
   try {
-    const ch = await DGSync.activity(before, 100);
-    $("shBody").innerHTML = (ch.length ? ch.map(c => `<div class="item" data-id="${esc(c.id)}"><span class="r" style="font-weight:600">${c.del ? '<span style="color:var(--down)">Deleted</span>' : "Saved"}</span><b>${esc(docLabel(c.id))}</b><span class="muted">${fmtDT(c.at)} · ${esc(c.who || "?")}</span></div>`).join("")
-      + (ch.length === 100 ? `<button class="btn ghost" id="act_more">Older</button>` : "") : '<p class="muted">No changes yet.</p>');
+    let ch = await DGSync.activity(before, 200); const full = ch.length === 200, names = [...new Set(ch.map(c => c.who).filter(Boolean))].sort();
+    if (actWho) ch = ch.filter(c => c.who === actWho);
+    $("shBody").innerHTML = `<select id="act_who" style="margin-bottom:8px"><option value="">Everyone</option>${names.map(n => `<option${n === actWho ? " selected" : ""}>${esc(n)}</option>`).join("")}</select>` + (ch.length ? ch.map(c => `<div class="item" data-id="${esc(c.id)}"><span class="r" style="font-weight:600">${c.del ? '<span style="color:var(--down)">Deleted</span>' : "Saved"}</span><b>${esc(docLabel(c.id))}</b><span class="muted">${fmtDT(c.at)} · ${esc(c.who || "?")}</span></div>`).join("")
+      + (full ? `<button class="btn ghost" id="act_more">Older</button>` : "") : '<p class="muted">No changes found.</p>');
+    $("act_who").onchange = () => { actWho = $("act_who").value; showActivity(before); };
     $("shBody").querySelectorAll("[data-id]").forEach(e => e.onclick = () => showHistory(e.dataset.id));
     if ($("act_more")) $("act_more").onclick = () => showActivity(ch[ch.length - 1].at);
   } catch(e){ $("shBody").innerHTML = `<p class="muted">${esc(e.message)}</p>`; }
@@ -1750,13 +1790,257 @@ async function showHistory(id){
 }
 const histBtn = (key, id) => window.DGSync && DGSync.joined && DGSync.joined() ? `<button class="btn ghost" onclick="showHistory('a:${key}:${esc(id)}')">History of changes</button>` : "";
 async function backup(){
-  const data = {app: "dgj-shop", version: 2, exportedAt: new Date().toISOString(), sales: get("sales"), forsale: get("forsale"), customers: get("customers"), safebags: get("safebags"), staff: get("staff"), till: get("till"), shopcfg: get("shopcfg"), stockchecks: get("stockchecks"), sends: get("sends"), safechecks: get("safechecks"), photos: {}};
-  for (const c of data.customers.concat(data.forsale)) for (const p of (c.photos || [])) if (p.ref && !data.photos[p.ref]) data.photos[p.ref] = await photoSrc(p);
+  const data = {app: "dgj-shop", version: 2, exportedAt: new Date().toISOString(), sales: get("sales"), forsale: get("forsale"), customers: get("customers"), safebags: get("safebags"), staff: get("staff"), till: get("till"), shopcfg: get("shopcfg"), stockchecks: get("stockchecks"), sends: get("sends"), safechecks: get("safechecks"), valuations: get("valuations"), photos: {}};
+  for (const c of data.customers.concat(data.forsale, data.valuations.flatMap(v => v.items))) for (const p of (c.photos || [])) if (p.ref && !data.photos[p.ref]) data.photos[p.ref] = await photoSrc(p);
   const blob = new Blob([JSON.stringify(data)], {type: "application/json"}), name = `shop-backup-${today()}.json`, file = new File([blob], name, {type: "application/json"});
   if (navigator.canShare && navigator.canShare({files: [file]})) navigator.share({files: [file], title: name}).catch(() => {});
   else { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); }
 }
 
+/* ============ REPORTS AND THE ACCOUNTANT EXPORT ============
+   Everything for a chosen period, worked out from the records themselves: sales made, money taken and refunded
+   (by method), profit on stock sold, buying, refining and what the refiner paid against what the gold cost,
+   the till, valuations, and each person's figures. The export gives the accountant one CSV file per record type. */
+const dISO = d => d.toISOString().slice(0, 10);
+function periodRange(){
+  const v = $("rp_per").value, n = new Date(), y = n.getFullYear(), m = n.getMonth();
+  if (v === "month") return [dISO(new Date(y, m, 1)), today()];
+  if (v === "lastmonth") return [dISO(new Date(y, m - 1, 1)), dISO(new Date(y, m, 0))];
+  if (v === "week"){ const d = new Date(n); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return [dISO(d), today()]; }
+  if (v === "year") return [`${y}-01-01`, today()];
+  if (v === "tax"){ const s = (m > 3 || (m === 3 && n.getDate() >= 6)) ? y : y - 1; return [`${s}-04-06`, today()]; }
+  if (v === "lasttax"){ const s = ((m > 3 || (m === 3 && n.getDate() >= 6)) ? y : y - 1) - 1; return [`${s}-04-06`, `${s + 1}-04-05`]; }
+  return [$("rp_from").value || today(), $("rp_to").value || today()];
+}
+const inP = (iso, [a, b]) => { const d = String(iso || "").slice(0, 10); return d >= a && d <= b; };
+/* what the gold in a send cost: the melt items of the Buy log purchases in its bags (bags filled by hand have no cost) */
+function sendCost(s){
+  const ids = new Set(get("safebags").filter(b => s.bagIds.includes(b._id)).flatMap(b => b.buyIds || [])); let c = 0, known = true;
+  get("safebags").filter(b => s.bagIds.includes(b._id)).forEach(b => { if (!(b.buyIds || []).length) known = false; });
+  blRecs.forEach(r => { if (ids.has(r.id)) (r.items || []).forEach(it => { if (!it.keep) c += num(it.price); }); });
+  return {cost: c, known: known && ids.size > 0};
+}
+function reportData(P){
+  const sales = get("sales"), fs = get("forsale"), R = {P};
+  const made = sales.filter(s => inP(s.at, P) && !s.void);
+  R.retail = made.filter(s => !s.trade); R.trade = made.filter(s => s.trade);
+  R.itemsTotal = made.reduce((t, s) => t + itemsTotal(s), 0); R.disc = made.reduce((t, s) => t + num(s.discount), 0); R.px = made.reduce((t, s) => t + pxTotal(s), 0);
+  R.salesValue = made.reduce((t, s) => t + saleTotal(s), 0);
+  R.pay = {}; R.ref = {}; R.payTotal = 0; R.refTotal = 0;
+  sales.forEach(s => { (s.payments || []).forEach(p => { if (inP(p.at, P)){ R.pay[p.method] = (R.pay[p.method] || 0) + num(p.amount); R.payTotal += num(p.amount); } });
+    (s.refunds || []).forEach(f => { if (inP(f.at, P)){ R.ref[f.method] = (R.ref[f.method] || 0) + num(f.amount); R.refTotal += num(f.amount); } }); });
+  // profit on stock pieces sold in the period (pieces with a cost recorded, not returned)
+  let sold = 0, cost = 0, noCost = 0;
+  made.forEach(s => s.items.forEach(i => { if (i.returned) return; const p = i.stockId && fs.find(x => x._id === i.stockId);
+    if (p && num(p.cost) > 0){ sold += num(i.price); cost += num(p.cost); } else if (!i.kind) noCost += num(i.price); }));
+  R.stockSold = sold; R.stockCost = cost; R.noCost = noCost;
+  R.owed = sales.filter(s => !s.void && saleDue(s) > 0.004).reduce((t, s) => t + saleDue(s), 0);
+  // buying
+  R.buys = blRecs.filter(r => inP(r.createdAt, P)); R.buyTotal = R.buys.reduce((t, r) => t + num(r.total), 0); R.buyBy = {}; R.buyG = {};
+  R.buys.forEach(r => { const m = (r.payment || {}).method || "Not recorded"; R.buyBy[m] = (R.buyBy[m] || 0) + num(r.total);
+    (r.items || []).forEach(it => { const k = BL_CARAT[it.purity]; if (k && num(it.weight) > 0) R.buyG[k] = (R.buyG[k] || 0) + num(it.weight); }); });
+  R.buyMelt = R.buys.reduce((t, r) => t + num(r.meltAtBuy), 0); R.buyMeltN = R.buys.filter(r => r.meltAtBuy).length;
+  // refining
+  R.settled = get("sends").filter(s => s.paidAt && inP(s.paidAt, P)); R.sentIn = get("sends").filter(s => inP(s.at, P));
+  R.refPaid = R.settled.reduce((t, s) => t + num(s.paid), 0); R.refExp = R.settled.reduce((t, s) => t + num(s.expected), 0);
+  const sc = R.settled.map(sendCost); R.refCost = sc.reduce((t, x) => t + x.cost, 0); R.refCostAll = sc.every(x => x.known);
+  R.waiting = get("sends").filter(s => !s.paidAt);
+  // till
+  const tl = get("till").filter(x => inP(x.day, P)); R.tillIn = tl.filter(x => x.kind === "in").reduce((t, x) => t + num(x.amount), 0);
+  R.tillOut = tl.filter(x => x.kind === "out").reduce((t, x) => t + num(x.amount), 0); R.banked = tl.filter(x => x.kind === "bank").reduce((t, x) => t + num(x.amount), 0);
+  R.outs = tl.filter(x => x.kind === "out");
+  // valuations
+  R.vals = get("valuations").filter(v => inP(v.at, P));
+  // people
+  const ppl = {}, P1 = n => ppl[n || "Not recorded"] || (ppl[n || "Not recorded"] = {sales: 0, salesV: 0, refunds: 0, refundsV: 0, buys: 0, buysV: 0, vals: 0});
+  made.forEach(s => { const x = P1(s.by); x.sales++; x.salesV += saleTotal(s); });
+  sales.forEach(s => (s.refunds || []).forEach(f => { if (inP(f.at, P)){ const x = P1(f.by); x.refunds++; x.refundsV += num(f.amount); } }));
+  R.buys.forEach(r => { const x = P1(r.staff || r._who); x.buys++; x.buysV += num(r.total); });
+  R.vals.forEach(v => P1(v.by).vals++);
+  R.people = ppl;
+  // position now
+  const inn = fs.filter(s => stStatus(s) !== "sold"); R.stockN = inn.length; R.stockCostNow = inn.reduce((t, s) => t + num(s.cost), 0); R.stockAsk = inn.reduce((t, s) => t + num(s.price), 0);
+  const bags = get("safebags").filter(b => !b.outAt); R.safeG = bags.reduce((t, b) => t + bagGrams(b), 0); R.safeV = bags.reduce((t, b) => t + bagValue(b), 0);
+  return R;
+}
+const pl = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+const tr = (a, b, strong) => `<tr><td>${strong ? "<b>" + a + "</b>" : a}</td><td>${strong ? "<b>" + b + "</b>" : b}</td></tr>`;
+function renderReports(){
+  if (!$("rp_per")) return;
+  $("rp_custom").style.display = $("rp_per").value === "custom" ? "" : "none";
+  const P = periodRange(), R = reportData(P), gp = R.stockSold - R.stockCost, refGP = R.refPaid - R.refCost;
+  $("rp_head").textContent = `${fmtD(P[0])} to ${fmtD(P[1])}`;
+  $("rp_body").innerHTML = `
+  <div class="cols">
+  <div class="card"><h2>Sales</h2><table>
+    ${tr("Sales made", `${R.retail.length} retail${R.trade.length ? `, ${R.trade.length} trade` : ""}`)}
+    ${tr("Items sold", gbp(R.itemsTotal))}${R.disc ? tr("Discounts given", "−" + gbp(R.disc)) : ""}${R.px ? tr("Part exchange taken off", "−" + gbp(R.px)) : ""}
+    ${tr("Value of sales made", gbp(R.salesValue), 1)}</table>
+    <p class="muted">Counted on the day each sale was made. Still owed on all open sales: ${gbp(R.owed)}.</p></div>
+  <div class="card"><h2>Money in and out</h2><table>
+    ${PAY.map(m => R.pay[m] || R.ref[m] ? tr(m, gbp((R.pay[m] || 0) - (R.ref[m] || 0)) + (R.ref[m] ? `<div class="muted">${gbp(R.pay[m] || 0)} in, ${gbp(R.ref[m])} refunded</div>` : "")) : "").join("")}
+    ${tr("Money taken, after refunds", gbp(R.payTotal - R.refTotal), 1)}${R.refTotal ? tr("Of which refunded", gbp(R.refTotal)) : ""}</table>
+    <p class="muted">Counted on the day each payment or refund happened, including deposits.</p></div>
+  <div class="card"><h2>Profit on stock sold</h2><table>
+    ${tr("Pieces sold (with a cost recorded)", gbp(R.stockSold))}${tr("What they cost you", "−" + gbp(R.stockCost))}${tr("Gross profit", gbp(gp) + (R.stockSold ? ` (${Math.round(gp / R.stockSold * 100)}%)` : ""), 1)}</table>
+    ${R.noCost ? `<p class="muted">${gbp(R.noCost)} of sales were items typed in without a stock record, so their cost isn't known.</p>` : ""}</div>
+  <div class="card"><h2>Buying</h2><table>
+    ${tr("Purchases", R.buys.length)}${Object.entries(R.buyBy).map(([m, v]) => tr("Paid by " + esc(m.toLowerCase()), gbp(v))).join("")}${tr("Total paid out", gbp(R.buyTotal), 1)}
+    ${Object.entries(R.buyG).sort().map(([k, g]) => tr(esc(k), g.toFixed(2) + "g")).join("")}
+    ${R.buyMeltN ? tr("Melt value when bought", gbp(R.buyMelt) + `<div class="muted">${R.buyMeltN} of ${R.buys.length} purchases</div>`) : ""}</table></div>
+  <div class="card"><h2>Refining</h2><table>
+    ${tr("Sends paid in this period", R.settled.length)}${tr("Paid by the refiner", gbp(R.refPaid))}${R.refExp ? tr("Against expected", (R.refPaid - R.refExp >= 0 ? "+" : "−") + gbp(Math.abs(R.refPaid - R.refExp))) : ""}
+    ${R.settled.length ? tr("What that gold cost you", (R.refCostAll ? "" : "at least ") + gbp(R.refCost)) + tr("Profit on gold refined", (R.refCostAll ? "" : "up to ") + gbp(refGP), 1) : ""}
+    ${R.waiting.length ? tr("Still waiting for payment", `${R.waiting.length} send${R.waiting.length > 1 ? "s" : ""}, ${gbp(R.waiting.reduce((t, s) => t + num(s.expected), 0))} expected`) : ""}</table>
+    ${R.settled.length && !R.refCostAll ? `<p class="muted">Some bags were filled by hand rather than from the Buy log, so their cost isn't known.</p>` : ""}</div>
+  <div class="card"><h2>Till</h2><table>${tr("Paid in", gbp(R.tillIn))}${tr("Paid out", gbp(R.tillOut))}${tr("Banked", gbp(R.banked))}</table>
+    ${R.outs.length ? `<details><summary class="muted">What was paid out</summary><table>${R.outs.map(x => tr(fmtD(x.day) + " · " + esc(x.note || ""), gbp(x.amount))).join("")}</table></details>` : ""}</div>
+  <div class="card"><h2>Valuations</h2><table>${tr("Certificates written", R.vals.length)}${tr("Total value certified", gbp(R.vals.reduce((t, v) => t + valTotal(v), 0)))}</table></div>
+  <div class="card"><h2>Right now</h2><table>${tr("Stock for sale", `${R.stockN} pieces · cost ${gbp(R.stockCostNow, 0)} · asking ${gbp(R.stockAsk, 0)}`)}${tr("In the safe", `${R.safeG.toFixed(1)}g${R.safeV ? " · about " + gbp(R.safeV, 0) + " to Mastermelt" : ""}`)}</table></div>
+  </div>
+  <div class="card"><h2>Each person</h2><table><tr><td class="muted">Person</td><td class="muted">Sales · refunds · buys · valuations</td></tr>
+    ${Object.entries(R.people).sort((a, b) => b[1].salesV - a[1].salesV).map(([n, x]) => tr(esc(n), `${pl(x.sales, "sale")} ${gbp(x.salesV, 0)} · ${pl(x.refunds, "refund")} ${gbp(x.refundsV, 0)} · ${pl(x.buys, "buy")} ${gbp(x.buysV, 0)} · ${pl(x.vals, "valuation")}`)).join("") || tr("Nothing in this period", "")}</table></div>`;
+}
+/* the accountant's files: one CSV per record type for the period (stock is as it stands today) */
+function csvDl(name, head, rows){
+  const q = v => { const t = v == null ? "" : String(v); return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+  const csv = "﻿" + [head].concat(rows).map(r => r.map(q).join(",")).join("\r\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], {type: "text/csv;charset=utf-8"})); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+}
+function exportFor(kind){
+  const P = periodRange(), tag = `${P[0]}_to_${P[1]}`, sales = get("sales"), cn = s => s.custId ? (findCust(s.custId) || {}).name || "" : "Walk-in", r2 = n => Math.round(num(n) * 100) / 100;
+  const X = {
+    sales: () => csvDl(`sales_${tag}.csv`, ["Date", "Sale no", "Customer", "Type", "Items", "Items total", "Discount", "Part exchange", "Total", "Paid", "Refunded", "Balance owed", "Status", "Staff"],
+      sales.filter(s => inP(s.at, P)).map(s => [s.at.slice(0, 10), s.no, cn(s), s.trade ? "Trade" : "Retail", s.items.map(i => i.desc).join("; "), r2(itemsTotal(s)), r2(s.discount), r2(pxTotal(s)), r2(saleTotal(s)), r2(salePaid(s)), r2(saleRefunded(s)), s.void ? 0 : r2(Math.max(0, saleDue(s))), s.void ? "Cancelled" : saleDue(s) > 0.004 ? "Balance owed" : "Paid", s.by || ""])),
+    payments: () => { const rows = []; sales.forEach(s => { (s.payments || []).forEach(p => { if (inP(p.at, P)) rows.push([p.at.slice(0, 10), s.no, cn(s), "Payment", p.method, r2(p.amount), p.by || "", ""]); });
+      (s.refunds || []).forEach(f => { if (inP(f.at, P)) rows.push([f.at.slice(0, 10), s.no, cn(s), "Refund", f.method, -r2(f.amount), f.by || "", f.reason || ""]); }); });
+      rows.sort((a, b) => a[0].localeCompare(b[0])); csvDl(`payments_${tag}.csv`, ["Date", "Sale no", "Customer", "Type", "Method", "Amount", "Staff", "Reason"], rows); },
+    purchases: () => csvDl(`purchases_${tag}.csv`, ["Date", "Receipt", "Seller", "Items", "Gold grams", "Paid", "Method", "Staff", "Melt value when bought"],
+      blRecs.filter(r => inP(r.createdAt, P)).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map(r => [r.createdAt.slice(0, 10), r.receipt, [(r.seller || {}).first, (r.seller || {}).last].filter(Boolean).join(" "), (r.items || []).map(i => i.desc).join("; "),
+        r2((r.items || []).filter(i => BL_CARAT[i.purity] && /ct$/.test(BL_CARAT[i.purity])).reduce((t, i) => t + num(i.weight), 0)), r2(r.total), (r.payment || {}).method || "", r.staff || "", r.meltAtBuy == null ? "" : r2(r.meltAtBuy)])),
+    refining: () => csvDl(`refining_${tag}.csv`, ["Send no", "Date sent", "Refiner", "Grams", "Pure gold g", "Expected", "Date paid", "Paid", "Difference", "Cost of gold (from Buy log)"],
+      get("sends").filter(s => inP(s.at, P) || (s.paidAt && inP(s.paidAt, P))).map(s => { const c = sendCost(s); return [s.no, s.at.slice(0, 10), s.to, r2(s.grams), r2(s.pure), r2(s.expected), s.paidAt || "", s.paidAt ? r2(s.paid) : "", s.paidAt ? r2(num(s.paid) - num(s.expected)) : "", c.known ? r2(c.cost) : ""]; })),
+    stock: () => csvDl(`stock_${today()}.csv`, ["Stock no", "Description", "Kind", "Metal", "Weight g", "Cost", "Asking price", "Status", "Added", "Days in stock"],
+      get("forsale").filter(s => stStatus(s) !== "sold").map(s => [s.no, s.desc, s.cat || "", s.carat || "", s.weight || "", r2(s.cost), r2(s.price), stStatus(s) === "res" ? "Reserved" : "In stock", (s.added || "").slice(0, 10), daysIn(s)])),
+    till: () => csvDl(`till_${tag}.csv`, ["Date", "Type", "Amount", "Note", "Staff"],
+      get("till").filter(x => inP(x.day, P)).sort((a, b) => a.day.localeCompare(b.day)).map(x => [x.day, {float: "Opening float", count: "Counted", in: "Paid in", out: "Paid out", bank: "Banked"}[x.kind] || x.kind, r2(x.amount), x.note || "", x.by || ""])),
+    valuations: () => csvDl(`valuations_${tag}.csv`, ["Date", "Certificate", "Customer", "Items", "Total valued", "Fee", "Valuer"],
+      get("valuations").filter(v => inP(v.at, P)).map(v => [v.at.slice(0, 10), v.no, v.custName || "", v.items.length, r2(valTotal(v)), r2(v.fee), v.valuer || ""]))
+  };
+  if (kind === "all"){ let i = 0; Object.values(X).forEach(f => setTimeout(f, 350 * i++)); toast("Downloading 7 files. If the browser asks, allow multiple downloads."); }
+  else X[kind]();
+}
+function printReport(){
+  renderReports(); const w = window.open("", "_blank"); if (!w) return toast("Allow pop-ups to print");
+  w.document.write(`<!DOCTYPE html><html><head><title>Report ${esc($("rp_head").textContent)}</title><style>body{font:13px/1.45 -apple-system,Segoe UI,Roboto,sans-serif;max-width:800px;margin:20px auto;padding:0 16px;color:#000}h1{font-size:20px;margin:0}h2{font-size:14px;margin:18px 0 4px;border-bottom:1px solid #000}table{width:100%;border-collapse:collapse}td{padding:3px 0;border-bottom:1px solid #ddd;vertical-align:top}td:last-child{text-align:right}.muted{color:#555;font-size:12px}.card{page-break-inside:avoid}details{display:none}</style></head><body>
+    <h1>${esc(bizName())}: report</h1><p>${esc($("rp_head").textContent)} · printed ${fmtDT(new Date().toISOString())} by ${esc(who())}</p>${$("rp_body").innerHTML}<script>setTimeout(()=>print(),400)<\/script></body></html>`);
+  w.document.close();
+}
+
+/* ============ INSURANCE VALUATIONS ============
+   Certificates for customers' jewellery: each item described (metal, weight, hallmark, stones, size, condition) with
+   photos and a replacement value, the basis and terms, the valuer, a review date, and the fee taken as a normal sale. */
+const valTotal = v => (v.items || []).reduce((t, i) => t + num(i.value), 0);
+const VAL_BASIS = "Values are the estimated cost of replacing each item with one of similar kind and quality at today's UK retail prices, including VAT.";
+const VAL_TERMS = "This valuation is for insurance purposes only and is not an offer to buy. It is based on an examination without removing stones from their settings, so stone weights and grades are estimates. Prices change: we recommend having these items revalued every three years, or sooner if gold prices move sharply.";
+function renderVals(){
+  const v = get("valuations").slice().sort((a, b) => b.at.localeCompare(a.at)), due = v.filter(x => x.reviewBy && x.reviewBy <= today());
+  $("valList").innerHTML = (due.length ? `<p class="muted" style="margin:0 0 6px"><b style="color:var(--amber)">${due.length} due for revaluation</b></p>` : "") + (v.length ? v.slice(0, 8).map(x => `<div class="item" onclick="viewVal('${x._id}')"><span class="r">${gbp(valTotal(x), 0)}</span><b>${esc(x.no)} · ${esc(x.custName || "")}${x.reviewBy && x.reviewBy <= today() ? '<span class="pill due">Due for revaluation</span>' : ""}</b><span class="muted">${fmtD(x.at)} · ${x.items.length} item${x.items.length > 1 ? "s" : ""}${x.valuer ? " · " + esc(x.valuer) : ""}</span></div>`).join("") + (v.length > 8 ? `<button class="btn small ghost" onclick="allVals()">All ${v.length} valuations</button>` : "") : '<p class="muted">No valuations yet.</p>');
+}
+function allVals(){ openSheet("Valuations", get("valuations").slice().sort((a, b) => b.at.localeCompare(a.at)).map(x => `<div class="item" onclick="viewVal('${x._id}')"><span class="r">${gbp(valTotal(x), 0)}</span><b>${esc(x.no)} · ${esc(x.custName || "")}</b><span class="muted">${fmtD(x.at)}${x.reviewBy ? " · review " + fmtD(x.reviewBy) : ""}</span></div>`).join("")); }
+let vd = null;
+function newVal(custId){ const cfg = shopCfg(); vd = {custId: custId || "", items: [{desc: "", metal: "", weight: "", hallmark: "", stones: "", size: "", condition: "", value: "", shots: []}], valuer: who(), quals: cfg.valQuals || "", fee: cfg.valFee || "", notes: ""}; valForm(); }
+function valForm(){
+  const c = vd.custId ? findCust(vd.custId) : null;
+  openSheet("New insurance valuation", `
+    <h2>Whose items?</h2>
+    ${c ? `<div class="item" style="cursor:default"><b>${custLabel(c)}</b><span class="muted">${[c.addr, c.pc].filter(Boolean).map(esc).join(", ")}</span> <button class="btn small ghost" onclick="vd.custId='';valForm()">Change</button></div>${!c.addr ? '<p class="muted">Their address goes on the certificate: add it to their record.</p>' : ""}`
+      : `<input id="vl_cq" placeholder="Search name, phone or postcode" autocomplete="off"><div id="vl_cres"></div><button class="btn ghost" id="vl_newc">+ New customer</button>`}
+    <div id="vl_items">${vd.items.map((it, i) => `<div class="card" style="padding:10px;margin:10px 0">
+      <div class="line"><b style="flex:1">Item ${i + 1}</b>${vd.items.length > 1 ? `<button class="x" data-rm="${i}">×</button>` : ""}</div>
+      <label>Description</label><input data-i="${i}" data-k="desc" value="${esc(it.desc)}" placeholder="e.g. Lady's 18ct yellow gold diamond solitaire ring">
+      <div class="row"><div><label>Metal</label><input data-i="${i}" data-k="metal" value="${esc(it.metal)}" placeholder="e.g. 18ct yellow gold, platinum"></div><div><label>Weight (g)</label><input data-i="${i}" data-k="weight" type="number" inputmode="decimal" value="${esc(it.weight)}"></div></div>
+      <div class="row"><div><label>Hallmark</label><input data-i="${i}" data-k="hallmark" value="${esc(it.hallmark)}" placeholder="e.g. 750, London, 2004"></div><div><label>Size / measurements</label><input data-i="${i}" data-k="size" value="${esc(it.size)}" placeholder="e.g. size L, 18in"></div></div>
+      <label>Stones</label><textarea data-i="${i}" data-k="stones" placeholder="e.g. One round brilliant cut diamond, estimated 0.50ct, colour G-H, clarity SI1, claw set">${esc(it.stones)}</textarea>
+      <label>Condition and other details</label><input data-i="${i}" data-k="condition" value="${esc(it.condition)}" placeholder="e.g. good, light wear to the shank">
+      <label>Replacement value (£)</label><input data-i="${i}" data-k="value" type="number" inputmode="decimal" value="${esc(it.value)}">
+      <label>Photos</label><div class="shots" data-shots="${i}"></div></div>`).join("")}</div>
+    <button class="btn ghost" id="vl_add">+ Add another item</button>
+    <div class="big" id="vl_tot" style="margin-top:12px"></div>
+    <div class="row"><div><label>Valuer</label><input id="vl_valuer" value="${esc(vd.valuer)}"></div><div><label>Qualifications (optional)</label><input id="vl_quals" value="${esc(vd.quals)}" placeholder="e.g. FGA DGA"></div></div>
+    <div class="row"><div><label>Fee (£)</label><input id="vl_fee" type="number" inputmode="decimal" value="${esc(vd.fee)}"></div><div><label>Revalue by</label><input id="vl_review" type="date" value="${dISO(new Date(Date.now() + 3 * 365.25 * 864e5))}"></div></div>
+    <label>Notes for the certificate (optional)</label><input id="vl_notes" value="${esc(vd.notes)}">
+    <button class="btn" id="vl_save">Save the valuation</button>`);
+  const tot = () => { $("vl_tot").textContent = "Total " + gbp(vd.items.reduce((t, i) => t + num(i.value), 0)); };
+  document.querySelectorAll("#vl_items [data-k]").forEach(e => e.oninput = () => { vd.items[+e.dataset.i][e.dataset.k] = e.value; tot(); });
+  document.querySelectorAll("#vl_items [data-rm]").forEach(e => e.onclick = () => { vd.items.splice(+e.dataset.rm, 1); valForm(); });
+  ["valuer", "quals", "fee", "notes"].forEach(k => $("vl_" + k).oninput = () => vd[k] = $("vl_" + k).value);
+  const drawShots = i => { const box = document.querySelector(`[data-shots="${i}"]`), sh = vd.items[i].shots;
+    box.innerHTML = sh.map((p, j) => `<div class="shot have" data-v="${j}"><img src="${p.src}" alt=""><button data-x="${j}">×</button></div>`).join("") + (sh.length < 4 ? `<div class="shot" data-addph>📷<br>Add a photo</div>` : "");
+    box.querySelectorAll("[data-x]").forEach(b => b.onclick = ev => { ev.stopPropagation(); sh.splice(+b.dataset.x, 1); drawShots(i); });
+    box.querySelectorAll("[data-v] img").forEach(im => im.onclick = () => showImg(im.src));
+    const add = box.querySelector("[data-addph]"); if (add) add.onclick = async () => { const src = await takePhoto("environment"); if (src){ sh.push({src}); drawShots(i); } }; };
+  vd.items.forEach((_, i) => drawShots(i));
+  $("vl_add").onclick = () => { vd.items.push({desc: "", metal: "", weight: "", hallmark: "", stones: "", size: "", condition: "", value: "", shots: []}); valForm(); };
+  if (!c){
+    $("vl_cq").oninput = () => { const q = $("vl_cq").value.trim().toLowerCase(), qd = q.replace(/\D/g, ""); if (q.length < 2){ $("vl_cres").innerHTML = ""; return; }
+      $("vl_cres").innerHTML = custAll().filter(x => x.src === "shop" && ((x.name || "").toLowerCase().includes(q) || (qd.length >= 4 && (x.phone || "").replace(/\D/g, "").includes(qd)) || (x.pc || "").toLowerCase().replace(/\s/g, "").includes(q.replace(/\s/g, "")))).slice(0, 6)
+        .map(x => `<div class="item" onclick="vd.custId='${esc(x._id)}';valForm()"><b>${custLabel(x)}</b><span class="muted">${[x.phone, x.pc].filter(Boolean).map(esc).join(" · ")}</span></div>`).join("") || '<p class="muted">No match. Add them as a new customer.</p>'; };
+    $("vl_newc").onclick = () => editCustomer(null, id => { vd.custId = id; valForm(); });
+  }
+  tot();
+  $("vl_save").onclick = async () => {
+    if (!vd.custId) return toast("Choose whose items they are");
+    const items = vd.items.filter(i => i.desc.trim() || num(i.value));
+    if (!items.length || items.some(i => !i.desc.trim() || !(num(i.value) > 0))) return toast("Every item needs a description and a value");
+    if (!$("vl_valuer").value.trim()) return toast("Add the valuer's name");
+    const btn = $("vl_save"); btn.disabled = true; btn.textContent = "Saving…";
+    try {
+      const out = [];
+      for (const it of items){ const photos = []; for (const p of it.shots) photos.push(window.DGSync && DGSync.putPhoto ? {ref: await DGSync.putPhoto(p.src)} : {src: p.src});
+        out.push({desc: it.desc.trim(), metal: it.metal.trim(), weight: it.weight, hallmark: it.hallmark.trim(), stones: it.stones.trim(), size: it.size.trim(), condition: it.condition.trim(), value: num(it.value), photos}); }
+      const cust = findCust(vd.custId), list = get("valuations"), cfg = shopCfg();
+      const rec = {_id: uid(), no: nextNo(list, "V"), at: new Date().toISOString(), by: who(), custId: vd.custId, custName: cust.name, custAddr: [cust.addr, cust.pc].filter(Boolean).join(", "),
+        items: out, valuer: $("vl_valuer").value.trim(), quals: $("vl_quals").value.trim(), fee: num($("vl_fee").value), reviewBy: $("vl_review").value, notes: $("vl_notes").value.trim(),
+        basis: cfg.valBasis || VAL_BASIS, terms: cfg.valTerms || VAL_TERMS};
+      list.push(rec); put("valuations", list); closeSheet(); renderAll(); toast(`Valuation ${rec.no} saved`); viewVal(rec._id);
+    } catch(e){ toast("Couldn't save: " + e.message); btn.disabled = false; btn.textContent = "Save the valuation"; }
+  };
+}
+function viewVal(id){
+  const v = get("valuations").find(x => x._id === id); if (!v) return;
+  const feeSale = v.feeSaleId && get("sales").find(s => s._id === v.feeSaleId);
+  openSheet(`Valuation ${v.no}`, `<p class="muted" style="margin-top:0">${fmtD(v.at)} · ${esc(v.custName)} · valued by ${esc(v.valuer)}${v.reviewBy ? `<br>Revalue by ${fmtD(v.reviewBy)}` : ""}</p>
+    <table>${v.items.map(i => tr(esc(i.desc) + `<div class="muted">${esc([i.metal, i.weight ? i.weight + "g" : "", i.hallmark, i.size].filter(Boolean).join(" · "))}</div>`, gbp(i.value))).join("")}${tr("Total", gbp(valTotal(v)), 1)}</table>
+    <button class="btn" onclick="printVal('${v._id}')">Print the certificate</button>
+    ${v.fee ? (feeSale ? `<p class="muted">Fee ${gbp(v.fee)} taken on sale <a href="#" style="color:var(--gold2)" onclick="viewSale('${feeSale._id}');return false">${esc(feeSale.no)}</a>.</p>` : `<button class="btn ghost" onclick="chargeVal('${v._id}')">Take the ${gbp(v.fee)} fee</button>`) : ""}
+    <button class="btn ghost" onclick="viewCustomer('${esc(v.custId)}')">Open ${esc((v.custName || "customer").split(" ")[0])}'s record</button>${histBtn("valuations", v._id)}`);
+}
+function chargeVal(id){ const v = get("valuations").find(x => x._id === id); if (!v) return;
+  newSale(v.custId); draft.items = [{desc: `Insurance valuation ${v.no}`, price: v.fee, details: `${v.items.length} item${v.items.length > 1 ? "s" : ""} valued at ${gbp(valTotal(v))}`}]; draft.valId = v._id; saleForm(); }
+async function printVal(id){
+  const v = get("valuations").find(x => x._id === id); if (!v) return;
+  const w = window.open("", "_blank"); if (!w) return toast("Allow pop-ups to print");
+  const imgs = await Promise.all(v.items.map(async i => Promise.all((i.photos || []).map(p => photoSrc(p)))));
+  w.document.write(`<!DOCTYPE html><html><head><title>Valuation ${esc(v.no)}</title><style>@page{margin:14mm}body{font:12.5px/1.5 Georgia,"Times New Roman",serif;color:#000;max-width:760px;margin:0 auto}
+    .hd{display:flex;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:8px}h1{font-size:22px;margin:0}h2{font-size:15px;margin:18px 0 6px;text-transform:uppercase;letter-spacing:.06em}
+    .it{border:1px solid #999;padding:10px 12px;margin:10px 0;page-break-inside:avoid}.it table{width:100%;border-collapse:collapse}.it td{padding:3px 0;vertical-align:top}.it td:first-child{width:150px;color:#444}
+    .ph{display:flex;gap:6px;margin-top:8px}.ph img{height:110px;border:1px solid #ccc}.val{font-size:15px;font-weight:700;text-align:right;margin-top:6px}.tot{font-size:17px;font-weight:700;text-align:right;border-top:2px solid #000;padding-top:6px}
+    .s{margin-top:40px;display:flex;gap:40px}.s div{flex:1;border-top:1px solid #000;padding-top:4px}.small{font-size:11px;color:#333}</style></head><body>
+    <div class="hd"><div><h1>${esc(bizName())}</h1><div>${esc([blSettings.addr, blSettings.phone].filter(Boolean).join(" · "))}</div></div><div style="text-align:right"><b>Valuation for insurance</b><br>Certificate ${esc(v.no)}<br>${fmtD(v.at)}</div></div>
+    <p><b>Prepared for:</b> ${esc(v.custName)}${v.custAddr ? "<br>" + esc(v.custAddr) : ""}</p>
+    ${v.items.map((i, n) => `<div class="it"><b>Item ${n + 1}: ${esc(i.desc)}</b><table>
+      ${[["Metal", i.metal], ["Weight", i.weight ? i.weight + "g" : ""], ["Hallmark", i.hallmark], ["Size", i.size], ["Stones", i.stones], ["Condition", i.condition]].filter(x => x[1]).map(x => `<tr><td>${x[0]}</td><td>${esc(x[1]).replace(/\n/g, "<br>")}</td></tr>`).join("")}</table>
+      ${imgs[n].filter(Boolean).length ? `<div class="ph">${imgs[n].filter(Boolean).map(s => `<img src="${s}">`).join("")}</div>` : ""}<div class="val">Replacement value: ${gbp(i.value)}</div></div>`).join("")}
+    <div class="tot">Total replacement value: ${gbp(valTotal(v))}</div>
+    ${v.notes ? `<p>${esc(v.notes)}</p>` : ""}<h2>Basis of valuation</h2><p class="small">${esc(v.basis)}</p><p class="small">${esc(v.terms)}</p>
+    ${v.reviewBy ? `<p class="small">Recommended revaluation date: <b>${fmtD(v.reviewBy)}</b></p>` : ""}
+    <div class="s"><div>Valuer: ${esc(v.valuer)}${v.quals ? ", " + esc(v.quals) : ""}</div><div>Signed</div><div>Date</div></div>
+    <script>Promise.all([...document.images].map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r}))).then(()=>setTimeout(()=>print(),300))<\/script></body></html>`);
+  w.document.close();
+}
+
+$("rp_per").onchange = renderReports; $("rp_from").onchange = renderReports; $("rp_to").onchange = renderReports;
 /* ============ GUIDE AND HELP ============
    The ? at the top opens help for the page you're on, with every other topic one tap away and a search. */
 const HELP = [
@@ -1820,6 +2104,18 @@ const HELP = [
     <li>Add the tracking number, record the send and <b>print the dispatch note</b> for the parcel.</li>
     <li>When they pay, open the send and record the amount (and the fine gold from their assay if you have it).</li></ol>
     <p>It compares the payment with what the gold was worth at their prices on the day it went and flags anything over 2% short. Sending also takes that gold off Gold Trader's My gold list, so don't mark it sent there as well.</p>`},
+  {id: "reports", page: "rep", t: "Reports", b: `
+    <p>Choose the period at the top: this month, last month, this week, this or last tax year (6 April to 5 April), or your own dates.</p>
+    <ul><li><b>Sales</b> counts sales on the day they were made. <b>Money in and out</b> counts payments and refunds on the day they happened, including deposits, split by cash, card and bank.</li>
+    <li><b>Profit on stock sold</b> uses each piece's cost from the Stock page; items typed in without a stock record have no cost, so they're listed separately.</li>
+    <li><b>Refining</b> shows what Mastermelt paid against what that gold cost you in the Buy log.</li>
+    <li><b>Each person</b> shows sales, refunds, buys and valuations by whoever was signed in.</li></ul>
+    <p><b>Print or save as PDF</b> gives a tidy copy.</p>`},
+  {id: "accountant", page: "rep", t: "Files for your accountant", b: `<p>On Reports, choose the period (usually last tax year) and tap <b>Download all 7 files</b>: sales, payments and refunds, purchases, refining, stock valuation, till and valuations. They're CSV files, which open in Excel, Numbers or Google Sheets. If the browser asks, allow it to download several files. Customers' ID and addresses aren't included. Email them to your accountant, or save them in a shared folder.</p>`},
+  {id: "valuations", page: "sales", t: "Insurance valuations", b: `
+    <p>On Sales, tap <b>+ New valuation certificate</b> (or from a customer's record). For each item: description, metal, weight, hallmark, size, stones, condition, photos and the replacement value.</p>
+    <p>Save it, then <b>Print the certificate</b>: your details, each item with photos, the total, the basis and terms (set them in Settings, Valuation certificates), the valuer and a signature line. <b>Take the fee</b> starts a normal sale for it.</p>
+    <p>Each valuation has a revalue-by date (3 years unless you change it); it shows <b>Due for revaluation</b> when it's reached.</p>`},
   {id: "staff", page: "set", t: "Staff, managers and signing in", b: `
     <p>Each person has their own PIN; whoever is signed in is recorded on everything they do. The app locks itself when not used (set how long in Settings). Tap <b>Lock / switch person</b> when someone else takes over.</p>
     <p><b>Managers</b> approve refunds, cancelling sales, deleting stock, putting back old versions and removing ID. If someone else is signed in, the app asks a manager for their PIN there and then.</p>`},
@@ -1854,10 +2150,10 @@ function openHelp(focus){
 /* ============ PAGES ============ */
 setTimeout(() => { try { if (!localStorage.getItem("shopHelpSeen")){ localStorage.setItem("shopHelpSeen", "1"); if ($("lock").style.display !== "flex") openHelp("start"); } } catch(e){} }, 1500);
 let page = "sales";
-function go(p){ page = p; ["sales", "buy", "stock", "cust", "safe", "set"].forEach(x => $("p-" + x).style.display = x === p ? "" : "none");
+function go(p){ page = p; ["sales", "buy", "stock", "cust", "safe", "rep", "set"].forEach(x => $("p-" + x).style.display = x === p ? "" : "none");
   document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.p === p)); window.scrollTo(0, 0); renderAll(); }
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => go(b.dataset.p));
-function renderAll(){ [renderSales, renderBuys, renderStock, renderCustomers, renderSafe, renderSettings].forEach(f => { try { f(); } catch(e){ console.log(e); } }); }
+function renderAll(){ [renderSales, renderVals, renderBuys, renderStock, renderCustomers, renderSafe, renderReports, renderSettings].forEach(f => { try { f(); } catch(e){ console.log(e); } }); }
 window.addEventListener("dgsync-applied", () => { renderAll(); let u = ""; try { u = sessionStorage.getItem("shopUser") || ""; } catch(e){}
   if (staffAll().length && !staffAll().some(x => x.name === u) && $("lock").style.display !== "flex") lockNow(); });
 if (!who() && !staffAll().length && !(window.DGSync && DGSync.joined && DGSync.joined())){ /* not in the team: ask once who's using this phone, for "by" on records */
