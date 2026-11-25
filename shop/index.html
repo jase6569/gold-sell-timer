@@ -79,6 +79,7 @@
       <h2>Sales &amp; deposits</h2>
       <p class="muted" style="margin-top:0">Every payment is kept as its own record. A deposit is never overwritten by a later payment.</p>
       <button class="btn" onclick="newSale()">+ Start a new sale</button>
+      <button class="btn ghost" onclick="newTradeSale()">⇄ Sell to a contact</button>
       <button class="btn ghost" onclick="pickSaleForPayment()">£ Take a payment</button>
     </div>
     <div class="card">
@@ -118,6 +119,7 @@
   <section id="p-cust" style="display:none">
     <div class="card">
       <h2>Customers</h2>
+      <div class="chips" id="custChips"><button data-f="all" class="on">Everyone</button><button data-f="trade">Trade contacts</button></div>
       <input id="custQ" placeholder="Search name, phone, postcode or customer number">
       <button class="btn" onclick="editCustomer()">+ New customer</button>
       <div id="custList" style="margin-top:10px"></div>
@@ -240,20 +242,23 @@ function findCust(id){ return custAll().find(c => c._id === id); }
 function renderCustomers(){
   const q = $("custQ").value.trim().toLowerCase(), qd = q.replace(/\D/g, "");
   const sales = get("sales");
-  const list = custAll().filter(c => !q || (c.name || "").toLowerCase().includes(q) || (c.pc || "").toLowerCase().replace(/\s/g, "").includes(q.replace(/\s/g, "")) || (qd.length >= 4 && (c.phone || "").replace(/\D/g, "").includes(qd)) || (c.no || "").toLowerCase().includes(q))
+  const list = custAll().filter(c => custF !== "trade" || c.trade).filter(c => !q || (c.name || "").toLowerCase().includes(q) || (c.pc || "").toLowerCase().replace(/\s/g, "").includes(q.replace(/\s/g, "")) || (qd.length >= 4 && (c.phone || "").replace(/\D/g, "").includes(qd)) || (c.no || "").toLowerCase().includes(q))
     .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   $("custList").innerHTML = list.length ? list.slice(0, 200).map(c => {
     const bought = sales.filter(s => s.custId === c._id).length, sold = (c.buys || []).length;
-    return `<div class="item" onclick="viewCustomer('${esc(c._id)}')"><b>${esc(c.name || "No name")}${c.src === "buylog" ? '<span class="pill">Buy log</span>' : ""}</b>
+    return `<div class="item" onclick="viewCustomer('${esc(c._id)}')"><b>${esc(c.name || "No name")}${c.trade ? '<span class="pill ok">Trade</span>' : ""}${c.src === "buylog" ? '<span class="pill">Buy log</span>' : ""}</b>
       <span class="muted">${[c.no, c.phone, c.pc].filter(Boolean).map(esc).join(" · ")}</span>
       <div class="muted">${bought ? `${bought} sale${bought > 1 ? "s" : ""}` : ""}${bought && sold ? " · " : ""}${sold ? `sold to us ${sold} time${sold > 1 ? "s" : ""}` : ""}</div></div>`;
   }).join("") : `<p class="muted">${q ? "No customer matches that." : "No customers yet. Add one, or start a sale and add them there."}</p>`;
 }
 $("custQ").addEventListener("input", renderCustomers);
-function editCustomer(id, then){
-  const c = (id && get("customers").find(x => x._id === id)) || {};
-  openSheet(id ? "Edit customer" : "New customer", `
-    <label>Full name</label><input id="c_name" value="${esc(c.name)}" autocomplete="off">
+let custF = "all";
+document.querySelectorAll("#custChips button").forEach(b => b.onclick = () => { custF = b.dataset.f; document.querySelectorAll("#custChips button").forEach(x => x.classList.toggle("on", x === b)); renderCustomers(); });
+function editCustomer(id, then, trade){
+  const c = (id && get("customers").find(x => x._id === id)) || (trade ? {trade: true} : {});
+  openSheet(id ? "Edit customer" : trade ? "New trade contact" : "New customer", `
+    <label>${c.trade ? "Name (person or business)" : "Full name"}</label><input id="c_name" value="${esc(c.name)}" autocomplete="off">
+    <label style="display:flex;align-items:center;gap:8px;color:var(--text);margin-top:12px"><input id="c_trade" type="checkbox" style="width:auto"${c.trade ? " checked" : ""}> Trade contact (a dealer or buyer you sell to)</label>
     <div class="row"><div><label>Phone</label><input id="c_phone" type="tel" value="${esc(c.phone)}"></div><div><label>Postcode</label><input id="c_pc" value="${esc(c.pc)}" style="text-transform:uppercase"></div></div>
     <label>Email</label><input id="c_email" type="email" value="${esc(c.email)}">
     <label>Address</label><input id="c_addr" value="${esc(c.addr)}">
@@ -261,7 +266,7 @@ function editCustomer(id, then){
     <button class="btn" id="c_save">Save customer</button>`);
   $("c_save").onclick = () => {
     const name = $("c_name").value.trim(); if (!name) return toast("Add their name");
-    const list = get("customers"), rec = Object.assign({}, c, {name, phone: $("c_phone").value.trim(), pc: $("c_pc").value.trim().toUpperCase(), email: $("c_email").value.trim(), addr: $("c_addr").value.trim(), notes: $("c_notes").value.trim()});
+    const list = get("customers"), rec = Object.assign({}, c, {name, phone: $("c_phone").value.trim(), pc: $("c_pc").value.trim().toUpperCase(), email: $("c_email").value.trim(), addr: $("c_addr").value.trim(), notes: $("c_notes").value.trim(), trade: $("c_trade").checked});
     if (!rec._id){ rec._id = uid(); rec.no = nextNo(list, "C"); rec.added = new Date().toISOString(); list.push(rec); } else list[list.findIndex(x => x._id === rec._id)] = rec;
     put("customers", list); closeSheet(); toast("Customer saved"); renderAll(); if (then) then(rec._id);
   };
@@ -273,10 +278,12 @@ function viewCustomer(id){
     <p class="muted" style="margin-top:0">${[c.no, c.phone, c.email, c.addr, c.pc].filter(Boolean).map(esc).join("<br>")}${c.added ? `<br>Added ${fmtD(c.added)}` : ""}</p>
     ${c.notes ? `<div class="warn" style="border-color:var(--line);background:none">${esc(c.notes)}</div>` : ""}
     <h2 style="margin-top:16px">Bought from us</h2>
+    ${c.trade ? (() => { const ts = sales.filter(x => x.trade && !x.void), g = ts.reduce((t, x) => t + x.items.filter(i => i.kind === "scrap").reduce((a, i) => a + num(i.g), 0), 0), v = ts.reduce((t, x) => t + saleTotal(x), 0), d = ts.reduce((t, x) => t + tradeVsMM(x), 0);
+      return ts.length ? `<p class="muted" style="margin-top:0">${ts.length} trade sale${ts.length > 1 ? "s" : ""} · ${gbp(v, 0)}${g ? ` · ${g.toFixed(1)}g scrap` : ""}${d ? ` · <b style="color:${d >= 0 ? "var(--up)" : "var(--down)"}">${d >= 0 ? "+" : "−"}${gbp(Math.abs(d), 0)} against Mastermelt</b>` : ""}</p>` : ""; })() : ""}
     ${sales.length ? sales.map(s => `<div class="item" onclick="viewSale('${s._id}')"><span class="r">${gbp(saleTotal(s))}</span><b>${esc(s.no)}</b><span class="muted">${fmtD(s.at)} · ${esc(s.items.map(i => i.desc).join(", "))}</span></div>`).join("") : '<p class="muted">Nothing yet.</p>'}
     ${(c.buys || []).length ? `<h2 style="margin-top:16px">Sold to us (Buy log)</h2>` + c.buys.map(b => `<div class="item"><span class="r">${gbp(b.total)}</span><b>${esc(b.receipt)}</b><span class="muted">${fmtD(b.at)}</span></div>`).join("") : ""}
     ${c.src === "shop" ? `<button class="btn ghost" onclick="editCustomer('${c._id}')">Edit details</button>` : '<p class="muted">From the Buy log. Edit their details there.</p>'}
-    <button class="btn" onclick="newSale('${esc(c._id)}')">Start a sale for ${esc((c.name || "them").split(" ")[0])}</button>`);
+    ${c.trade ? `<button class="btn" onclick="newTradeSale('${esc(c._id)}')">Sell to ${esc((c.name || "them").split(" ")[0])}</button>` : `<button class="btn" onclick="newSale('${esc(c._id)}')">Start a sale for ${esc((c.name || "them").split(" ")[0])}</button>`}`);
 }
 
 /* ============ STOCK FOR SALE ============ */
@@ -350,7 +357,7 @@ const saleOpen = s => !s.void && (saleDue(s) > 0.004 || !s.collected);
 function saleRow(s){
   const due = saleDue(s), c = s.custId ? findCust(s.custId) : null;
   return `<div class="item" onclick="viewSale('${s._id}')"><span class="r">${gbp(saleTotal(s))}${due > 0.004 ? `<div class="muted" style="font-weight:600;color:var(--amber)">${gbp(due)} to pay</div>` : ""}</span>
-    <b>${esc(s.no)} · ${c ? custLabel(c) : esc(s.custName || "Walk-in")}</b><span class="muted">${fmtD(s.at)} · ${esc(s.items.map(i => i.desc).join(", "))}</span>
+    <b>${esc(s.no)} · ${c ? custLabel(c) : esc(s.custName || "Walk-in")}${s.trade ? '<span class="pill ok">Trade</span>' : ""}</b><span class="muted">${fmtD(s.at)} · ${esc(s.items.map(i => i.desc).join(", "))}</span>
     ${s.void ? '<span class="pill out">Cancelled</span>' : due > 0.004 ? '<span class="pill due">Balance owing</span>' : !s.collected ? '<span class="pill due">Paid, waiting to collect</span>' : ""}</div>`;
 }
 function renderSales(){
@@ -438,7 +445,7 @@ function saleForm(){
 }
 function markStockSold(sale){
   const st = get("forsale"); let ch = false;
-  sale.items.forEach(i => { if (!i.stockId) return; const s = st.find(x => x._id === i.stockId); if (s){ s.status = saleDue(sale) > 0.004 || !sale.collected ? "res" : "sold"; s.saleId = sale._id; ch = true; } });
+  sale.items.forEach(i => { if (!i.stockId) return; const s = st.find(x => x._id === i.stockId); if (s){ s.status = !sale.trade && (saleDue(sale) > 0.004 || !sale.collected) ? "res" : "sold"; s.saleId = sale._id; ch = true; } });
   if (ch) put("forsale", st);
 }
 function viewSale(id){
@@ -446,8 +453,9 @@ function viewSale(id){
   const c = s.custId ? findCust(s.custId) : null, due = saleDue(s);
   openSheet(s.no, `
     <p class="muted" style="margin-top:0">${fmtDT(s.at)}${s.by ? " · by " + esc(s.by) : ""}<br>${c ? `<a href="#" onclick="viewCustomer('${esc(c._id)}');return false" style="color:var(--gold2)">${custLabel(c)}</a> ${esc([c.phone, c.pc].filter(Boolean).join(" · "))}` : "Walk-in"}</p>
-    <table>${s.items.map(i => `<tr><td>${esc(i.desc)}</td><td>${gbp(i.price)}</td></tr>`).join("")}
+    <table>${s.items.map(i => `<tr><td>${esc(i.desc)}${itemDetail(i)}</td><td>${gbp(i.price)}</td></tr>`).join("")}
     ${s.discount ? `<tr><td>Discount</td><td>−${gbp(s.discount)}</td></tr>` : ""}<tr><td><b>Total</b></td><td><b>${gbp(saleTotal(s))}</b></td></tr></table>
+    ${s.trade && s.mmRef ? `<p class="muted">Mastermelt would have paid ${gbp(s.mmRef)} for the scrap and coins on this sale (${fmtD(s.mmDate)} price). You got <b style="color:${tradeVsMM(s) >= 0 ? "var(--up)" : "var(--down)"}">${tradeVsMM(s) >= 0 ? gbp(tradeVsMM(s)) + " more" : gbp(-tradeVsMM(s)) + " less"}</b>.</p>` : ""}
     <h2 style="margin-top:14px">Payments</h2>
     ${(s.payments || []).length ? `<table>${s.payments.map(p => `<tr><td>${fmtDT(p.at)} · ${esc(p.method)}${p.by ? ` · ${esc(p.by)}` : ""}</td><td>${gbp(p.amount)}</td></tr>`).join("")}</table>` : '<p class="muted">No payments yet.</p>'}
     <div class="big" style="margin-top:10px;${due > 0.004 ? "color:var(--amber)" : ""}">${s.void ? "Cancelled" : due > 0.004 ? gbp(due) + " to pay" : "Paid in full"}</div>
@@ -466,7 +474,9 @@ function viewSale(id){
   if ($("vp_coll")) $("vp_coll").onclick = () => { const list = get("sales"), x = list.find(y => y._id === id); x.collected = new Date().toISOString(); put("sales", list); markStockSold(x); renderAll(); viewSale(id); };
   if ($("vp_void")) $("vp_void").onclick = () => { if (!confirm("Cancel this sale? Any stock on it goes back to In stock.")) return;
     const list = get("sales"), x = list.find(y => y._id === id); x.void = new Date().toISOString(); put("sales", list);
-    const st = get("forsale"); x.items.forEach(i => { const p = st.find(z => z._id === i.stockId); if (p){ p.status = "in"; p.saleId = ""; } }); put("forsale", st); renderAll(); closeSheet(); };
+    const st = get("forsale"); x.items.forEach(i => { const p = st.find(z => z._id === i.stockId); if (p){ p.status = "in"; p.saleId = ""; } }); put("forsale", st);
+    const bags = get("safebags"); let back = 0; bags.forEach(b => { if (b.saleId === x._id){ b.outAt = ""; b.outTo = ""; b.outBy = ""; b.saleId = ""; back++; } }); if (back) put("safebags", bags);
+    renderAll(); closeSheet(); };
 }
 function pickSaleForPayment(){
   const open = get("sales").filter(s => !s.void && saleDue(s) > 0.004);
@@ -478,12 +488,111 @@ function receipt(id){
   if (!w) return toast("Allow pop-ups to show the receipt");
   w.document.write(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Receipt ${esc(s.no)}</title>
     <style>body{font:15px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;max-width:420px;margin:24px auto;padding:0 16px;color:#111}h1{font-size:20px;margin:0}td{padding:4px 0}td:last-child{text-align:right}table{width:100%;border-collapse:collapse}.t td{border-top:1px solid #ccc;font-weight:700}</style></head><body>
-    <h1>Dorset Gold &amp; Jewellery</h1><p>Receipt <b>${esc(s.no)}</b><br>${fmtDT(s.at)}<br>${c ? esc(c.name) : "Walk-in customer"}</p>
-    <table>${s.items.map(i => `<tr><td>${esc(i.desc)}</td><td>${gbp(i.price)}</td></tr>`).join("")}${s.discount ? `<tr><td>Discount</td><td>−${gbp(s.discount)}</td></tr>` : ""}<tr class="t"><td>Total</td><td>${gbp(saleTotal(s))}</td></tr></table>
+    <h1>Dorset Gold &amp; Jewellery</h1><p>${s.trade ? "Trade invoice" : "Receipt"} <b>${esc(s.no)}</b><br>${fmtDT(s.at)}<br>${c ? esc(c.name) : "Walk-in customer"}</p>
+    <table>${s.items.map(i => `<tr><td>${esc(i.desc)}${itemDetail(i)}</td><td>${gbp(i.price)}</td></tr>`).join("")}${s.discount ? `<tr><td>Discount</td><td>−${gbp(s.discount)}</td></tr>` : ""}<tr class="t"><td>Total</td><td>${gbp(saleTotal(s))}</td></tr></table>
     <p>${(s.payments || []).map(p => `${fmtD(p.at)}: ${esc(p.method)} ${gbp(p.amount)}`).join("<br>")}</p>
     <p><b>${saleDue(s) > 0.004 ? "Balance to pay: " + gbp(saleDue(s)) : "Paid in full"}</b></p>${s.notes ? `<p>${esc(s.notes)}</p>` : ""}
     <p style="color:#666;font-size:13px">Thank you for your custom.</p><script>setTimeout(()=>print(),400)<\/script></body></html>`);
   w.document.close();
+}
+
+/* ============ SELL TO A CONTACT (trade sale) ============
+   One sale can mix scrap by weight (typed in, or whole bags from the safe), whole pieces from stock, and coins or bullion.
+   For scrap and coins it works out what Mastermelt would have paid that day, so you can see if the contact beat it. */
+const fineOf = car => (CARATS.find(c => c[0] === car) || [0, 0])[1];
+const isGold = car => /ct$/.test(car);
+function mmFor(car, g){   // what Mastermelt pays today for this much of this carat (gold only)
+  if (!mm || !mm.pure_g || !isGold(car)) return 0;
+  const p = mm.prices && mm.prices[car]; return p ? num(g) * p : num(g) * fineOf(car) * mm.pure_g;
+}
+function itemDetail(i){
+  if (i.kind === "scrap") return `<div class="muted">${num(i.g).toFixed(2)}g ${esc(i.carat)} at ${gbp(i.ppg)}/g${i.bagNo ? ` · bag ${esc(i.bagNo)}` : ""}</div>`;
+  if (i.kind === "coin") return `<div class="muted">${num(i.qty)} × ${gbp(i.each)}${num(i.g) ? ` · ${num(i.g)}g ${esc(i.carat)} each` : ""}</div>`;
+  return "";
+}
+const tradeVsMM = s => s.mmRef ? Math.round((s.items.filter(i => i.kind === "scrap" || i.kind === "coin").reduce((t, i) => t + num(i.price), 0) - s.mmRef) * 100) / 100 : 0;
+let td = null;
+function newTradeSale(custId){ td = {custId: custId && (findCust(custId) || {}).trade ? custId : "", lines: [], notes: ""}; tradeForm(); }
+function tradeForm(){
+  const c = td.custId ? findCust(td.custId) : null;
+  const bags = get("safebags").filter(b => !b.outAt && !td.lines.some(l => l.bagId === b._id));
+  const stock = get("forsale").filter(x => stStatus(x) === "in" && !td.lines.some(l => l.stockId === x._id));
+  const line = (l, i) => {
+    const del = `<button class="x" data-del="${i}">×</button>`;
+    if (l.kind === "scrap") return `<div class="card" style="padding:10px;margin:8px 0">
+        <div class="line"><b style="flex:1">Scrap by weight${l.bagNo ? ` · bag ${esc(l.bagNo)}` : ""}</b>${del}</div>
+        <div class="row"><div><label>Carat</label><select data-i="${i}" data-k="carat">${CARATS.filter(([k]) => k !== "Other").map(([k]) => `<option${l.carat === k ? " selected" : ""}>${k}</option>`).join("")}</select></div>
+          <div><label>Grams</label><input data-i="${i}" data-k="g" type="number" inputmode="decimal" step="0.01" value="${esc(l.g)}"></div>
+          <div><label>£ per gram</label><input data-i="${i}" data-k="ppg" type="number" inputmode="decimal" step="0.01" value="${esc(l.ppg)}"></div></div>
+        <div class="muted" data-mm="${i}" style="margin-top:6px"></div></div>`;
+    if (l.kind === "coin") return `<div class="card" style="padding:10px;margin:8px 0">
+        <div class="line"><b style="flex:1">Coins or bullion</b>${del}</div>
+        <label>What</label><input data-i="${i}" data-k="desc" value="${esc(l.desc)}" placeholder="e.g. Full sovereigns, Krugerrand 1oz">
+        <div class="row"><div><label>How many</label><input data-i="${i}" data-k="qty" type="number" inputmode="numeric" value="${esc(l.qty)}"></div><div><label>£ each</label><input data-i="${i}" data-k="each" type="number" inputmode="decimal" value="${esc(l.each)}"></div></div>
+        <div class="row"><div><label>Carat (for the melt check)</label><select data-i="${i}" data-k="carat"><option value="">Not needed</option>${CARATS.filter(([k]) => k !== "Other").map(([k]) => `<option${l.carat === k ? " selected" : ""}>${k}</option>`).join("")}</select></div><div><label>Weight each (g)</label><input data-i="${i}" data-k="g" type="number" inputmode="decimal" step="0.001" value="${esc(l.g)}" placeholder="sovereign 7.99"></div></div>
+        <div class="muted" data-mm="${i}" style="margin-top:6px"></div></div>`;
+    return `<div class="card" style="padding:10px;margin:8px 0"><div class="line"><b style="flex:1">${esc(l.desc)}</b>${del}</div>
+        <div class="muted">${esc(l.stockNo)} · cost ${gbp(l.cost, 0)}</div><label>Price to the contact (£)</label><input data-i="${i}" data-k="price" type="number" inputmode="decimal" value="${esc(l.price)}"></div>`;
+  };
+  openSheet("Sell to a contact", `
+    <h2>Who's buying?</h2>
+    ${c ? `<div class="item" style="cursor:default"><b>${custLabel(c)}</b><span class="muted">${[c.phone, c.pc].filter(Boolean).map(esc).join(" · ")}</span> <button class="btn small ghost" onclick="td.custId='';tradeForm()">Change</button></div>`
+      : (() => { const tc = custAll().filter(x => x.trade); return `${tc.length ? tc.map(x => `<div class="item" onclick="td.custId='${esc(x._id)}';tradeForm()"><b>${custLabel(x)}</b><span class="muted">${[x.phone, x.pc].filter(Boolean).map(esc).join(" · ")}</span></div>`).join("") : '<p class="muted">No trade contacts yet.</p>'}
+        <button class="btn ghost" id="td_newc">+ New trade contact</button>`; })()}
+    <h2 style="margin-top:16px">What are you selling?</h2>
+    <div id="td_lines">${td.lines.map(line).join("")}</div>
+    ${bags.length ? `<select id="td_bag" style="margin-top:10px"><option value="">+ A bag from the safe…</option>${bags.map(b => `<option value="${b._id}">Bag ${esc(b.no)} · ${bagGrams(b).toFixed(1)}g${b.desc ? " · " + esc(b.desc) : ""}</option>`).join("")}</select>` : ""}
+    <div class="row"><button class="btn ghost" id="td_scrap">+ Scrap by weight</button><button class="btn ghost" id="td_coin">+ Coins / bullion</button></div>
+    ${stock.length ? `<select id="td_stock" style="margin-top:12px"><option value="">+ A piece from stock…</option>${stock.map(x => `<option value="${x._id}">${esc(x.no)} · ${esc(x.desc)}</option>`).join("")}</select>` : ""}
+    <label>Notes</label><input id="td_notes" value="${esc(td.notes)}" placeholder="e.g. collected by courier, paying Friday">
+    <div class="big" id="td_total" style="margin-top:14px"></div><div id="td_vs" class="muted"></div>
+    <h2 style="margin-top:14px">Paid now?</h2>
+    <div class="row"><div><label>Amount paid today (£)</label><input id="td_pay" type="number" inputmode="decimal" placeholder="leave blank if they'll pay later"></div><div><label>How</label><select id="td_how">${PAY.map(m => `<option${m === "Bank transfer" ? " selected" : ""}>${m}</option>`).join("")}</select></div></div>
+    <button class="btn" id="td_save">Save trade sale</button>`);
+  const priceOf = l => l.kind === "scrap" ? num(l.g) * num(l.ppg) : l.kind === "coin" ? num(l.qty) * num(l.each) : num(l.price);
+  const mmOf = l => l.kind === "scrap" ? mmFor(l.carat, l.g) : l.kind === "coin" && l.carat ? mmFor(l.carat, num(l.g) * num(l.qty)) : 0;
+  const recalc = () => {
+    td.lines.forEach((l, i) => { const el = document.querySelector(`[data-mm="${i}"]`); if (!el) return; const m = mmOf(l), p = priceOf(l);
+      el.innerHTML = (p ? `Line total <b>${gbp(p)}</b>` : "") + (m ? `${p ? " · " : ""}Mastermelt would pay ${gbp(m)}${p ? ` · <b style="color:${p >= m ? "var(--up)" : "var(--down)"}">${p >= m ? "+" : "−"}${gbp(Math.abs(p - m))}</b>` : ""}` : "")
+        + (l.kind === "scrap" && mm && mm.prices && mm.prices[l.carat] ? `<br>Mastermelt ${esc(l.carat)}: ${gbp(mm.prices[l.carat])}/g today` : ""); });
+    const tot = td.lines.reduce((t, l) => t + priceOf(l), 0), m = td.lines.reduce((t, l) => t + mmOf(l), 0), mp = td.lines.filter(l => mmOf(l)).reduce((t, l) => t + priceOf(l), 0);
+    $("td_total").textContent = "Total " + gbp(tot);
+    $("td_vs").innerHTML = m ? `Mastermelt would pay ${gbp(m)} for the scrap and coins. This contact is paying <b style="color:${mp >= m ? "var(--up)" : "var(--down)"}">${mp >= m ? gbp(mp - m) + " more" : gbp(m - mp) + " less"}</b>.` : "";
+  };
+  document.querySelectorAll("#td_lines [data-k]").forEach(e => e.oninput = e.onchange = () => { td.lines[+e.dataset.i][e.dataset.k] = e.value; recalc(); });
+  document.querySelectorAll("#td_lines [data-del]").forEach(e => e.onclick = () => { td.lines.splice(+e.dataset.del, 1); tradeForm(); });
+  $("td_notes").oninput = () => td.notes = $("td_notes").value;
+  $("td_scrap").onclick = () => { td.lines.push({kind: "scrap", carat: "9ct", g: "", ppg: ""}); tradeForm(); };
+  $("td_coin").onclick = () => { td.lines.push({kind: "coin", desc: "", qty: "1", each: "", carat: "", g: ""}); tradeForm(); };
+  if ($("td_newc")) $("td_newc").onclick = () => editCustomer(null, id => { td.custId = id; tradeForm(); }, true);
+  if ($("td_bag")) $("td_bag").onchange = () => { const b = get("safebags").find(x => x._id === $("td_bag").value); if (!b) return;
+    b.lines.forEach(l => td.lines.push({kind: "scrap", carat: l.carat, g: String(l.g), ppg: "", bagId: b._id, bagNo: b.no})); tradeForm(); };
+  if ($("td_stock")) $("td_stock").onchange = () => { const x = get("forsale").find(y => y._id === $("td_stock").value); if (!x) return;
+    td.lines.push({kind: "piece", desc: x.desc + (x.carat ? ` (${x.carat})` : ""), stockId: x._id, stockNo: x.no, cost: x.cost, price: x.price}); tradeForm(); };
+  recalc();
+  $("td_save").onclick = () => {
+    if (!td.custId) return toast("Choose the contact");
+    if (!td.lines.length) return toast("Add what you're selling");
+    for (const l of td.lines){
+      if (l.kind === "scrap" && !(num(l.g) > 0 && num(l.ppg) > 0)) return toast("Each scrap line needs grams and a price per gram");
+      if (l.kind === "coin" && !((l.desc || "").trim() && num(l.qty) > 0 && num(l.each) > 0)) return toast("Each coin line needs what it is, how many and a price");
+      if (l.kind === "piece" && !(num(l.price) > 0)) return toast("Give each piece a price");
+    }
+    const tot = td.lines.reduce((t, l) => t + priceOf(l), 0), paid = num($("td_pay").value);
+    if (paid > tot + 0.004) return toast("That's more than the total");
+    const list = get("sales"), now = new Date().toISOString(), mmRef = Math.round(td.lines.reduce((t, l) => t + mmOf(l), 0) * 100) / 100;
+    const sale = {_id: uid(), no: nextNo(list, "T"), trade: true, at: now, by: who(), custId: td.custId, discount: 0, notes: td.notes.trim(), collected: now,
+      mmRef: mmRef || 0, mmDate: mm ? mm.date : "",
+      items: td.lines.map(l => l.kind === "scrap" ? {kind: "scrap", desc: `${l.carat} scrap`, carat: l.carat, g: num(l.g), ppg: num(l.ppg), price: Math.round(priceOf(l) * 100) / 100, bagId: l.bagId || "", bagNo: l.bagNo || ""}
+        : l.kind === "coin" ? {kind: "coin", desc: l.desc.trim(), qty: num(l.qty), each: num(l.each), carat: l.carat, g: num(l.g), price: Math.round(priceOf(l) * 100) / 100}
+        : {kind: "piece", desc: l.desc, stockId: l.stockId, price: num(l.price)}),
+      payments: paid > 0 ? [{at: now, amount: paid, method: $("td_how").value, by: who()}] : []};
+    list.push(sale); put("sales", list);
+    markStockSold(sale);
+    const ids = new Set(sale.items.map(i => i.bagId).filter(Boolean));
+    if (ids.size){ const bags = get("safebags"), name = (findCust(td.custId) || {}).name || "Trade contact"; bags.forEach(b => { if (ids.has(b._id)){ b.outAt = now; b.outTo = name; b.outBy = who(); b.saleId = sale._id; } }); put("safebags", bags); }
+    closeSheet(); toast(`Trade sale ${sale.no} saved`); renderAll(); viewSale(sale._id);
+  };
 }
 
 /* ============ SAFE LOG ============ */
@@ -545,7 +654,8 @@ function viewBag(id){
     ${pure ? `<tr><td>Pure gold</td><td>${pure.toFixed(2)}g${mm && mm.pure_g ? ` · about ${gbp(pure * mm.pure_g, 0)}` : ""}</td></tr>` : ""}</table>
     ${b.notes ? `<p class="muted">${esc(b.notes)}</p>` : ""}
     ${!b.outAt ? `<label>Booking it out to</label><select id="bo_to"><option>Mastermelt</option><option>Another refiner</option><option>Sold as it is</option><option>Back to stock</option><option>Other</option></select>
-      <button class="btn" id="bo_go">Book it out of the safe</button><button class="btn ghost" onclick="editBag('${b._id}')">Edit</button>` : ""}`);
+      <button class="btn" id="bo_go">Book it out of the safe</button><button class="btn ghost" onclick="td={custId:'',lines:[],notes:''};get('safebags').filter(x=>x._id==='${b._id}').forEach(x=>x.lines.forEach(l=>td.lines.push({kind:'scrap',carat:l.carat,g:String(l.g),ppg:'',bagId:x._id,bagNo:x.no})));tradeForm()">Sell this bag to a contact</button><button class="btn ghost" onclick="editBag('${b._id}')">Edit</button>` : ""}
+    ${b.saleId ? `<button class="btn ghost" onclick="viewSale('${b.saleId}')">See the sale</button>` : ""}`);
   if ($("bo_go")) $("bo_go").onclick = () => { if (!confirm(`Book bag ${b.no} out to ${$("bo_to").value}?`)) return;
     const list = get("safebags"), x = list.find(y => y._id === id); x.outAt = new Date().toISOString(); x.outTo = $("bo_to").value; x.outBy = who(); put("safebags", list); closeSheet(); toast(`Bag ${b.no} booked out`); renderAll(); };
 }
