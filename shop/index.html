@@ -58,9 +58,50 @@
   .sheet .top h3{margin:0;font-size:19px}
   .x{background:none;border:1px solid var(--line);color:var(--text);border-radius:10px;width:40px;height:40px;font-size:20px}
   .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#2a261e;border:1px solid var(--gold);color:var(--text);padding:10px 16px;border-radius:12px;z-index:30;display:none;font-size:15px}
-  #lock{position:fixed;inset:0;background:var(--bg);z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px}
-  #lock img{width:96px;border-radius:50%;margin-bottom:14px}
-  #lock input{max-width:240px;text-align:center;font-size:22px;letter-spacing:.3em}
+  #lock{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow:auto;
+    background:radial-gradient(ellipse at 50% 0%,rgba(212,168,67,.16),transparent 60%),var(--bg)}
+  #lock .lk{width:100%;max-width:400px;text-align:center}
+  #lock .lkLogo{width:112px;height:112px;border-radius:50%;box-shadow:0 0 0 3px rgba(240,203,106,.35),0 10px 40px rgba(212,168,67,.25);margin-bottom:14px}
+  #lock h1{margin:0;font-size:26px;line-height:1.2}#lock h1 span{color:var(--gold)}
+  #lock .lkSub{color:var(--muted);font-size:14px;margin-top:2px}
+  #lock .lkTime{font-size:15px;color:var(--muted);margin:14px 0 0}#lock .lkTime b{color:var(--text);font-size:18px}
+  #lock .lkGold{display:inline-block;margin-top:10px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:14px;color:var(--muted)}#lock .lkGold b{color:var(--gold2)}
+  #lock .lkCard{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:20px}
+  #lock .lkCard h2{margin:0 0 12px;font-size:13px;color:var(--gold2);font-weight:700;text-transform:uppercase;letter-spacing:.7px}
+  #lockWho{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
+  #lockWho button{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 8px;border-radius:14px;border:1px solid var(--line);background:#14130f;color:var(--text);font-size:16px;font-weight:600;cursor:pointer}
+  #lockWho button i{display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;font-style:normal;font-size:20px;font-weight:800;color:#1a1408;background:linear-gradient(135deg,var(--gold2),var(--gold))}
+  #lockWho button.on{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+  #lockWho button:hover{border-color:var(--gold)}
+  #lock .lkBack{background:none;border:0;color:var(--muted);font-size:14px;cursor:pointer;margin-bottom:6px}
+  #lock .dots{display:flex;justify-content:center;gap:12px;margin:12px 0 4px}
+  #lock .dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--gold);display:block}#lock .dots i.f{background:var(--gold2);border-color:var(--gold2)}
+  #lock .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  #lock .pad button{height:58px;border-radius:14px;border:1px solid var(--line);background:#14130f;color:var(--text);font-size:22px;font-weight:600;cursor:pointer}
+  #lock .pad button:active{background:#2a261e;border-color:var(--gold)}
+  #lock .pad button.k{font-size:15px;color:var(--muted)}
+  #pinIn{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+  #lockMsg{min-height:20px;margin-top:6px;color:#f08a7c;font-size:14px}
+  /* the same opening animation as Gold Trader: the logo breathes in, a shine sweeps across, then everything rises into place */
+  #lock .lkLogoW{position:relative;display:inline-block;border-radius:50%}
+  #lock .shine{position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none}
+  #lock .shine::after{content:"";position:absolute;top:-20%;bottom:-20%;width:45%;left:-60%;transform:skewX(-18deg);background:linear-gradient(90deg,transparent,rgba(255,236,180,.55),transparent);mix-blend-mode:screen}
+  #lock.play .lkLogo{animation:lkBreath 1.6s ease-in-out both}
+  #lock.play .shine::after{animation:spShine 1.3s .25s ease-in-out both}
+  #lock.play h1,#lock.play .lkSub,#lock.play .lkTime,#lock.play #lockGold,#lock.play .lkCard{animation:spUp .5s ease-out both}
+  #lock.play h1{animation-delay:.35s}#lock.play .lkSub{animation-delay:.45s}#lock.play .lkTime{animation-delay:.55s}#lock.play #lockGold{animation-delay:.6s}#lock.play .lkCard{animation-delay:.7s}
+  #lock.play .lkLogo{animation:lkBreath 1.6s ease-in-out both, lkGlow 3.5s 1.6s ease-in-out infinite}
+  #lockWho button,#lock .pad button{animation:spUp .4s ease-out both}
+  #lock .dots i{transition:transform .15s,background .15s}#lock .dots i.f{transform:scale(1.2)}
+  #lock .lkCard.shake{animation:lkShake .4s}
+  #lock.out{animation:lkOut .4s ease-in forwards}
+  @keyframes lkBreath{0%{opacity:0;transform:scale(.8)}50%{opacity:1;transform:scale(1.06)}100%{transform:scale(1)}}
+  @keyframes lkGlow{0%,100%{box-shadow:0 0 0 3px rgba(240,203,106,.35),0 10px 40px rgba(212,168,67,.25)}50%{box-shadow:0 0 0 3px rgba(240,203,106,.6),0 10px 55px rgba(212,168,67,.45)}}
+  @keyframes spShine{from{left:-60%}to{left:120%}}
+  @keyframes spUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes lkShake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+  @keyframes lkOut{to{opacity:0;transform:scale(1.04)}}
+  @media (prefers-reduced-motion: reduce){#lock *,#lock{animation:none!important;transition:none!important}}
   .line{display:flex;gap:6px;align-items:center;margin-top:6px}
   .line input{flex:1}
   .line .x{flex:none;width:40px;height:44px}
@@ -425,7 +466,24 @@
 <div class="sheet" id="sheet"><div class="in"><div class="top"><h3 id="shTitle"></h3><button class="x" onclick="closeSheet()">×</button></div><div id="shBody"></div></div></div>
 <div class="toast" id="toast"></div>
 <div id="cam"></div>
-<div id="lock"><img src="../icon.png" alt=""><div class="who" id="lockWho"></div><div style="margin-bottom:10px" id="lockAsk">Enter PIN</div><input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><div id="lockMsg" class="muted" style="margin-top:8px"></div></div>
+<div id="lock"><div class="lk">
+  <div class="lkLogoW"><img class="lkLogo" src="../icon.png" alt=""><div class="shine"></div></div>
+  <h1>Dorset Gold <span>&amp; Jewellery</span></h1>
+  <div class="lkSub">The shop system</div>
+  <div class="lkTime" id="lockTime"></div>
+  <div id="lockGold"></div>
+  <div class="lkCard">
+    <button class="lkBack" id="lockBack" style="display:none">‹ Not you?</button>
+    <h2 id="lockAsk">Who's using the app?</h2>
+    <div id="lockWho"></div>
+    <div id="lockPin" style="display:none">
+      <div class="dots" id="lockDots"></div>
+      <input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off">
+      <div id="lockMsg"></div>
+      <div class="pad" id="lockPad"></div>
+    </div>
+  </div>
+</div></div>
 
 <script src="../sync.js?v=15"></script>
 <script src="../buying-log/qrcode.min.js"></script>
@@ -1746,25 +1804,48 @@ function lockNow(){
   if (!st.length && !pinHash) return toast("Add a person with a PIN first");
   try { sessionStorage.removeItem("shopUser"); } catch(e){} if (window.DGSync && DGSync.setActor) DGSync.setActor("");
   lockPick = st.length === 1 ? st[0].name : "";
-  drawLock(); $("lock").style.display = "flex";
+  drawLock(); $("lock").classList.remove("out", "play"); $("lock").style.display = "flex"; void $("lock").offsetWidth; $("lock").classList.add("play");
 }
+function unlockOut(){ const l = $("lock"); l.classList.add("out"); setTimeout(() => { l.style.display = "none"; l.classList.remove("out", "play"); }, 380); }
+function lockWrong(){ const c = document.querySelector("#lock .lkCard"); c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake"); if (navigator.vibrate) navigator.vibrate(120); }
+const cap = n => String(n || "").replace(/^\w/, c => c.toUpperCase());
+function lockTick(){
+  const d = new Date();
+  $("lockTime").innerHTML = `<b>${d.toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"})}</b> · ${d.toLocaleDateString("en-GB", {weekday: "long", day: "numeric", month: "long"})}`;
+  $("lockGold").innerHTML = gbpPerGram ? `<span class="lkGold">Gold today <b>£${gbpPerGram.toFixed(2)}/g</b> · 24ct</span>` : "";
+}
+function lockDots(){ const n = $("pinIn").value.length; $("lockDots").innerHTML = [...Array(Math.max(4, n))].map((_, i) => `<i class="${i < n ? "f" : ""}"></i>`).join(""); }
 function drawLock(){
-  const st = staffAll();
-  $("lockWho").innerHTML = st.length > 1 ? st.map(x => `<button class="${x.name === lockPick ? "on" : ""}" data-n="${esc(x.name)}">${esc(x.name)}</button>`).join("") : "";
+  const st = staffAll(), asking = !st.length || lockPick;
+  lockTick();
+  $("lockWho").innerHTML = st.length > 1 && !lockPick ? st.map((x, i) => `<button data-n="${esc(x.name)}" style="animation-delay:${(i * .06).toFixed(2)}s"><i>${esc(cap(x.name).charAt(0))}</i>${esc(cap(x.name))}</button>`).join("") : "";
   $("lockWho").querySelectorAll("button").forEach(b => b.onclick = () => { lockPick = b.dataset.n; drawLock(); });
-  $("lockAsk").textContent = st.length ? (lockPick ? `${lockPick}, enter your PIN` : "Who's using the app?") : "Enter PIN";
-  $("pinIn").style.display = !st.length || lockPick ? "" : "none";
-  $("pinIn").value = ""; $("lockMsg").textContent = ""; setTimeout(() => { if ($("pinIn").style.display !== "none") $("pinIn").focus(); }, 60);
+  $("lockWho").style.display = asking ? "none" : "";
+  $("lockBack").style.display = st.length > 1 && lockPick ? "" : "none";
+  $("lockAsk").textContent = st.length ? (lockPick ? `Hi ${cap(lockPick)}, enter your PIN` : "Who's using the app?") : "Enter your PIN";
+  $("lockPin").style.display = asking ? "" : "none";
+  $("lockPad").innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, "c", 0, "b"].map((n, i) => `<button${n === "c" || n === "b" ? ' class="k"' : ""} data-d="${n}" style="animation-delay:${(i * .025).toFixed(3)}s">${n === "c" ? "Clear" : n === "b" ? "⌫" : n}</button>`).join("");
+  $("lockPad").querySelectorAll("button").forEach(b => b.onclick = () => { const d = b.dataset.d, el = $("pinIn");
+    el.value = d === "c" ? "" : d === "b" ? el.value.slice(0, -1) : (el.value + d).slice(0, 8); $("lockMsg").textContent = ""; lockDots(); el.dispatchEvent(new Event("input")); });
+  $("pinIn").value = ""; $("lockMsg").textContent = ""; lockDots();
+  setTimeout(() => { if (asking && !matchMedia("(pointer:coarse)").matches) $("pinIn").focus(); }, 60);   // computers can type the PIN; phones use the keypad
 }
-$("pinIn").addEventListener("input", async () => { const v = $("pinIn").value; if (v.length < 4) return;
+$("lockBack").onclick = () => { lockPick = ""; drawLock(); };
+$("pinIn").addEventListener("input", lockDots);
+$("lock").addEventListener("click", e => { if ($("lockPin").style.display !== "none" && !e.target.closest("button") && !matchMedia("(pointer:coarse)").matches) $("pinIn").focus(); });
+setInterval(() => { if ($("lock").style.display === "flex") lockTick(); }, 30000);
+let pinWait = null;
+$("pinIn").addEventListener("input", async () => { const v = $("pinIn").value; clearTimeout(pinWait); if (v.length < 4) return;
+  // PINs can be 4 to 8 digits, so a short wrong PIN is only called wrong after a pause
+  pinWait = setTimeout(() => { if ($("pinIn").value === v && $("lock").style.display === "flex" && !$("lock").classList.contains("out")){ $("lockMsg").textContent = "Wrong PIN, try again"; $("pinIn").value = ""; lockDots(); lockWrong(); } }, 1600);
   const st = staffAll();
   if (st.length){
     const p = st.find(x => x.name === lockPick); if (!p) return;
-    if (await staffHash(p.name, v) === p.pin){ try { sessionStorage.setItem("shopUser", p.name); } catch(e){} if (window.DGSync && DGSync.setActor) DGSync.setActor(p.name); $("lock").style.display = "none"; lastActive = Date.now(); renderAll(); }
-    else if (v.length >= 6) { $("lockMsg").textContent = "Wrong PIN"; $("pinIn").value = ""; }
+    if (await staffHash(p.name, v) === p.pin){ try { sessionStorage.setItem("shopUser", p.name); } catch(e){} if (window.DGSync && DGSync.setActor) DGSync.setActor(p.name); clearTimeout(pinWait); unlockOut(); lastActive = Date.now(); renderAll(); }
+    else if (v.length >= 6) { $("lockMsg").textContent = "Wrong PIN, try again"; $("pinIn").value = ""; lockDots(); lockWrong(); }
     return;
   }
-  if (await sha("gl-salt:" + v) === pinHash){ $("lock").style.display = "none"; lastActive = Date.now(); } else if (v.length >= 8) { $("lockMsg").textContent = "Wrong PIN"; $("pinIn").value = ""; } });
+  if (await sha("gl-salt:" + v) === pinHash){ clearTimeout(pinWait); unlockOut(); lastActive = Date.now(); } else if (v.length >= 8) { $("lockMsg").textContent = "Wrong PIN, try again"; $("pinIn").value = ""; lockDots(); lockWrong(); } });
 let lastActive = Date.now();
 ["click", "keydown", "touchstart"].forEach(e => document.addEventListener(e, () => lastActive = Date.now(), {passive: true}));
 const lockMins = () => parseFloat(localStorage.getItem("shopLockMins") || "5") || 5;
