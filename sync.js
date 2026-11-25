@@ -13,7 +13,7 @@
 const SYNC_URL = "https://dg-sync.maximus6569.workers.dev";   // the team sync Worker (see sync-worker/README.md)
 
 const LS = window.localStorage, P = "dgs:";
-const ARRAYS = ["stock", "buys", "sent", "visits", "cash", "sales", "customers", "safebags", "forsale"];         // lists in localStorage, synced item by item
+const ARRAYS = ["stock", "buys", "sent", "visits", "cash", "sales", "customers", "safebags", "forsale", "staff"];         // lists in localStorage, synced item by item
 const SCALARS = ["refiner", "ownPct", "pmM", "buyin"];               // shared settings: refiner price, margin, buying-in
 const BL_SHARED = ["biz", "addr", "phone", "prefix", "retain", "revLink", "revMsg", "icoDone", "icoNum", "dpEmail"];   // Buy log settings everyone shares
 const BL_DB = "dj-buylog";
@@ -27,6 +27,8 @@ const jset = (k, v) => rawSet(k, JSON.stringify(v));
 const nowISO = () => new Date().toISOString();
 const rid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)).replace(/-/g, "").slice(0, 16);
 const me = () => rawGet(P + "me") || "";
+// the person actually using the device right now (staff sign-in on a shared shop computer), for the activity log
+const actor = () => { try { return sessionStorage.getItem(P + "actor") || me(); } catch(e){ return me(); } };
 const joined = () => !!(SYNC_URL && rawGet(P + "tok") && me());
 const hex = b => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
 const sha = async s => hex(await crypto.subtle.digest("SHA-256", enc.encode(s)));
@@ -72,7 +74,7 @@ async function unseal(s){
 
 /* ---------- the queue of local changes waiting to go up ---------- */
 const queue = () => jget(P + "q", {});
-function enqueue(id, del){ if (!joined() && !enqueue.force) return; const q = queue(); q[id] = {at: nowISO(), del: del ? 1 : 0}; jset(P + "q", q); schedulePush(); }
+function enqueue(id, del){ if (!joined() && !enqueue.force) return; const q = queue(); q[id] = {at: nowISO(), del: del ? 1 : 0, by: actor()}; jset(P + "q", q); schedulePush(); }
 
 /* ---------- lists in localStorage: give every item an id, spot what changed ---------- */
 function onArrayWrite(key, val){
@@ -151,7 +153,7 @@ async function push(){
       const del = e.del || data == null;
       const sealed = del ? null : await seal(data);
       size += sealed ? sealed.length : 0;
-      docs.push({id, at: id[0] === "p" ? "2000-01-01T00:00:00.000Z" : e.at, who: me(), del: del ? 1 : 0, data: sealed});
+      docs.push({id, at: id[0] === "p" ? "2000-01-01T00:00:00.000Z" : e.at, who: e.by || me(), del: del ? 1 : 0, data: sealed});
     }
     // payloadFor may have queued photos that aren't in this batch: hold the records back until those have gone up
     const q2 = queue(), waiting = Object.keys(q2).some(k => k[0] === "p" && !(k in snap));
@@ -295,6 +297,30 @@ async function leave(){
   keyCache = null;
 }
 
+/* ---------- history: every saved version of an item, and who changed what ---------- */
+async function history(id){
+  if (!joined()) throw new Error("This device hasn't joined the team, so there's no history on the server.");
+  let res; try { res = await post("/history", {id}); } catch(e){ throw new Error(e.status === 404 ? "The team server needs its update before history can be shown." : e.message); }
+  const out = [];
+  for (const v of res.versions || []){ let data = null; if (!v.del && v.data){ try { data = await unseal(v.data); } catch(e){ continue; } } out.push({at: v.at, who: v.who, del: !!v.del, current: !!v.current, data}); }
+  return out;
+}
+async function activity(before, limit){
+  if (!joined()) throw new Error("This device hasn't joined the team.");
+  try { return (await post("/recent", {before, limit})).changes || []; }
+  catch(e){ throw new Error(e.status === 404 ? "The team server needs its update before the activity log can be shown." : e.message); }
+}
+// put an earlier version back (it becomes the newest change, so it goes to everyone)
+async function restore(id, data){
+  const [kind, ...rest] = id.split(":");
+  if (kind === "a"){ const key = rest[0], iid = rest.slice(1).join(":"); if (!ARRAYS.includes(key)) throw new Error("Can't restore that");
+    const arr = jget(key, []), i = arr.findIndex(x => x && x._id === iid); if (i >= 0) arr[i] = data; else arr.push(data); LS.setItem(key, JSON.stringify(arr)); }
+  else if (kind === "r"){ await bPutRec(await joinPhotos(JSON.parse(JSON.stringify(data)))); enqueue("r:" + rest.join(":")); }
+  else throw new Error("Can't restore that");
+  window.dispatchEvent(new CustomEvent("dgsync-applied", {detail: {arrays: kind === "a" ? [rest[0]] : [], records: kind === "r", settings: false}}));
+}
+function setActor(name){ try { if (name) sessionStorage.setItem(P + "actor", name); else sessionStorage.removeItem(P + "actor"); } catch(e){} }
+
 /* ---------- hooks for the Buy log page ---------- */
 const recordChanged = id => enqueue("r:" + id);
 const recordDeleted = id => enqueue("r:" + id, true);
@@ -303,7 +329,7 @@ const settingsChanged = () => enqueue("b:settings");
 window.DGSync = {
   configured: () => !!SYNC_URL, joined, me, join, leave, syncNow, serverCode,
   status: () => Object.assign({pending: Object.keys(queue()).length}, jget(P + "st", {})),
-  recordChanged, recordDeleted, settingsChanged, people: () => jget(P + "people", ["Jase", "Mike"])
+  recordChanged, recordDeleted, settingsChanged, history, activity, restore, setActor, actor, people: () => jget(P + "people", ["Jase", "Mike"])
 };
 
 let looping = false;

@@ -21,6 +21,10 @@ This is what lets Jase and Mike share one app. It stores stock, the Buy log (rec
 * Personal settings stay on each phone: the Buy log PIN, the staff name, the lock time and alert codes.
 * Receipt numbers carry each person's initial (DG-20261122-J001, DG-20261122-M001), so two phones can never make the same number.
 
+## History and the activity log
+
+Nothing is ever thrown away. When anything is changed or deleted, the version it replaces is kept (still encrypted) in a `history` table, made automatically. The Shop app shows this under Settings, then Activity (who changed what, and when), and on each sale, bag, piece and customer under **History of changes**, where any earlier version can be put back. Cloudflare also keeps its own copy of the whole database for restoring to any point in the last 7 days on the free plan (D1 Time Travel).
+
 ## Changing the passphrase
 
 Set a new `AUTH_HASH` from the new passphrase. Then, on each phone, **Leave the team** and join again with the new passphrase. Data already on the server was locked with the old passphrase, so the first phone to rejoin should be the one with the most complete copy, which then uploads everything again.

@@ -6,6 +6,11 @@
 //
 // POST /pull  {since}         -> {docs: [{id, rev, at, who, del, data}], rev, more}
 // POST /push  {docs: [...]}   -> {rev}  (a document is only replaced by a newer one: last change wins)
+// POST /history {id}          -> {versions: [{at, who, del, data, current}]}   every saved version of one item, newest first
+// POST /recent {before, limit} -> {changes: [{id, at, who, del}]}              who changed what, newest first (no contents)
+//
+// Nothing is ever thrown away: when an item is changed or deleted, the version it replaces is kept in "history"
+// (still encrypted). Photos are never changed once sent, so they aren't copied.
 //
 // Setup (see README.md): a D1 database bound as DB, and a secret AUTH_HASH, which the app shows
 // when the business passphrase is first set. The table is created automatically.
@@ -36,7 +41,11 @@ async function setup(db){
     db.prepare("CREATE TABLE IF NOT EXISTS docs (id TEXT PRIMARY KEY, rev INTEGER NOT NULL, at TEXT NOT NULL, who TEXT, del INTEGER NOT NULL DEFAULT 0, data TEXT)"),
     db.prepare("CREATE INDEX IF NOT EXISTS docs_rev ON docs(rev)"),
     db.prepare("CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v INTEGER NOT NULL)"),
-    db.prepare("INSERT OR IGNORE INTO meta (k, v) VALUES ('rev', 0)")
+    db.prepare("INSERT OR IGNORE INTO meta (k, v) VALUES ('rev', 0)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS history (id TEXT NOT NULL, rev INTEGER, at TEXT NOT NULL, who TEXT, del INTEGER NOT NULL DEFAULT 0, data TEXT, replaced TEXT NOT NULL)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS history_id ON history(id, at)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS history_at ON history(at)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS docs_at ON docs(at)")
   ]);
   ready = true;
 }
@@ -83,16 +92,36 @@ export default {
       for (const d of docs){
         // newer change wins; equal times keep the first one in
         const r = await env.DB.batch([
+          env.DB.prepare(`INSERT INTO history (id, rev, at, who, del, data, replaced) SELECT id, rev, at, who, del, data, ?3 FROM docs
+            WHERE id = ?1 AND ?2 > docs.at AND substr(id, 1, 2) <> 'p:'`).bind(d.id, d.at, new Date().toISOString()),
           env.DB.prepare("UPDATE meta SET v = v + 1 WHERE k = 'rev'"),
           env.DB.prepare(`INSERT INTO docs (id, rev, at, who, del, data) VALUES (?1, (SELECT v FROM meta WHERE k = 'rev'), ?2, ?3, ?4, ?5)
             ON CONFLICT(id) DO UPDATE SET rev = excluded.rev, at = excluded.at, who = excluded.who, del = excluded.del, data = excluded.data
             WHERE excluded.at > docs.at`).bind(d.id, d.at, String(d.who || "").slice(0, 40), d.del ? 1 : 0, d.del ? null : d.data),
           env.DB.prepare("SELECT v FROM meta WHERE k = 'rev'")
         ]);
-        rev = r[2].results[0].v;
+        rev = r[3].results[0].v;
       }
       return reply({rev}, 200, origin);
     }
+    if (path === "/history"){
+      const id = String(body.id || "");
+      if (!id || id.length > 200) return reply({error: "Bad request"}, 400, origin);
+      const cur = await env.DB.prepare("SELECT at, who, del, data FROM docs WHERE id = ?").bind(id).first();
+      const {results} = await env.DB.prepare("SELECT at, who, del, data FROM history WHERE id = ? ORDER BY at DESC LIMIT 60").bind(id).all();
+      return reply({versions: (cur ? [Object.assign({current: 1}, cur)] : []).concat(results)}, 200, origin);
+    }
+
+    if (path === "/recent"){
+      const before = typeof body.before === "string" && body.before.length < 40 ? body.before : "9999";
+      const limit = Math.min(200, Math.max(1, parseInt(body.limit, 10) || 100));
+      const {results} = await env.DB.prepare(`SELECT id, at, who, del FROM (
+          SELECT id, at, who, del FROM docs WHERE at < ?1 AND at > '2001' AND substr(id, 1, 2) <> 'p:'
+          UNION ALL SELECT id, at, who, del FROM history WHERE at < ?1 AND at > '2001')
+        ORDER BY at DESC LIMIT ?2`).bind(before, limit).all();
+      return reply({changes: results}, 200, origin);
+    }
+
     return reply({error: "Not found"}, 404, origin);
   }
 };

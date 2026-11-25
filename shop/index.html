@@ -65,6 +65,16 @@
   .line input{flex:1}
   .line .x{flex:none;width:40px;height:44px}
   .card.grab{border-color:#5a4520}
+  #sbar{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);padding:8px 16px;border-bottom:1px solid var(--line);background:#12110e;cursor:pointer}
+  #sbar i{width:9px;height:9px;border-radius:50%;background:#666;flex:none}
+  #sbar.ok i{background:var(--up)}#sbar.wait i{background:var(--amber)}#sbar.bad{color:#f08a7c}#sbar.bad i{background:var(--down)}
+  #sbar b{margin-left:auto;color:var(--text);font-weight:600}
+  .who{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;width:100%;max-width:420px;margin-bottom:14px}
+  .who button{padding:14px 8px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:16px;font-weight:600}
+  .who button.on{border-color:var(--gold);color:var(--gold2)}
+  .ver{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:10px}
+  .ver .d{font-size:14px;margin-top:4px}.ver .d div{padding:2px 0;border-top:1px dashed var(--line)}
+  @media (min-width:1000px){#sbar{padding-left:112px}}
   /* tablet and desktop */
   @media (min-width:700px){
     .sheet{align-items:center}
@@ -91,6 +101,7 @@
   <img src="../icon.png" alt="">
   <h1>Dorset Gold <span>&amp; Jewellery</span><small id="hdrSub">Shop · sales, stock, customers and safe</small></h1>
 </header>
+<div id="sbar" onclick="go('set')"><i></i><span id="sbarT">Checking…</span><b id="sbarU"></b></div>
 
 <main>
   <!-- ============ SALES ============ -->
@@ -199,10 +210,21 @@
       <select id="linkGT"><option value="off">Off, keep separate</option><option value="on">On, link with Gold Trader</option></select>
     </div>
     <div class="card">
-      <h2>Lock</h2>
-      <p class="muted" style="margin-top:0">This app holds customers' details, so it uses the same PIN as the Buy log. Set or change the PIN in the Buy log's Settings.</p>
-      <div id="pinState" class="muted"></div>
-      <button class="btn ghost" onclick="lockNow()">Lock now</button>
+      <h2>Staff and sign-in</h2>
+      <p class="muted" style="margin-top:0">Give each person their own PIN. Whoever signs in is recorded on every sale, payment, bag and change they make, so on a shared shop computer or tablet you always know who did what. It locks itself after 5 minutes unused.</p>
+      <div id="staffList"></div>
+      <button class="btn ghost" onclick="editStaff()">+ Add a person</button>
+      <div id="pinState" class="muted" style="margin-top:10px"></div>
+      <button class="btn ghost" onclick="lockNow()">Lock / switch person</button>
+    </div>
+    <div class="card">
+      <h2>Activity</h2>
+      <p class="muted" style="margin-top:0">Every change anyone makes, newest first: who, when and what. Nothing is ever lost: earlier versions are kept, and anything deleted can be put back.</p>
+      <button class="btn ghost" onclick="showActivity()">Show activity</button>
+    </div>
+    <div class="card">
+      <h2>Where the records are kept</h2>
+      <div id="recState" class="muted"></div>
     </div>
     <div class="card">
       <h2>Back up</h2>
@@ -223,9 +245,9 @@
 
 <div class="sheet" id="sheet"><div class="in"><div class="top"><h3 id="shTitle"></h3><button class="x" onclick="closeSheet()">×</button></div><div id="shBody"></div></div></div>
 <div class="toast" id="toast"></div>
-<div id="lock"><img src="../icon.png" alt=""><div style="margin-bottom:10px">Enter PIN</div><input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><div id="lockMsg" class="muted" style="margin-top:8px"></div></div>
+<div id="lock"><img src="../icon.png" alt=""><div class="who" id="lockWho"></div><div style="margin-bottom:10px" id="lockAsk">Enter PIN</div><input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><div id="lockMsg" class="muted" style="margin-top:8px"></div></div>
 
-<script src="../sync.js?v=5"></script>
+<script src="../sync.js?v=6"></script>
 <script>
 /* ============ Dorset Gold & Jewellery · Shop ============
    Sales & deposits, stock for sale, customers and the safe log.
@@ -241,7 +263,7 @@ const fmtDT = d => d ? new Date(d).toLocaleString("en-GB", {day: "numeric", mont
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)).replace(/-/g, "").slice(0, 16);
 const get = k => { try { return JSON.parse(localStorage.getItem(k) || "[]"); } catch(e){ return []; } };
 const put = (k, v) => localStorage.setItem(k, JSON.stringify(v));
-const who = () => (window.DGSync && DGSync.me && DGSync.me()) || localStorage.getItem("shopWho") || "";
+const who = () => { try { const u = sessionStorage.getItem("shopUser"); if (u) return u; } catch(e){} return (window.DGSync && DGSync.me && DGSync.me()) || localStorage.getItem("shopWho") || ""; };
 const num = v => { const n = parseFloat(String(v).replace(/[£,\s]/g, "")); return isFinite(n) ? n : 0; };
 function toast(m){ const t = $("toast"); t.textContent = m; t.style.display = "block"; clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = "none", 2600); }
 function openSheet(title, html){ $("shTitle").textContent = title; $("shBody").innerHTML = html; $("sheet").classList.add("open"); $("sheet").querySelector(".in").scrollTop = 0; }
@@ -327,7 +349,7 @@ function viewCustomer(id){
       return ts.length ? `<p class="muted" style="margin-top:0">${ts.length} trade sale${ts.length > 1 ? "s" : ""} · ${gbp(v, 0)}${g ? ` · ${g.toFixed(1)}g scrap` : ""}${d ? ` · <b style="color:${d >= 0 ? "var(--up)" : "var(--down)"}">${d >= 0 ? "+" : "−"}${gbp(Math.abs(d), 0)} against Mastermelt</b>` : ""}</p>` : ""; })() : ""}
     ${sales.length ? sales.map(s => `<div class="item" onclick="viewSale('${s._id}')"><span class="r">${gbp(saleTotal(s))}</span><b>${esc(s.no)}</b><span class="muted">${fmtD(s.at)} · ${esc(s.items.map(i => i.desc).join(", "))}</span></div>`).join("") : '<p class="muted">Nothing yet.</p>'}
     ${(c.buys || []).length ? `<h2 style="margin-top:16px">Sold to us (Buy log)</h2>` + c.buys.map(b => `<div class="item"><span class="r">${gbp(b.total)}</span><b>${esc(b.receipt)}</b><span class="muted">${fmtD(b.at)}</span></div>`).join("") : ""}
-    ${c.src === "shop" ? `<button class="btn ghost" onclick="editCustomer('${c._id}')">Edit details</button>` : '<p class="muted">From the Buy log. Edit their details there.</p>'}
+    ${c.src === "shop" ? `<button class="btn ghost" onclick="editCustomer('${c._id}')">Edit details</button>${histBtn("customers", c._id)}` : '<p class="muted">From the Buy log. Edit their details there.</p>'}
     ${c.trade ? `<button class="btn" onclick="newTradeSale('${esc(c._id)}')">Sell to ${esc((c.name || "them").split(" ")[0])}</button>` : `<button class="btn" onclick="newSale('${esc(c._id)}')">Start a sale for ${esc((c.name || "them").split(" ")[0])}</button>`}`);
 }
 
@@ -391,7 +413,7 @@ function viewStock(id){
     <tr><td>Listed</td><td>${esc(s.listed || "Not yet")}</td></tr><tr><td>Added</td><td>${fmtD(s.added)}</td></tr>
     ${sale ? `<tr><td>Sale</td><td><a href="#" onclick="viewSale('${sale._id}');return false" style="color:var(--gold2)">${esc(sale.no)}</a></td></tr>` : ""}</table>
     ${stStatus(s) !== "sold" ? `<button class="btn" onclick="newSale(null,'${s._id}')">Sell this piece</button>` : ""}
-    <button class="btn ghost" onclick="editStock('${s._id}')">Edit</button>`);
+    <button class="btn ghost" onclick="editStock('${s._id}')">Edit</button>${histBtn("forsale", s._id)}`);
 }
 
 /* ============ SALES & DEPOSITS ============ */
@@ -509,6 +531,7 @@ function viewSale(id){
     ${!s.void && due <= 0.004 && !s.collected ? `<button class="btn" id="vp_coll">Customer has collected it</button>` : ""}
     ${!s.void && s.collected ? `<p class="muted">Collected ${fmtDT(s.collected)}</p>` : ""}
     <button class="btn ghost" onclick="receipt('${s._id}')">Show receipt</button>
+    ${histBtn("sales", s._id)}
     ${!s.void && !(s.payments || []).length ? `<button class="btn red" id="vp_void">Cancel this sale</button>` : ""}`);
   if ($("vp_go")) $("vp_go").onclick = () => {
     const amt = num($("vp_amt").value); if (!(amt > 0)) return toast("Enter the amount");
@@ -653,7 +676,7 @@ function renderBuys(){
   const row = r => { const b = bagOfBuy(r.id), g = buyLines(r).reduce((t, i) => t + num(i.weight), 0);
     return `<div class="item" style="cursor:default"><span class="r">${gbp(r.total)}</span><b>${esc(r.receipt)} · ${esc([(r.seller || {}).first, (r.seller || {}).last].filter(Boolean).join(" ") || "Seller")}</b>
       <span class="muted">${fmtDT(r.createdAt)}${(r.payment || {}).method ? " · " + esc(r.payment.method) : ""}${g ? ` · ${g.toFixed(2)}g to melt` : ""}${r.staff ? " · " + esc(r.staff) : ""}</span>
-      ${b ? `<div><span class="pill ok" onclick="viewBag('${b._id}')" style="cursor:pointer">In bag ${esc(b.no)}${b.outAt ? " (out)" : ""}</span></div>` : ""}</div>`; };
+      ${b ? `<div><span class="pill ok" onclick="viewBag('${b._id}')" style="cursor:pointer">In bag ${esc(b.no)}${b.outAt ? " (out)" : ""}</span></div>` : ""}${window.DGSync && DGSync.joined && DGSync.joined() ? `<div><a href="#" class="muted" style="font-size:13px" onclick="showHistory('r:${esc(r.id)}');return false">History of changes</a></div>` : ""}</div>`; };
   $("buyWait").innerHTML = wait.length ? wait.map(r => row(r) + `<div class="row" style="margin:-4px 0 8px"><button class="btn small" onclick="buyToSafe(['${r.id}'])">Put in the safe</button><button class="btn small ghost" onclick="buyNoSafe('${r.id}')">Not going in the safe</button></div>`).join("")
       + (wait.length > 1 ? `<button class="btn ghost" onclick="buyToSafe(${esc(JSON.stringify(wait.map(r => r.id)))})">Put all ${wait.length} in one bag</button>` : "")
     : '<p class="muted">Nothing waiting. Gold and silver from new buys show here, ready to go into the safe.</p>';
@@ -731,7 +754,7 @@ function viewBag(id){
     ${b.notes ? `<p class="muted">${esc(b.notes)}</p>` : ""}
     ${!b.outAt ? `<label>Booking it out to</label><select id="bo_to"><option>Mastermelt</option><option>Another refiner</option><option>Sold as it is</option><option>Back to stock</option><option>Other</option></select>
       <button class="btn" id="bo_go">Book it out of the safe</button><button class="btn ghost" onclick="td={custId:'',lines:[],notes:''};get('safebags').filter(x=>x._id==='${b._id}').forEach(x=>x.lines.forEach(l=>td.lines.push({kind:'scrap',carat:l.carat,g:String(l.g),ppg:'',bagId:x._id,bagNo:x.no})));tradeForm()">Sell this bag to a contact</button><button class="btn ghost" onclick="editBag('${b._id}')">Edit</button>` : ""}
-    ${b.saleId ? `<button class="btn ghost" onclick="viewSale('${b.saleId}')">See the sale</button>` : ""}`);
+    ${b.saleId ? `<button class="btn ghost" onclick="viewSale('${b.saleId}')">See the sale</button>` : ""}${histBtn("safebags", b._id)}`);
   if ($("bo_go")) $("bo_go").onclick = () => { if (!confirm(`Book bag ${b.no} out to ${$("bo_to").value}?`)) return;
     const list = get("safebags"), x = list.find(y => y._id === id); x.outAt = new Date().toISOString(); x.outTo = $("bo_to").value; x.outBy = who(); put("safebags", list); closeSheet(); toast(`Bag ${b.no} booked out`); renderAll(); };
 }
@@ -740,27 +763,151 @@ function viewBag(id){
 $("linkGT").value = linked() ? "on" : "off";
 $("linkGT").onchange = async () => { localStorage.setItem("shopLinkGT", $("linkGT").value); await loadBuyLogSellers(); renderAll(); toast($("linkGT").value === "on" ? "Linked with Gold Trader" : "Kept separate"); };
 function renderSettings(){
+  renderStaff(); renderStatus();
   const j = window.DGSync && DGSync.joined && DGSync.joined();
-  $("teamState").innerHTML = j ? `Signed in to the team as <b>${esc(who())}</b>. Sales, stock, customers and the safe log are shared with the team, locked with your passphrase.`
+  $("teamState").innerHTML = j ? `This device is in the team as <b>${esc(DGSync.me())}</b>. Sales, stock, customers and the safe log are shared with the team, locked with your passphrase.`
     : `This phone hasn't joined the team, so everything stays on this phone only. Join the team in Gold Trader (Team page) to share it with Mike.`;
 }
 let pinHash = "";
+const staffAll = () => get("staff").filter(x => x && x.name && !x.gone);
 async function loadPin(){
   try {
     const db = await new Promise((res, rej) => { const r = indexedDB.open("dj-buylog", 1); r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains("records")) d.createObjectStore("records", {keyPath: "id"}); if (!d.objectStoreNames.contains("kv")) d.createObjectStore("kv"); }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
     const s = await new Promise(res => { const q = db.transaction("kv").objectStore("kv").get("settings"); q.onsuccess = () => res(q.result || {}); q.onerror = () => res({}); });
     pinHash = s.pinHash || "";
   } catch(e){}
-  $("pinState").textContent = pinHash ? "A PIN is set. The app asks for it when opened and after 5 minutes unused." : "No PIN set yet. Set one in the Buy log's Settings to lock this app too.";
-  if (pinHash) lockNow();
+  renderSettings();
+  let signed = ""; try { signed = sessionStorage.getItem("shopUser") || ""; } catch(e){}
+  if ((staffAll().length && !signed) || (!staffAll().length && pinHash)) lockNow();
+  else if (signed && window.DGSync && DGSync.setActor) DGSync.setActor(signed);
 }
 async function sha(s){ const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join(""); }
-function lockNow(){ if (!pinHash) return toast("Set a PIN in the Buy log first"); $("lock").style.display = "flex"; $("pinIn").value = ""; setTimeout(() => $("pinIn").focus(), 60); }
+const staffHash = (name, pin) => sha("dgstaff|" + name.trim().toLowerCase() + "|" + pin);
+let lockPick = "";
+function lockNow(){
+  const st = staffAll();
+  if (!st.length && !pinHash) return toast("Add a person with a PIN first");
+  try { sessionStorage.removeItem("shopUser"); } catch(e){} if (window.DGSync && DGSync.setActor) DGSync.setActor("");
+  lockPick = st.length === 1 ? st[0].name : "";
+  drawLock(); $("lock").style.display = "flex";
+}
+function drawLock(){
+  const st = staffAll();
+  $("lockWho").innerHTML = st.length > 1 ? st.map(x => `<button class="${x.name === lockPick ? "on" : ""}" data-n="${esc(x.name)}">${esc(x.name)}</button>`).join("") : "";
+  $("lockWho").querySelectorAll("button").forEach(b => b.onclick = () => { lockPick = b.dataset.n; drawLock(); });
+  $("lockAsk").textContent = st.length ? (lockPick ? `${lockPick}, enter your PIN` : "Who's using the app?") : "Enter PIN";
+  $("pinIn").style.display = !st.length || lockPick ? "" : "none";
+  $("pinIn").value = ""; $("lockMsg").textContent = ""; setTimeout(() => { if ($("pinIn").style.display !== "none") $("pinIn").focus(); }, 60);
+}
 $("pinIn").addEventListener("input", async () => { const v = $("pinIn").value; if (v.length < 4) return;
+  const st = staffAll();
+  if (st.length){
+    const p = st.find(x => x.name === lockPick); if (!p) return;
+    if (await staffHash(p.name, v) === p.pin){ try { sessionStorage.setItem("shopUser", p.name); } catch(e){} if (window.DGSync && DGSync.setActor) DGSync.setActor(p.name); $("lock").style.display = "none"; lastActive = Date.now(); renderAll(); }
+    else if (v.length >= 6) { $("lockMsg").textContent = "Wrong PIN"; $("pinIn").value = ""; }
+    return;
+  }
   if (await sha("gl-salt:" + v) === pinHash){ $("lock").style.display = "none"; lastActive = Date.now(); } else if (v.length >= 8) { $("lockMsg").textContent = "Wrong PIN"; $("pinIn").value = ""; } });
 let lastActive = Date.now();
 ["click", "keydown", "touchstart"].forEach(e => document.addEventListener(e, () => lastActive = Date.now(), {passive: true}));
-setInterval(() => { if (pinHash && $("lock").style.display !== "flex" && Date.now() - lastActive > 5 * 60000) lockNow(); }, 15000);
+setInterval(() => { if ((staffAll().length || pinHash) && $("lock").style.display !== "flex" && Date.now() - lastActive > 5 * 60000) lockNow(); }, 15000);
+function renderStaff(){
+  const st = staffAll();
+  $("staffList").innerHTML = st.length ? st.map(x => `<div class="item" onclick="editStaff('${esc(x._id)}')"><b>${esc(x.name)}${x.name === who() ? '<span class="pill ok">Signed in</span>' : ""}</b><span class="muted">Own PIN set${x.added ? " · added " + fmtD(x.added) : ""}</span></div>`).join("")
+    : '<p class="muted">No one added yet, so the app uses the Buy log PIN (if one is set) and records changes under this device\'s team name.</p>';
+  $("pinState").textContent = st.length ? "" : pinHash ? "Using the Buy log PIN until people are added." : "";
+}
+function editStaff(id){
+  const x = id ? get("staff").find(y => y._id === id) : null;
+  openSheet(x ? x.name : "Add a person", `
+    ${x ? "" : `<label>First name</label><input id="sp_name" autocomplete="off">`}
+    <label>${x ? "New PIN" : "PIN"} (4 to 6 digits)</label><input id="sp_pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password">
+    <label>Type it again</label><input id="sp_pin2" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password">
+    <button class="btn" id="sp_save">${x ? "Change PIN" : "Add"}</button>
+    ${x ? `<button class="btn red" id="sp_del">Remove ${esc(x.name)}</button><p class="muted">Removing someone stops them signing in. Everything they recorded stays, with their name on it.</p>` : ""}`);
+  $("sp_save").onclick = async () => {
+    const name = x ? x.name : $("sp_name").value.trim(), pin = $("sp_pin").value;
+    if (!name) return toast("Add their name");
+    if (!/^\d{4,6}$/.test(pin)) return toast("The PIN must be 4 to 6 digits");
+    if (pin !== $("sp_pin2").value) return toast("The two PINs don't match");
+    const list = get("staff");
+    if (!x && list.some(y => !y.gone && y.name.toLowerCase() === name.toLowerCase())) return toast("There's already someone with that name");
+    const hash = await staffHash(name, pin);
+    if (x) list.find(y => y._id === x._id).pin = hash; else list.push({_id: uid(), name, pin: hash, added: new Date().toISOString(), by: who()});
+    put("staff", list); closeSheet(); toast(x ? "PIN changed" : `${name} added`); renderAll();
+    if (!x && list.filter(y => !y.gone).length === 1){ try { sessionStorage.setItem("shopUser", name); } catch(e){} if (window.DGSync && DGSync.setActor) DGSync.setActor(name); renderAll(); }
+  };
+  if (x) $("sp_del").onclick = () => { if (!confirm(`Remove ${x.name}? They won't be able to sign in.`)) return; const list = get("staff"); list.find(y => y._id === x._id).gone = new Date().toISOString(); put("staff", list); closeSheet(); renderAll(); };
+}
+
+/* ============ SAVE STATUS, ACTIVITY AND HISTORY ============ */
+function renderStatus(){
+  const bar = $("sbar"), j = window.DGSync && DGSync.joined && DGSync.joined(), st = j ? DGSync.status() : {};
+  let cls = "", t;
+  if (!j){ cls = "bad"; t = "Not joined to the team: records are only on this device"; }
+  else if (st.err){ cls = "wait"; t = `${st.pending ? st.pending + " change" + (st.pending > 1 ? "s" : "") + " waiting to go up. " : ""}${st.err.replace(/ Changes are saved and will go up later\./, "")}`; }
+  else if (st.pending){ cls = "wait"; t = `Saving ${st.pending} change${st.pending > 1 ? "s" : ""}…`; }
+  else { cls = "ok"; t = st.ok ? `All saved to the team server · ${new Date(st.ok).toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"})}` : "Connecting to the team server…"; }
+  bar.className = cls; $("sbarT").textContent = t; $("sbarU").textContent = who() ? who() : "";
+  $("recState").innerHTML = j ? `Everything on this device is saved to the team's own server in your Cloudflare account, locked with the business passphrase, so only your team's devices can read it. Every earlier version is kept as well. A lost or broken phone loses nothing: join the team again on a new one and it all comes back.${st.pending ? `<br><b style="color:var(--amber)">${st.pending} change${st.pending > 1 ? "s" : ""} still waiting to go up.</b>` : ""}`
+    : `<b style="color:#f08a7c">This device hasn't joined the team.</b> Its records are only on this device and would be lost with it. Open Gold Trader on this device, go to Team, then Sharing, and join with the business passphrase.`;
+}
+window.addEventListener("dgsync-status", renderStatus);
+setInterval(renderStatus, 20000);
+const KIND = {sales: "Sale", forsale: "Stock piece", customers: "Customer", safebags: "Safe bag", stock: "My gold lot", buys: "Buying entry", sent: "Refiner batch", visits: "Diary visit", cash: "Cash entry", staff: "Staff"};
+function docLabel(id){
+  const [k, ...r] = id.split(":");
+  if (k === "a"){ const key = r[0], iid = r.slice(1).join(":"), x = get(key).find(y => y._id === iid), name = KIND[key] || key;
+    if (!x) return name + " (no longer here)";
+    return name + " " + (key === "customers" ? (x.name || "") : key === "staff" ? x.name : key === "stock" ? (x.n || "") : (x.no || x.desc || x.name || "")); }
+  if (k === "r"){ const rec = blRecs.find(y => y.id === r.join(":")); return rec ? `Buy ${rec.receipt}` : "Buy log record (no longer here)"; }
+  if (k === "s") return "Shared setting: " + r.join(":");
+  if (k === "b") return "Buy log business settings";
+  return id;
+}
+async function showActivity(before){
+  openSheet("Activity", '<p class="muted">Loading…</p>');
+  try {
+    const ch = await DGSync.activity(before, 100);
+    $("shBody").innerHTML = (ch.length ? ch.map(c => `<div class="item" data-id="${esc(c.id)}"><span class="r" style="font-weight:600">${c.del ? '<span style="color:var(--down)">Deleted</span>' : "Saved"}</span><b>${esc(docLabel(c.id))}</b><span class="muted">${fmtDT(c.at)} · ${esc(c.who || "?")}</span></div>`).join("")
+      + (ch.length === 100 ? `<button class="btn ghost" id="act_more">Older</button>` : "") : '<p class="muted">No changes yet.</p>');
+    $("shBody").querySelectorAll("[data-id]").forEach(e => e.onclick = () => showHistory(e.dataset.id));
+    if ($("act_more")) $("act_more").onclick = () => showActivity(ch[ch.length - 1].at);
+  } catch(e){ $("shBody").innerHTML = `<p class="muted">${esc(e.message)}</p>`; }
+}
+const FIELD = {name: "Name", phone: "Phone", email: "Email", addr: "Address", pc: "Postcode", notes: "Notes", trade: "Trade contact", no: "Number", desc: "Description",
+  price: "Price", cost: "Cost", carat: "Metal", weight: "Weight (g)", detail: "Details", listed: "Listed on", status: "Status", items: "Items", payments: "Payments",
+  discount: "Discount", collected: "Collected", void: "Cancelled", custId: "Customer", lines: "Weights", outAt: "Booked out", outTo: "Booked out to", saleId: "Sale",
+  seller: "Seller", total: "Total", payment: "Payment", flagged: "Flagged", gone: "Removed", by: "Recorded by", at: "Date"};
+const SKIP = new Set(["_id", "_who", "photo", "idPhotos", "lotPhotos", "signature", "pin"]);
+const short = v => { if (v == null || v === "") return "(blank)"; if (Array.isArray(v)) return v.length + " item" + (v.length === 1 ? "" : "s"); if (typeof v === "object") return JSON.stringify(v).slice(0, 80); const t = String(v); return t.length > 80 ? t.slice(0, 80) + "…" : t; };
+function diffs(a, b){ // what changed from version a (older) to b
+  if (!a) return ["Created"];
+  const keys = new Set(Object.keys(a).concat(Object.keys(b))), out = [];
+  keys.forEach(k => { if (SKIP.has(k)) return; if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) out.push(`${esc(FIELD[k] || k)}: ${esc(short(a[k]))} → <b>${esc(short(b[k]))}</b>`); });
+  if (["photo", "idPhotos", "lotPhotos"].some(k => JSON.stringify(a[k]) !== JSON.stringify(b[k]))) out.push("photos changed");
+  return out.length ? out : ["No visible change"];
+}
+async function showHistory(id){
+  if (!(window.DGSync && DGSync.joined && DGSync.joined())) return toast("Join the team to see history");
+  openSheet("History · " + docLabel(id), '<p class="muted">Loading…</p>');
+  try {
+    const vs = await DGSync.history(id);
+    if (!vs.length) return $("shBody").innerHTML = '<p class="muted">No saved versions yet. Changes appear here once they reach the team server.</p>';
+    const canRestore = /^(a|r):/.test(id), last = (vs.find(v => v.data) || {}).data || {};
+    if (/no longer here/.test(docLabel(id))) $("shTitle").textContent = "History · " + (last.name || last.no || last.receipt || last.desc || docLabel(id));
+    $("shBody").innerHTML = `<p class="muted" style="margin-top:0">Newest first. Earlier versions are never thrown away.</p>` + vs.map((v, i) => {
+      const older = vs.slice(i + 1).find(x => !x.del) || null;
+      return `<div class="ver"><b>${v.del ? '<span style="color:var(--down)">Deleted</span>' : v.current ? "Current version" : "Earlier version"}</b> <span class="muted">· ${fmtDT(v.at)} · ${esc(v.who || "?")}</span>
+        ${v.del ? "" : `<div class="d">${diffs(older && older.data, v.data).map(x => `<div>${x}</div>`).join("")}</div>`}
+        ${canRestore && !v.del && !v.current ? `<button class="btn small ghost" style="margin-top:8px" data-v="${i}">Put this version back</button>` : ""}</div>`; }).join("");
+    $("shBody").querySelectorAll("[data-v]").forEach(b => b.onclick = async () => {
+      if (!confirm("Put this version back? It becomes the current version for everyone. Nothing is lost: the version it replaces stays in the history.")) return;
+      try { await DGSync.restore(id, vs[+b.dataset.v].data); if (id[0] === "r") await loadBuyLogSellers(); toast("Put back"); closeSheet(); renderAll(); } catch(e){ toast(e.message); }
+    });
+  } catch(e){ $("shBody").innerHTML = `<p class="muted">${esc(e.message)}</p>`; }
+}
+const histBtn = (key, id) => window.DGSync && DGSync.joined && DGSync.joined() ? `<button class="btn ghost" onclick="showHistory('a:${key}:${esc(id)}')">History of changes</button>` : "";
 function backup(){
   const data = {app: "dgj-shop", version: 1, exportedAt: new Date().toISOString(), sales: get("sales"), forsale: get("forsale"), customers: get("customers"), safebags: get("safebags")};
   const blob = new Blob([JSON.stringify(data)], {type: "application/json"}), name = `shop-backup-${today()}.json`, file = new File([blob], name, {type: "application/json"});
@@ -774,8 +921,9 @@ function go(p){ page = p; ["sales", "buy", "stock", "cust", "safe", "set"].forEa
   document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.p === p)); window.scrollTo(0, 0); renderAll(); }
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => go(b.dataset.p));
 function renderAll(){ [renderSales, renderBuys, renderStock, renderCustomers, renderSafe, renderSettings].forEach(f => { try { f(); } catch(e){ console.log(e); } }); }
-window.addEventListener("dgsync-applied", () => renderAll());
-if (!who() && !(window.DGSync && DGSync.joined && DGSync.joined())){ /* not in the team: ask once who's using this phone, for "by" on records */
+window.addEventListener("dgsync-applied", () => { renderAll(); let u = ""; try { u = sessionStorage.getItem("shopUser") || ""; } catch(e){}
+  if (staffAll().length && !staffAll().some(x => x.name === u) && $("lock").style.display !== "flex") lockNow(); });
+if (!who() && !staffAll().length && !(window.DGSync && DGSync.joined && DGSync.joined())){ /* not in the team: ask once who's using this phone, for "by" on records */
   setTimeout(() => { if (!localStorage.getItem("shopWho")){ const n = prompt("Your first name (shown on the sales and bags you record)"); if (n) localStorage.setItem("shopWho", n.trim()); renderAll(); } }, 800);
 }
 loadBuyLogSellers().then(() => { const k = JSON.parse(localStorage.getItem("shopNoSafe") || "[]"); blRecs.forEach(r => { if (k.includes(r.id)) r.noSafe = true; }); renderAll(); });
