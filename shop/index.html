@@ -80,6 +80,8 @@
   .shot button{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;font-size:15px}
   .alert{border-radius:10px;padding:10px 12px;margin-top:10px;font-size:14px;border:1px solid var(--line)}
   .alert.bad{border-color:#6a2a22;color:#f3a296;background:rgba(224,93,79,.08)}.alert.okk{border-color:#2f6b4f;color:#9fe0bd}.alert.wn{border-color:#8a5a20;color:#f0c27a;background:rgba(227,163,59,.08)}
+  *{scrollbar-color:#3a352c #12110f;scrollbar-width:thin}
+  ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:#12110f}::-webkit-scrollbar-thumb{background:#3a352c;border-radius:10px}
   #cam{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:35;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:12px}
   #cam video,#cam img{max-width:100%;max-height:70vh;border-radius:12px;background:#000}
   #cam .row{max-width:520px;width:100%}
@@ -190,9 +192,10 @@
   <section id="p-cust" style="display:none">
     <div class="card">
       <h2>Customers</h2>
-      <div class="chips" id="custChips"><button data-f="all" class="on">Everyone</button><button data-f="trade">Trade contacts</button><button data-f="review">ID to review</button></div>
-      <input id="custQ" placeholder="Search name, phone, postcode or customer number">
-      <button class="btn" onclick="editCustomer()">+ New customer</button>
+      <p class="muted" style="margin-top:0" id="custSum"></p>
+      <div class="chips" id="custChips"><button data-f="all" class="on">Everyone</button><button data-f="buyers">Buy from us</button><button data-f="sellers">Sell to us</button><button data-f="trade">Trade</button><button data-f="wants">Looking for</button><button data-f="soon">Birthdays &amp; anniversaries</button><button data-f="review">ID to review</button></div>
+      <div class="row"><input id="custQ" placeholder="Search name, phone, postcode or customer number"><select id="custSort" style="max-width:220px"><option value="name">A to Z</option><option value="recent">Seen most recently</option><option value="spent">Spent the most</option><option value="sold">Sold us the most</option></select></div>
+      <div class="row"><button class="btn" onclick="editCustomer()">+ New customer</button><button class="btn ghost" onclick="exportMarketing()">Export marketing list</button></div>
       <div id="custList" style="margin-top:10px"></div>
     </div>
   </section>
@@ -225,7 +228,7 @@
     </div>
     <div class="card">
       <h2>Link with Gold Trader</h2>
-      <p class="muted" style="margin-top:0">Buying always uses the Buy log, so there's only one buying register. On: Buy log sellers also appear in Customers, and safe bags can be filled from My gold. Off: Customers only holds people added here.</p>
+      <p class="muted" style="margin-top:0">Buying always uses the Buy log, and everyone who sells to you appears in Customers. On: safe bags can also be filled from your My gold list in Gold Trader.</p>
       <select id="linkGT"><option value="off">Off, keep separate</option><option value="on">On, link with Gold Trader</option></select>
     </div>
     <div class="card">
@@ -309,13 +312,25 @@ function nextNo(list, prefix){
 }
 
 /* ============ CUSTOMERS ============ */
+/* One customer list for the business: Shop customers, plus everyone who has sold to you in the Buy log.
+   A seller who is also a Shop customer (same phone, ID number, or name and postcode) shows once, with both sides. */
+const normK = v => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+let _ca = null, _caK = "", _caR = null;
 function custAll(){
-  const own = get("customers").map(c => Object.assign({src: "shop"}, c));
-  if (!linked() || !blSellers.length) return own;
-  const key = c => (c.phone || "").replace(/\D/g, "").slice(-10) || (c.name || "").toLowerCase() + "|" + (c.pc || "").toUpperCase().replace(/\s/g, "");
-  const seen = new Set(own.map(key));
-  blSellers.forEach(s => { const k = key(s); if (!seen.has(k)){ seen.add(k); own.push(s); } });
-  return own;
+  const raw = localStorage.getItem("customers") || "[]";
+  if (_ca && raw === _caK && _caR === blRecs) return _ca;
+  const own = get("customers").map(c => Object.assign({src: "shop"}, c, {buys: []}));
+  const pk = p => String(p || "").replace(/\D/g, "").slice(-10), nk = (n, pc) => String(n || "").toLowerCase().replace(/\s+/g, " ").trim() + "|" + normK(pc);
+  const byP = {}, byI = {}, byN = {};
+  own.forEach(c => { if (pk(c.phone).length >= 9) byP[pk(c.phone)] = c; if (normK(c.idnum).length >= 5) byI[normK(c.idnum)] = c; if (c.name && c.pc) byN[nk(c.name, c.pc)] = c; });
+  const sellers = {};
+  blRecs.forEach(r => { const sl = r.seller || {}, name = [sl.first, sl.last].filter(Boolean).join(" ");
+    let c = (pk(sl.phone).length >= 9 && byP[pk(sl.phone)]) || (normK(sl.idnum).length >= 5 && byI[normK(sl.idnum)]) || byN[nk(name, sl.pc)];
+    if (!c){ const k = pk(sl.phone) || normK(sl.idnum) || nk(name, sl.pc);
+      c = sellers[k] || (sellers[k] = {_id: "bl:" + k, src: "buylog", name, phone: sl.phone || "", email: sl.email || "", pc: sl.pc || "", addr: sl.addr || "", buys: [], lastRec: r}); }
+    c.buys.push({id: r.id, receipt: r.receipt, at: r.createdAt, total: num(r.total)}); });
+  _caK = raw; _caR = blRecs;
+  return _ca = own.concat(Object.values(sellers));
 }
 let blSellers = [], blRecs = [];
 async function loadBuyLogSellers(){
@@ -324,28 +339,57 @@ async function loadBuyLogSellers(){
     const db = await new Promise((res, rej) => { const r = indexedDB.open("dj-buylog", 1); r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains("records")) d.createObjectStore("records", {keyPath: "id"}); if (!d.objectStoreNames.contains("kv")) d.createObjectStore("kv"); }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
     const recs = await new Promise((res, rej) => { const q = db.transaction("records").objectStore("records").getAll(); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
     blRecs = recs.filter(r => !r.deleted).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
-    if (!linked()) return;
-    const map = {};
-    recs.forEach(r => { const s = r.seller || {}; const k = (s.phone || "").replace(/\D/g, "") || (s.first + s.last + s.pc);
-      const e = map[k] || (map[k] = {_id: "bl:" + k, src: "buylog", name: [s.first, s.last].filter(Boolean).join(" "), phone: s.phone || "", email: s.email || "", pc: s.pc || "", addr: s.addr || "", buys: []});
-      e.buys.push({receipt: r.receipt, at: r.createdAt, total: r.total}); });
-    blSellers = Object.values(map);
   } catch(e){}
 }
 function custLabel(c){ return c ? esc(c.name || "No name") : "Walk-in"; }
 function findCust(id){ return custAll().find(c => c._id === id); }
+const custSpent = (c, sales) => sales.filter(x => x.custId === c._id && !x.void).reduce((t, x) => t + saleTotal(x) - saleRefunded(x), 0);
+const custSold = c => (c.buys || []).reduce((t, b) => t + num(b.total), 0);
+const custLast = (c, sales) => [c.added].concat(sales.filter(x => x.custId === c._id).map(x => x.at), (c.buys || []).map(b => b.at)).filter(Boolean).sort().pop() || "";
+/* birthdays and anniversaries in the next 30 days (the year doesn't matter) */
+function nextDate(d){ if (!d) return null; const [, m, dd] = d.split("-").map(Number), n = new Date(); n.setHours(0, 0, 0, 0); let x = new Date(n.getFullYear(), m - 1, dd); if (x < n) x = new Date(n.getFullYear() + 1, m - 1, dd); return x; }
+function comingUp(c){ const out = []; [["birthday", "Birthday"], ["anniversary", "Anniversary"]].forEach(([k, l]) => { const x = nextDate(c[k]); if (x && (x - Date.now()) / 864e5 <= 30) out.push({label: l, when: x}); }); return out; }
 function renderCustomers(){
-  const q = $("custQ").value.trim().toLowerCase(), qd = q.replace(/\D/g, "");
-  const sales = get("sales");
-  const list = custAll().filter(c => custF === "all" || (custF === "trade" ? c.trade : c.src === "shop" && pastRetention(c))).filter(c => !q || (c.name || "").toLowerCase().includes(q) || (c.pc || "").toLowerCase().replace(/\s/g, "").includes(q.replace(/\s/g, "")) || (qd.length >= 4 && (c.phone || "").replace(/\D/g, "").includes(qd)) || (c.no || "").toLowerCase().includes(q))
-    .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-  $("custList").innerHTML = list.length ? list.slice(0, 200).map(c => {
-    const bought = sales.filter(s => s.custId === c._id).length, sold = (c.buys || []).length;
-    return `<div class="item" onclick="viewCustomer('${esc(c._id)}')"><b>${esc(c.name || "No name")}${c.trade ? '<span class="pill ok">Trade</span>' : ""}${c.src === "buylog" ? '<span class="pill">Buy log</span>' : ""}${c.src === "shop" && idDone(c) ? (pastRetention(c) ? '<span class="pill due">ID due for review</span>' : idExpired(c) ? '<span class="pill due">ID expired</span>' : '<span class="pill ok">ID on file</span>') : ""}</b>
-      <span class="muted">${[c.no, c.phone, c.pc].filter(Boolean).map(esc).join(" · ")}</span>
-      <div class="muted">${bought ? `${bought} sale${bought > 1 ? "s" : ""}` : ""}${bought && sold ? " · " : ""}${sold ? `sold to us ${sold} time${sold > 1 ? "s" : ""}` : ""}</div></div>`;
-  }).join("") : `<p class="muted">${q ? "No customer matches that." : "No customers yet. Add one, or start a sale and add them there."}</p>`;
+  const q = $("custQ").value.trim().toLowerCase(), qd = q.replace(/\D/g, ""), sort = $("custSort").value;
+  const sales = get("sales"), all = custAll();
+  const keep = c => custF === "all" || (custF === "buyers" ? sales.some(x => x.custId === c._id && !x.void) : custF === "sellers" ? (c.buys || []).length > 0 : custF === "trade" ? c.trade
+    : custF === "wants" ? (c.wants || []).some(w => !w.done) : custF === "soon" ? comingUp(c).length > 0 : c.src === "shop" && pastRetention(c));
+  const list = all.filter(keep).filter(c => !q || (c.name || "").toLowerCase().includes(q) || (c.pc || "").toLowerCase().replace(/\s/g, "").includes(q.replace(/\s/g, "")) || (qd.length >= 4 && (c.phone || "").replace(/\D/g, "").includes(qd)) || (c.no || "").toLowerCase().includes(q));
+  const ex = new Map(list.map(c => [c._id, {spent: custSpent(c, sales), sold: custSold(c), last: custLast(c, sales)}]));
+  list.sort(sort === "recent" ? (a, b) => ex.get(b._id).last.localeCompare(ex.get(a._id).last) : sort === "spent" ? (a, b) => ex.get(b._id).spent - ex.get(a._id).spent
+    : sort === "sold" ? (a, b) => ex.get(b._id).sold - ex.get(a._id).sold : (a, b) => (a.name || "").localeCompare(b.name || ""));
+  const nB = all.filter(c => sales.some(x => x.custId === c._id && !x.void)).length, nS = all.filter(c => (c.buys || []).length).length, nT = all.filter(c => c.trade).length;
+  $("custSum").textContent = `${all.length} ${all.length === 1 ? "person" : "people"}: ${nB} ${nB === 1 ? "has" : "have"} bought from you, ${nS} ${nS === 1 ? "has" : "have"} sold to you, ${nT} trade contact${nT === 1 ? "" : "s"}.`;
+  const EMPTY = {all: "No customers yet. Add one, or start a sale and add them there. People who sell to you in the Buy log appear here too.", buyers: "No one has bought from you yet.", sellers: "No one has sold to you in the Buy log yet.", trade: "No trade contacts yet. Tick \"Trade contact\" when adding a dealer or buyer you sell to.", wants: "No one is waiting for anything. Add what a customer is looking for on their record, and you'll see it here when matching stock comes in.", soon: "No birthdays or anniversaries in the next 30 days. Add them on a customer's record.", review: "No ID is due for review."};
+  $("custList").innerHTML = list.length ? list.slice(0, 300).map(c => { const x = ex.get(c._id), up = comingUp(c), w = (c.wants || []).filter(y => !y.done);
+    return `<div class="item" onclick="viewCustomer('${esc(c._id)}')"><span class="r" style="font-weight:600">${x.spent ? gbp(x.spent, 0) + '<div class="muted" style="font-weight:400;font-size:12px">spent</div>' : ""}${x.sold ? `<div class="muted" style="font-weight:400;font-size:12px">sold us ${gbp(x.sold, 0)}</div>` : ""}</span>
+      <b>${esc(c.name || "No name")}${c.trade ? '<span class="pill ok">Trade</span>' : ""}${c.src === "buylog" ? '<span class="pill">Seller</span>' : ""}${c.src === "shop" && idDone(c) ? (pastRetention(c) ? '<span class="pill due">ID due for review</span>' : idExpired(c) ? '<span class="pill due">ID expired</span>' : '<span class="pill ok">ID on file</span>') : ""}</b>
+      <span class="muted">${[c.no, c.phone, c.pc].filter(Boolean).map(esc).join(" · ")}${x.last ? " · last seen " + fmtD(x.last) : ""}</span>
+      ${up.length || w.length ? `<div>${up.map(u => `<span class="pill due">${u.label} ${u.when.toLocaleDateString("en-GB", {day: "numeric", month: "short"})}</span>`).join("")}${w.length ? `<span class="pill ok">Looking for: ${esc(w.map(y => y.text).join(", ").slice(0, 60))}</span>` : ""}</div>` : ""}</div>`; }).join("")
+    : `<p class="muted">${q ? "No customer matches that." : EMPTY[custF]}</p>`;
 }
+$("custSort").onchange = renderCustomers;
+function exportMarketing(){
+  const rows = custAll().filter(c => c.src === "shop" && (c.mkText || c.mkEmail));
+  if (!rows.length) return toast("No customers have agreed to hear from you yet");
+  const q = v => `"${String(v || "").replace(/"/g, '""')}"`;
+  const csv = ["Name,Email (agreed),Mobile (agreed),Agreed on,Birthday,Anniversary"].concat(rows.map(c => [c.name, c.mkEmail ? c.email : "", c.mkText ? c.phone : "", c.mkAt ? c.mkAt.slice(0, 10) : "", c.birthday || "", c.anniversary || ""].map(q).join(","))).join("\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], {type: "text/csv"})); a.download = `marketing-list-${today()}.csv`; a.click();
+  toast(`${rows.length} customer${rows.length > 1 ? "s" : ""} who agreed to hear from you`);
+}
+/* what a customer is looking for, matched against stock by the words they used (and their budget) */
+const STOP = new Set(["the", "and", "with", "for", "size", "gold", "ring", "rings", "any", "around", "about", "under", "over", "something", "like", "nice", "ct"]);
+const wantWords = t => String(t || "").toLowerCase().replace(/[^a-z0-9.]+/g, " ").split(" ").filter(w => w.length >= 2 && !STOP.has(w));
+function stockText(s){ return [s.desc, s.cat, s.carat, s.size ? "size " + s.size : "", s.detail, s.hallmark].join(" ").toLowerCase(); }
+function wantMatches(w, s){
+  if (stStatus(s) === "sold" || (num(w.max) && num(s.price) > num(w.max))) return false;
+  const t = stockText(s), ws = wantWords(w.text); if (!ws.length) return false;
+  const hit = ws.filter(x => t.includes(x)).length;
+  const typeOk = !/\brings?\b/i.test(w.text) || /\brings?\b/i.test(s.desc + " " + (s.cat || ""));   // "ring" is filtered from the words, but must still match the type
+  return typeOk && hit / ws.length >= 0.6;
+}
+function wantersFor(s){ const out = []; custAll().forEach(c => (c.wants || []).forEach(w => { if (!w.done && wantMatches(w, s)) out.push({c, w}); })); return out; }
+function smsLink(c, msg){ return `sms:${String(c.phone || "").replace(/\s/g, "")}?&body=${encodeURIComponent(msg)}`; }
 $("custQ").addEventListener("input", renderCustomers);
 let custF = "all";
 document.querySelectorAll("#custChips button").forEach(b => b.onclick = () => { custF = b.dataset.f; document.querySelectorAll("#custChips button").forEach(x => x.classList.toggle("on", x === b)); renderCustomers(); });
@@ -421,7 +465,7 @@ function cashOk(custId, cash){
   if (cash < HVD_WARN) return true;
   return confirm(`${gbp(cash)} in cash. Taking €10,000 or more in cash from one customer (on one sale or linked ones) means the business must be registered with HMRC as a high value dealer and check the customer's identity. Go ahead?`);
 }
-function editCustomer(id, then, trade, needId){
+function editCustomer(id, then, trade, needId, fromRec){
   const c = (id && get("customers").find(x => x._id === id)) || (trade ? {trade: true} : {});
   const shots = (c.photos || []).map(p => Object.assign({}, p));   // {label, ref} saved, or {label, src} just taken
   openSheet(id ? "Edit customer" : trade ? "New trade contact" : "New customer", `
@@ -442,7 +486,15 @@ function editCustomer(id, then, trade, needId){
     <label>Photos (tap to take)</label><div class="shots" id="c_shots"></div>
     <button class="btn ghost" id="c_read" style="display:none">✨ Fill in the details from the ID photo</button><div id="c_readMsg"></div>
     <div id="c_alerts"></div></div>
-    <label>Notes (ring size, what they like, anything to remember)</label><textarea id="c_notes">${esc(c.notes)}</textarea>
+    <h2 style="margin-top:18px">About them</h2>
+    <div class="row"><div><label>Ring size</label><input id="c_ring" value="${esc(c.ringSize)}" placeholder="e.g. N"></div><div><label>Birthday</label><input id="c_bday" type="date" value="${esc(c.birthday)}"></div></div>
+    <div class="row"><div><label>Anniversary</label><input id="c_anniv" type="date" value="${esc(c.anniversary)}"></div><div><label>Metal they like</label><select id="c_metal">${["", "Yellow gold", "White gold", "Rose gold", "Platinum", "Silver", "Mixed"].map(o => `<option${(c.likesMetal || "") === o ? " selected" : ""} value="${o}">${o || "Not known"}</option>`).join("")}</select></div></div>
+    <label>Notes (styles they like, who they buy for, anything to remember)</label><textarea id="c_notes">${esc(c.notes)}</textarea>
+    <h2 style="margin-top:18px">Keeping in touch</h2>
+    <p class="muted" style="margin:0">Only tick these if they've agreed to hear about offers and new stock. You need their agreement before sending marketing messages.</p>
+    <label style="display:flex;align-items:center;gap:8px;color:var(--text);margin-top:10px"><input id="c_mkText" type="checkbox" style="width:auto"${c.mkText ? " checked" : ""}> Happy to get texts</label>
+    <label style="display:flex;align-items:center;gap:8px;color:var(--text)"><input id="c_mkEmail" type="checkbox" style="width:auto"${c.mkEmail ? " checked" : ""}> Happy to get emails</label>
+    ${c.mkAt ? `<p class="muted" style="margin:4px 0 0">Agreed ${fmtD(c.mkAt)}${c.mkBy ? ", recorded by " + esc(c.mkBy) : ""}</p>` : ""}
     <button class="btn" id="c_save">Save customer</button>`);
   const isTrade = () => $("c_trade").checked;
   const need = label => !!needId && (label === "ID front" || (label === "Proof of address" && $("c_poa").value && $("c_poa").value !== "Address on photo ID"));
@@ -498,6 +550,7 @@ function editCustomer(id, then, trade, needId){
     checks(); drawShots();
   };
   ["c_name", "c_phone", "c_idnum", "c_pc"].forEach(k => $(k).addEventListener("change", dupes));
+  if (fromRec) fromBuyLog(fromRec);
   $("c_phone").addEventListener("input", () => { if ($("c_phone").value.replace(/\D/g, "").length >= 10) dupes(); });
   $("c_trade").onchange = () => { checks(); drawShots(); };
   checks(); drawShots();
@@ -540,6 +593,10 @@ function editCustomer(id, then, trade, needId){
       for (const sh of shots){ if (sh.ref) photos.push({label: sh.label, ref: sh.ref}); else photos.push(window.DGSync && DGSync.putPhoto ? {label: sh.label, ref: await DGSync.putPhoto(sh.src)} : {label: sh.label, src: sh.src}); }
       const nv = {idtype: $("c_idtype").value, idnum: $("c_idnum").value.trim().toUpperCase(), idexp: $("c_idexp").value, poa: $("c_poa").value, poaDate: $("c_poaDate").offsetParent ? $("c_poaDate").value : ""};
       const idChanged = Object.keys(nv).some(k => (c[k] || "") !== nv[k]) || JSON.stringify((c.photos || []).map(p => p.ref)) !== JSON.stringify(photos.map(p => p.ref));
+      const mk = {mkText: $("c_mkText").checked, mkEmail: $("c_mkEmail").checked};
+      if ((mk.mkText && !c.mkText) || (mk.mkEmail && !c.mkEmail)){ mk.mkAt = new Date().toISOString(); mk.mkBy = who(); }
+      if (!mk.mkText && !mk.mkEmail){ mk.mkAt = ""; mk.mkBy = ""; }
+      Object.assign(nv, mk, {ringSize: $("c_ring").value.trim(), birthday: $("c_bday").value, anniversary: $("c_anniv").value, likesMetal: $("c_metal").value});
       const list = get("customers"), rec = Object.assign({}, c, {name, phone: $("c_phone").value.trim(), pc: $("c_pc").value.trim().toUpperCase(), email: $("c_email").value.trim(), addr: $("c_addr").value.trim(),
         notes: $("c_notes").value.trim(), trade: isTrade(), dob: $("c_dob").value, photos}, nv);
       if (idChanged && rec.idnum && photos.some(p => p.label === "ID front")){ rec.idBy = who(); rec.idAt = new Date().toISOString(); }
@@ -548,14 +605,27 @@ function editCustomer(id, then, trade, needId){
     } catch(e){ toast("Couldn't save: " + e.message); btn.disabled = false; btn.textContent = "Save customer"; }
   };
 }
+function wantAdd(cid){ const t = $("vw_text").value.trim(); if (!t) return toast("Say what they're looking for");
+  const list = get("customers"), c = list.find(x => x._id === cid); c.wants = (c.wants || []).concat({id: uid(), text: t, max: num($("vw_max").value) || "", at: new Date().toISOString(), by: who()}); put("customers", list); renderAll(); viewCustomer(cid); }
+function wantDone(cid, wid){ const list = get("customers"), c = list.find(x => x._id === cid), w = (c.wants || []).find(x => x.id === wid); if (w) w.done = new Date().toISOString(); put("customers", list); renderAll(); viewCustomer(cid); }
 function viewCustomer(id){
   const c = findCust(id); if (!c) return;
+  setTimeout(() => { if ($("vc_make")) $("vc_make").onclick = () => editCustomer(null, nid => viewCustomer(nid), false, false, c.lastRec); }, 0);
   setTimeout(async () => { const box = $("vc_shots"); if (!box) return; for (const el of box.querySelectorAll("[data-i]")){ const p = (c.photos || [])[+el.dataset.i], src = await photoSrc(p);
     if (src){ el.querySelector("img").src = src; el.onclick = () => showImg(src); } else el.querySelector("span").textContent += " (still downloading)"; } }, 0);
   const sales = get("sales").filter(s => s.custId === id).sort((a, b) => b.at.localeCompare(a.at));
   openSheet(c.name || "Customer", `
     <p class="muted" style="margin-top:0">${[c.no, c.phone, c.email, c.addr, c.pc].filter(Boolean).map(esc).join("<br>")}${c.added ? `<br>Added ${fmtD(c.added)}` : ""}</p>
+    ${[c.ringSize ? "Ring size " + esc(c.ringSize) : "", c.likesMetal ? "Likes " + esc(c.likesMetal.toLowerCase()) : "", c.birthday ? "Birthday " + new Date(c.birthday).toLocaleDateString("en-GB", {day: "numeric", month: "long"}) : "", c.anniversary ? "Anniversary " + new Date(c.anniversary).toLocaleDateString("en-GB", {day: "numeric", month: "long"}) : ""].filter(Boolean).length ? `<p style="margin:0 0 8px">${[c.ringSize ? "Ring size <b>" + esc(c.ringSize) + "</b>" : "", c.likesMetal ? "Likes " + esc(c.likesMetal.toLowerCase()) : "", c.birthday ? "Birthday " + new Date(c.birthday).toLocaleDateString("en-GB", {day: "numeric", month: "long"}) : "", c.anniversary ? "Anniversary " + new Date(c.anniversary).toLocaleDateString("en-GB", {day: "numeric", month: "long"}) : ""].filter(Boolean).join(" · ")}</p>` : ""}
+    ${c.src === "shop" ? `<p class="muted" style="margin:0 0 8px">${c.mkText || c.mkEmail ? `Agreed to hear from you by ${[c.mkText ? "text" : "", c.mkEmail ? "email" : ""].filter(Boolean).join(" and ")}` : "Hasn't agreed to marketing messages"}</p>` : ""}
+    ${comingUp(c).map(u => `<div class="alert wn">${u.label} on ${u.when.toLocaleDateString("en-GB", {weekday: "long", day: "numeric", month: "long"})}.${c.mkText && c.phone ? ` <a style="color:var(--gold2)" href="${smsLink(c, `Hi ${(c.name || "").split(" ")[0]}, it's ${bizName()}. ${u.label === "Birthday" ? "Happy birthday for " + u.when.toLocaleDateString("en-GB", {day: "numeric", month: "long"}) + "!" : "Your anniversary's coming up on " + u.when.toLocaleDateString("en-GB", {day: "numeric", month: "long"}) + "."} Pop in if you'd like a look at what's new.`)}">Text them</a>` : ""}</div>`).join("")}
     ${c.notes ? `<div class="warn" style="border-color:var(--line);background:none">${esc(c.notes)}</div>` : ""}
+    ${c.src === "shop" ? `<h2 style="margin-top:16px">Looking for</h2>
+      ${(c.wants || []).filter(w => !w.done).map(w => { const m = get("forsale").filter(s => wantMatches(w, s));
+        return `<div class="item" style="cursor:default"><button class="btn small ghost" style="float:right" onclick="wantDone('${esc(c._id)}','${w.id}')">Done</button><b>${esc(w.text)}</b><span class="muted">${num(w.max) ? "Up to " + gbp(w.max, 0) + " · " : ""}added ${fmtD(w.at)}</span>
+          ${m.length ? `<div style="margin-top:6px">${m.map(s => `<span class="pill ok" style="cursor:pointer" onclick="viewStock('${s._id}')">In stock: ${esc(s.no)} ${esc(s.desc)} ${gbp(s.price, 0)}</span>`).join(" ")}</div>` : ""}</div>`; }).join("") || '<p class="muted" style="margin:0">Nothing noted.</p>'}
+      <div class="row" style="margin-top:6px"><input id="vw_text" placeholder="e.g. 18ct white gold eternity ring size M"><input id="vw_max" type="number" inputmode="decimal" placeholder="Budget £" style="max-width:120px"></div>
+      <button class="btn small ghost" style="margin-top:6px" onclick="wantAdd('${esc(c._id)}')">+ Add</button>` : ""}
     ${c.src === "shop" ? (idDone(c) ? `<h2 style="margin-top:16px">ID check</h2>
       <table><tr><td>${esc(c.idtype)}</td><td><b>${esc(c.idnum)}</b></td></tr>${c.dob ? `<tr><td>Date of birth</td><td>${fmtD(c.dob)}</td></tr>` : ""}${c.idexp ? `<tr><td>ID expires</td><td>${fmtD(c.idexp)}${new Date(c.idexp + "T23:59") < new Date() ? ' <span class="pill due">Expired</span>' : ""}</td></tr>` : ""}
       ${c.poa ? `<tr><td>Proof of address</td><td>${esc(c.poa)}${c.poaDate ? ", " + fmtD(c.poaDate) : ""}</td></tr>` : ""}${c.idAt ? `<tr><td>Checked</td><td>${fmtD(c.idAt)}${c.idBy ? " by " + esc(c.idBy) : ""}</td></tr>` : ""}</table>
@@ -567,8 +637,8 @@ function viewCustomer(id){
     ${c.trade ? (() => { const ts = sales.filter(x => x.trade && !x.void), g = ts.reduce((t, x) => t + x.items.filter(i => i.kind === "scrap").reduce((a, i) => a + num(i.g), 0), 0), v = ts.reduce((t, x) => t + saleTotal(x), 0), d = ts.reduce((t, x) => t + tradeVsMM(x), 0);
       return ts.length ? `<p class="muted" style="margin-top:0">${ts.length} trade sale${ts.length > 1 ? "s" : ""} · ${gbp(v, 0)}${g ? ` · ${g.toFixed(1)}g scrap` : ""}${d ? ` · <b style="color:${d >= 0 ? "var(--up)" : "var(--down)"}">${d >= 0 ? "+" : "−"}${gbp(Math.abs(d), 0)} against Mastermelt</b>` : ""}</p>` : ""; })() : ""}
     ${sales.length ? sales.map(s => `<div class="item" onclick="viewSale('${s._id}')"><span class="r">${gbp(saleTotal(s))}</span><b>${esc(s.no)}</b><span class="muted">${fmtD(s.at)} · ${esc(s.items.map(i => i.desc).join(", "))}</span></div>`).join("") : '<p class="muted">Nothing yet.</p>'}
-    ${(c.buys || []).length ? `<h2 style="margin-top:16px">Sold to us (Buy log)</h2>` + c.buys.map(b => `<div class="item"><span class="r">${gbp(b.total)}</span><b>${esc(b.receipt)}</b><span class="muted">${fmtD(b.at)}</span></div>`).join("") : ""}
-    ${c.src === "shop" ? `<button class="btn ghost" onclick="editCustomer('${c._id}')">Edit details</button>${histBtn("customers", c._id)}` : '<p class="muted">From the Buy log. Edit their details there.</p>'}
+    ${(c.buys || []).length ? `<h2 style="margin-top:16px">Sold to us (Buy log)</h2>` + c.buys.slice().sort((a, b) => b.at.localeCompare(a.at)).map(b => `<div class="item" style="cursor:default"><span class="r">${gbp(b.total)}</span><b>${esc(b.receipt)}</b><span class="muted">${fmtD(b.at)}</span></div>`).join("") + `<p class="muted">Sold to you ${c.buys.length} time${c.buys.length > 1 ? "s" : ""}, ${gbp(custSold(c))} in total.</p>` : ""}
+    ${c.src === "shop" ? `<button class="btn ghost" onclick="editCustomer('${c._id}')">Edit details</button>${histBtn("customers", c._id)}` : `<p class="muted">Has sold to you, but isn't a Shop customer yet. Their details and ID are in the Buy log.</p><button class="btn ghost" id="vc_make">Make them a Shop customer</button>`}
     ${c.trade ? `<button class="btn" onclick="newTradeSale('${esc(c._id)}')">Sell to ${esc((c.name || "them").split(" ")[0])}</button>` : `<button class="btn" onclick="newSale('${esc(c._id)}')">Start a sale for ${esc((c.name || "them").split(" ")[0])}</button>`}`);
 }
 
@@ -672,7 +742,9 @@ function editStock(id, pre){
       if (id && s.price !== rec.price) rec.tagged = "";   // price changed: needs a new tag
       if (!rec._id){ rec._id = uid(); rec.no = nextNo(list, "ST"); rec.added = new Date().toISOString(); rec.addedBy = who(); list.push(rec); } else list[list.findIndex(x => x._id === rec._id)] = rec;
       try { put("forsale", list); } catch(e){ throw new Error("This device's storage is full"); }
-      closeSheet(); toast("Saved"); renderAll();
+      closeSheet(); renderAll();
+      const wm = stStatus(rec) !== "sold" ? wantersFor(rec) : [];
+      if (!id && wm.length){ toast(`${wm.length} customer${wm.length > 1 ? "s" : ""} may want this`); viewStock(rec._id); } else toast("Saved");
     } catch(e){ toast(e.message); btn.disabled = false; btn.textContent = "Save piece"; }
   };
   if (id) $("st_del").onclick = () => { if (!confirm("Delete this piece? It stays in the history of changes, but leaves the stock list.")) return; put("forsale", get("forsale").filter(x => x._id !== id)); closeSheet(); renderAll(); };
@@ -695,6 +767,8 @@ function viewStock(id){
     ${s.buyReceipt ? `<tr><td>Bought</td><td>Buy log ${esc(s.buyReceipt)}${s.buyAt ? ", " + fmtD(s.buyAt) : ""}${onHold(s.holdUntil) ? `<br><b style="color:var(--amber)">On hold until ${fmtD(s.holdUntil)}</b>` : ""}</td></tr>` : ""}
     <tr><td>Price tag</td><td>${s.tagged ? "Printed " + fmtD(s.tagged) : "Not printed"}</td></tr>
     ${sale ? `<tr><td>Sale</td><td><a href="#" onclick="viewSale('${sale._id}');return false" style="color:var(--gold2)">${esc(sale.no)}</a></td></tr>` : ""}</table>
+    ${stStatus(s) !== "sold" ? (() => { const wm = wantersFor(s); return wm.length ? `<h2 style="margin-top:14px">Customers looking for something like this</h2>` + wm.map(({c, w}) => `<div class="item" style="cursor:default"><b>${esc(c.name)}</b><span class="muted">"${esc(w.text)}"${num(w.max) ? " · up to " + gbp(w.max, 0) : ""}</span>
+        <div class="row" style="margin-top:6px"><button class="btn small ghost" onclick="viewCustomer('${esc(c._id)}')">Open</button>${c.mkText && c.phone ? `<a class="btn small ghost" href="${smsLink(c, `Hi ${(c.name || "").split(" ")[0]}, it's ${bizName()}. We've just got in something you might like: ${s.desc}, ${gbp(s.price, 0)}. Pop in or reply if you'd like it put aside.`)}">Text them</a>` : ""}</div></div>`).join("") : ""; })() : ""}
     ${stStatus(s) !== "sold" ? `<button class="btn" onclick="newSale(null,'${s._id}')">Sell this piece</button>` : ""}
     <div class="row"><button class="btn ghost" onclick="editStock('${s._id}')">Edit</button>${stStatus(s) !== "sold" ? `<button class="btn ghost" onclick="printTags(['${s._id}'])">Print price tag</button>` : ""}</div>${histBtn("forsale", s._id)}`);
   setTimeout(async () => { const box = $("vs_shots"); if (!box) return; for (const el of box.querySelectorAll("[data-i]")){ const src = await photoSrc(shots[+el.dataset.i]); if (src){ el.querySelector("img").src = src; el.onclick = () => showImg(src); } } }, 0);
