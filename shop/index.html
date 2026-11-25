@@ -193,6 +193,11 @@
       <label>Day</label><input id="cuDay" type="date">
       <div id="cashup"></div>
     </div>
+    <div class="card">
+      <h2>Cash we're carrying</h2>
+      <p class="muted" style="margin-top:0">Each person's own buying cash, for home visits: cash taken out, less what they've paid customers in the Buy log, paid back in, or handed over. The till is separate.</p>
+      <div id="carry"></div>
+    </div>
     </div>
     <div class="card">
       <h2>Insurance valuations</h2>
@@ -275,6 +280,7 @@
     <div class="card">
       <h2>Home visits</h2>
       <button class="btn" onclick="visitForm()" style="margin-top:0">+ Book a home visit</button>
+      <div class="row"><button class="btn small ghost" onclick="routeToday()">Route for my visits today</button><button class="btn small ghost" onclick="OfferScreen.open(null)">Make an offer (no booking)</button></div>
       <div id="dVisits" style="margin-top:8px"></div>
     </div>
     </div>
@@ -385,6 +391,15 @@
         <label>Business passphrase</label><input id="tj_pass" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="The words you agreed between you">
         <p class="muted" style="margin:4px 0 0">Type it yourself on each device. Capitals and spaces don't matter.</p>
         <button class="btn" id="tj_go">Join the team on this device</button><p class="muted" id="tj_msg" style="margin:8px 0 0"></p>
+      </div>
+      <div id="teamTools" style="display:none">
+        <button class="btn ghost" onclick="DGSync.syncNow().then(renderAll)">Share now</button>
+        <label>Visit alerts on your phone</label>
+        <p class="muted" style="margin:0">Get a notification when someone books, moves or cancels a visit for you. In the <b>ntfy</b> app tap <b>+</b> and subscribe to your own visit channel (it only shows the day, time and area):</p>
+        <p><code id="vtCode" style="word-break:break-all">…</code></p>
+        <div class="row"><button class="btn small ghost" id="vtCopy">Copy my visit channel</button><button class="btn small ghost" id="vtTest">Send me a test alert</button></div>
+        <p class="muted" id="vtMsg" style="margin:6px 0 0"></p>
+        <details style="margin-top:8px"><summary>Leave the team on this device</summary><p class="muted">Stops sharing on this device. Everything already here stays, and nothing is deleted for anyone else.</p><button class="btn ghost" id="tmLeave">Leave the team</button></details>
       </div>
     </div>
     <div class="cols">
@@ -1779,6 +1794,15 @@ function renderSettings(){
   $("teamState").innerHTML = j ? `This device is in the team as <b>${esc(DGSync.me())}</b>. Sales, stock, customers and the safe log are shared with the team, locked with your passphrase.`
     : `This device hasn't joined the team, so everything stays on this device only. Join below: it brings everything down from the team server, and sends up anything only this device has.`;
   $("teamJoin").style.display = j || !window.DGSync ? "none" : "";
+  $("teamTools").style.display = j ? "" : "none";
+  if (j && !$("vtCopy").onclick){
+    visitTopic(DGSync.me()).then(t => $("vtCode").textContent = t);
+    $("vtCopy").onclick = async () => { const t = await visitTopic(DGSync.me()); try { await navigator.clipboard.writeText(t); $("vtCopy").textContent = "Copied"; } catch(e){ $("vtMsg").textContent = "Press and hold the code above to copy it."; } };
+    $("vtTest").onclick = async () => { const t = await visitTopic(DGSync.me());
+      try { const r = await fetch("https://ntfy.sh/" + t, {method: "POST", body: "This is a test. Visit alerts for " + DGSync.me() + " are working.", headers: {Title: "Test visit alert", Tags: "calendar", Click: "https://jase6569.github.io/gold-sell-timer/shop/?go=diary"}}); if (!r.ok) throw 0;
+        $("vtMsg").textContent = "Sent. If it popped up, you're set. If not, check you subscribed to exactly the channel above."; } catch(e){ $("vtMsg").textContent = "Couldn't send just now. Check your signal and try again."; } };
+    $("tmLeave").onclick = async () => { if (!confirm("Stop sharing on this device?")) return; await DGSync.leave(); location.reload(); };
+  }
   if (!j && !$("tj_who").options.length){ const ns = [...new Set(["Jase", "Mike"].concat(staffAll().map(x => x.name)))];
     $("tj_who").innerHTML = ns.map(n => `<option>${esc(n)}</option>`).join("") + '<option value="">Someone else…</option>';
     $("tj_who").onchange = () => { $("tj_other").style.display = $("tj_who").value ? "none" : ""; };
@@ -2528,6 +2552,41 @@ function rotaForm(id, preset){
   if (id) $("rt_del").onclick = () => { if (!confirm("Remove this from the rota?")) return; put("rota", get("rota").filter(x => x._id !== id)); closeSheet(); renderAll(); };
 }
 /* visits: the same records Gold Trader's diary uses */
+async function visitTopic(p){   // the same private ntfy channel Gold Trader used: from the team login, so only team devices know it
+  const tok = localStorage.getItem("dgs:tok"); if (!tok || !p) return "";
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(tok + "|visits|" + p.trim().toLowerCase()));
+  return "dgv" + [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("").slice(0, 28);
+}
+function routeToday(){   // Google Maps directions through today's visits for whoever's signed in, in time order
+  const vs = visitsAll().filter(v => v.date === today() && (!v.status || v.status === "booked") && (!v.who || v.who === who()) && (v.address || v.postcode)).sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+  if (!vs.length) return toast("No visits with an address today");
+  const pl = vs.map(v => [v.address, v.postcode].filter(Boolean).join(", "));
+  window.open("https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=" + encodeURIComponent(pl[pl.length - 1]) + (pl.length > 1 ? "&waypoints=" + encodeURIComponent(pl.slice(0, -1).join("|")) : ""), "_blank");
+}
+/* cash each person carries for buying on visits (shared "cash" list, the same one Gold Trader used) */
+function renderCarry(){
+  if (!$("carry")) return;
+  const log = get("cash"), bal = {}, add = (p, v) => { if (p) bal[p] = (bal[p] || 0) + v; };
+  log.forEach(c => { if (c.type === "out") add(c.who, num(c.amount)); if (c.type === "back") add(c.who, -num(c.amount)); if (c.type === "give"){ add(c.who, -num(c.amount)); add(c.to, num(c.amount)); } });
+  const paid = blRecs.filter(r => (r.payment || {}).method === "Cash" && r.payment.from !== "till").map(r => ({at: r.createdAt, who: r._who || r.staff || "", type: "paid", amount: num(r.total), note: `${r.receipt} · ${(r.seller || {}).first || ""} ${(r.seller || {}).last || ""}`}));
+  paid.forEach(c => add(c.who, -c.amount));
+  diaryPeople().forEach(p => { if (!(p in bal)) bal[p] = 0; });
+  const moves = log.map(c => Object.assign({at: c.at || c.date}, c)).concat(paid).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 12);
+  const lbl = c => ({out: "Took out", back: "Paid back in", give: "Handed to " + esc(c.to || ""), paid: "Paid a customer"}[c.type]);
+  $("carry").innerHTML = `<table>${Object.entries(bal).map(([p, v]) => `<tr><td>${esc(p)}</td><td style="${v < -0.005 ? "color:#f08a7c" : ""}">${v < 0 ? "−" : ""}${gbp(Math.abs(v))}</td></tr>`).join("")}</table>
+    ${Object.values(bal).some(v => v < -0.005) ? '<p class="muted">Red means more was paid to customers than was booked out. Add the cash taken out so it adds up.</p>' : ""}
+    <div class="row"><button class="btn small" onclick="carryMove('out')">Took cash out</button><button class="btn small ghost" onclick="carryMove('back')">Paid back in</button><button class="btn small ghost" onclick="carryMove('give')">Handed over</button></div>
+    ${moves.length ? `<details style="margin-top:8px"><summary>Recent</summary><table>${moves.map(c => `<tr><td>${esc(c.who || "")}: ${lbl(c)}<div class="muted">${fmtD(c.at)}${c.note ? " · " + esc(c.note) : ""}</div></td><td>${c.type === "paid" || c.type === "back" ? "−" : ""}${gbp(c.amount)}</td></tr>`).join("")}</table></details>` : ""}`;
+}
+function carryMove(type){
+  if (!who()) return toast("Sign in first");
+  openSheet({out: "Took cash out", back: "Paid cash back in", give: "Handed cash to someone"}[type], `<label>Amount (£)</label><input id="cm_amt" type="number" inputmode="decimal" min="0" step="0.01">
+    ${type === "give" ? `<label>Handed to</label><select id="cm_to">${diaryPeople().filter(p => p !== who()).map(p => `<option>${esc(p)}</option>`).join("")}</select>` : ""}
+    <label>Note (optional)</label><input id="cm_note" placeholder="${type === "out" ? "e.g. from the till, from the bank" : ""}">
+    <button class="btn" id="cm_go">Save</button>`);
+  $("cm_go").onclick = () => { const a = Math.round(num($("cm_amt").value) * 100) / 100; if (!(a > 0)) return toast("Type the amount");
+    const list = get("cash"); list.push({_id: uid(), date: today(), at: new Date().toISOString(), who: who(), type, amount: a, to: type === "give" ? $("cm_to").value : "", note: $("cm_note").value.trim()}); put("cash", list); closeSheet(); toast("Saved"); renderAll(); };
+}
 async function visitAlert(v, kind){   // the same private alert channel as Gold Trader (day, time and area only)
   if (!(window.DGSync && DGSync.joined && DGSync.joined())) return;
   const tok = localStorage.getItem("dgs:tok"); if (!tok) return;
@@ -2571,6 +2630,7 @@ function visitView(id){
     ${v.addedBy ? `<tr><td>Booked by</td><td>${esc(v.addedBy)}${v.added ? ", " + fmtD(v.added) : ""}</td></tr>` : ""}</table>
     ${open ? `<div class="row" style="flex-wrap:wrap">${v.phone ? `<a class="btn small ghost" href="tel:${digits}">Call</a><button class="btn small ghost" id="vv_rem">Text a reminder</button>` : ""}${place ? `<a class="btn small ghost" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}">Map</a>` : ""}</div>
       ${v.date === today() && (!v.who || v.who === who()) ? `<button class="btn" onclick="goOut('${v._id}');closeSheet()">I'm leaving for this visit</button>` : ""}
+      <button class="btn" onclick="closeSheet();OfferScreen.open('${v._id}')">Make an offer</button>
       <a class="btn ghost" href="../buying-log/?visit=${encodeURIComponent(v._id)}&from=shop">Start the purchase in the Buy log</a>
       <div class="row"><button class="btn small ghost" id="vv_no">No sale</button><button class="btn small ghost" id="vv_cancel">Cancelled</button></div>` : `<button class="btn small ghost" id="vv_reopen">Back to booked</button>`}
     <div class="row"><button class="btn small ghost" onclick="visitForm('${v._id}')">Edit</button><button class="btn small red" id="vv_del">Delete</button></div>`);
@@ -2640,7 +2700,8 @@ const HELP = [
     <p><b>Your buttons:</b> <b>Clock in</b> when you arrive, <b>Going out</b> when you leave for a home visit or an errand (pick the visit, or say where and when you'll be back), <b>I'm back</b>, and <b>Clock out</b> at the end of the day.</p>
     <p><b>Safety:</b> if someone isn't back 30 minutes after they said, every device shows a red warning telling you to call them. Home visits carry gold and cash, so use Going out every time.</p>
     <p><b>The week:</b> everyone's shifts, visits and days off, with hours planned against hours worked. <b>+ Add to the rota</b> adds a shift, a day off, holiday, sickness or time out, and can repeat it for the week or four weeks.</p>
-    <p><b>Home visits</b> are the same diary as Gold Trader. Booking one warns if that person is off, already busy, or rota'd in the shop. The person going gets an alert (day, time and area only). From a visit you can call, map it, text a reminder, and start the purchase in the Buy log.</p>
+    <p><b>Home visits</b> are the same diary as Gold Trader. Booking one warns if that person is off, already busy, or rota'd in the shop. The person going gets an alert (day, time and area only). From a visit you can call, map it, text a reminder, <b>Make an offer</b> (price each piece, then show the customer a clean offer; if they accept, the Buy log opens filled in), and start the purchase. <b>Route for my visits today</b> opens Google Maps through your visits in time order.</p>
+    <p><b>Cash we're carrying</b> (on Sales, under the till) shows the buying cash each person holds: add cash when you take it out, pay it back or hand it over. Cash paid to customers from your own float comes off automatically from the Buy log.</p>
     <p class="muted">A year after a visit, the customer's name, phone and address are removed from the diary automatically.</p>`},
   {id: "tosafe", page: "buy", t: "Putting buys into the safe", b: `<p>Buys show under <b>Bought, not yet in the safe</b>. Tap <b>Put in the safe</b> (or put several in one bag). Weigh the bag and correct any weight that's different on the scales.</p>`},
   {id: "stock", page: "stock", t: "Stock for sale", b: `
@@ -2724,7 +2785,7 @@ function go(p){ page = p; ["sales", "buy", "coins", "diary", "stock", "cust", "s
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => go(b.dataset.p));
 { const qs = new URLSearchParams(location.search), gp = qs.get("go"); if (["diary", "safe", "rep", "coins", "stock", "cust", "buy"].includes(gp)) setTimeout(() => go(gp), 0);
   if (qs.get("backup")) setTimeout(() => { history.replaceState(null, "", location.pathname); go("set"); const b = document.querySelector('[onclick="backup()"]'); if (b) b.scrollIntoView({block: "center"}); backup(); }, 900); }   // links from Gold Trader
-function renderAll(){ [renderSales, renderVals, renderBuys, renderDiary, renderStock, renderCustomers, renderSafe, renderReports, renderSettings, () => { if (page === "coins" && typeof renderCoins === "function"){ renderCoins(); coinPriceLine(); } }].forEach(f => { try { f(); } catch(e){ console.log(e); } }); }
+function renderAll(){ [renderSales, renderCarry, renderVals, renderBuys, renderDiary, renderStock, renderCustomers, renderSafe, renderReports, renderSettings, () => { if (page === "coins" && typeof renderCoins === "function"){ renderCoins(); coinPriceLine(); } }].forEach(f => { try { f(); } catch(e){ console.log(e); } }); }
 window.addEventListener("dgsync-applied", () => { renderAll(); let u = ""; try { u = sessionStorage.getItem("shopUser") || ""; } catch(e){}
   if (staffAll().length && !staffAll().some(x => x.name === u) && $("lock").style.display !== "flex") lockNow(); });
 if (!who() && !staffAll().length && !(window.DGSync && DGSync.joined && DGSync.joined())){ /* not in the team: ask once who's using this phone, for "by" on records */
@@ -2737,5 +2798,7 @@ loadPin();
 if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../sw.js", {scope: "../"}).catch(() => {}));
 </script>
 <script src="../coins.js?v=1"></script>
+<script src="../keep.js?v=1"></script>
+<script src="../offer.js?v=3"></script>
 </body>
 </html>

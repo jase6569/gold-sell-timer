@@ -339,15 +339,6 @@
 </section>
 
 <!-- ========== TEAM ========== -->
-<section class="page" id="p-team">
-  <div class="gtabs" id="tmTabs">
-    <button data-t="diary">Diary</button><button data-t="cash">Cash</button><button data-t="figures">Figures</button><button data-t="share">Sharing</button>
-  </div>
-  <div class="card" id="tmShare"></div>
-  <div class="card" id="tmDiary"></div>
-  <div class="card" id="tmCash" style="display:none"></div>
-  <div class="card" id="tmFigures" style="display:none"></div>
-</section>
 
 <!-- ========== GUIDE ========== -->
 <section class="page" id="p-help">
@@ -399,18 +390,18 @@
     <div class="setup-step" data-s="team">
       <label class="setup-tick"><input type="checkbox"> <b>5. Join the team</b></label>
       <ol>
-        <li>Tap <b>Team</b> in the bottom bar.</li>
-        <li>Choose who you are, type the team passphrase, and tap <b>Join the team</b>.</li>
+        <li>Tap <b>Shop</b> in the bottom bar, then the gear (Settings), then <b>Team</b>.</li>
+        <li>Choose who you are, type the team passphrase, and tap <b>Join the team on this device</b>. That joins Gold Trader, the Buy log and the Shop together.</li>
         <li>That's it: stock, the Buy log, the diary, cash and prices are now shared between you. Everything is locked with the passphrase before it leaves your phone.</li>
-        <li>Still in <b>Sharing</b>, tap <b>Copy my visit channel</b>, then in ntfy tap <b>+</b> and paste it. Tap <b>Send me a test visit alert</b> to check. Now you'll get a notification whenever a visit is booked, moved or cancelled for you.</li>
+        <li>Still in <b>Team</b>, tap <b>Copy my visit channel</b>, then in ntfy tap <b>+</b> and paste it. Tap <b>Send me a test alert</b> to check. Now you'll get a notification whenever a visit is booked, moved or cancelled for you.</li>
       </ol>
-      <button class="btn ghost" onclick="go('team')">Open Team</button>
+      <a class="btn ghost" href="shop/?go=set" style="display:block;text-align:center;text-decoration:none">Open the Shop's Settings</a>
     </div>
 
     <div class="setup-step" data-s="lots">
       <label class="setup-tick"><input type="checkbox"> <b>6. Turn on lot alerts</b></label>
       <ol>
-        <li>Tap <b>My gold</b> in the bottom bar, then the <b>Make money</b> tab.</li>
+        <li>Tap <b>My gold</b> in the bottom bar, then the <b>Buying</b> tab.</li>
         <li>Scroll to <b>Lot alerts</b>, type the same business alert code and tap <b>Turn on lot alerts</b>.</li>
         <li>If it shows a <b>lot channel code</b>, subscribe to that in ntfy too (tap <b>+</b> again). You'll then get a ping when a batch of gold should go to the refiner, plus a summary of the week every Sunday evening.</li>
       </ol>
@@ -421,21 +412,21 @@
       <label class="setup-tick"><input type="checkbox"> <b>7. Tell it about your buying and stock</b> <span class="muted">(once for the business)</span></label>
       <ol>
         <li>In <b>My gold</b>, open the <b>Send</b> tab. Under <b>Buying in</b>, enter roughly how many grams you buy in a month, and the most stock you want to hold. Start with <b>2 months</b>.</li>
-        <li>Open the <b>My stock</b> tab and add the gold you're holding now: weight, carat, what you paid and the date. Gold you buy through the Buy log from now on is added for you.</li>
+        <li>On the <b>My gold</b> tab, tap <b>+ Add gold you hold</b> for the gold you're holding now: weight, carat, what you paid and the date. Gold you buy through the Buy log is added for you.</li>
         <li>Open the <b>Prices</b> tab. It uses Mastermelt's trade counter price unless you change it. If you get a different rate, choose <b>My own %</b> and type it in.</li>
-        <li>Open <b>Make money</b> and set the margin you want to keep (for example 20%). It then shows the most to pay per gram each day.</li>
+        <li>Open <b>Buying</b> and set the margin you want to keep (for example 20%). It then shows the most to pay per gram each day.</li>
       </ol>
     </div>
 
     <div class="setup-step" data-s="buylog">
-      <label class="setup-tick"><input type="checkbox"> <b>8. Set up the Buy log</b></label>
+      <label class="setup-tick"><input type="checkbox"> <b>8. Set up the Shop</b> <span class="muted">(once for the business)</span></label>
       <ol>
-        <li>Tap <b>Buy log</b> in the bottom bar, then <b>Settings</b>.</li>
-        <li>Put your own name as the <b>Default staff name</b> and tap <b>Save settings</b>. The business name, address and phone (01202 117896) are shared, so only one of you needs to fill those in.</li>
-        <li>Set your own <b>PIN</b>. The Buy log holds customers' ID photos, so every phone needs locking.</li>
-        <li>Once for the business: in <b>Data protection</b>, check you're registered with the ICO (the link is there), tick it, and add a contact email if you have one. The privacy notice is then added to every emailed receipt.</li>
+        <li>Tap <b>Shop</b> in the bottom bar, then the gear (Settings).</li>
+        <li><b>Staff and sign-in:</b> add each person with their own PIN and mobile number, using the same first name as here. The Shop and Buy log hold customers' ID, so every device signs in.</li>
+        <li><b>Business details</b> and <b>Buying rules</b>: the name, address and phone (01202 117896) for receipts, and how long to hold gold before melting.</li>
+        <li><b>Data protection:</b> check you're registered with the ICO (the link is there) and print the privacy notice for the counter.</li>
       </ol>
-      <a class="btn ghost" href="buying-log/">Open the Buy log</a>
+      <a class="btn ghost" href="shop/?go=set" style="display:block;text-align:center;text-decoration:none">Open the Shop's Settings</a>
     </div>
 
     <div class="setup-step" data-s="reviews">
@@ -452,14 +443,14 @@
     <div class="setup-step" data-s="backup">
       <label class="setup-tick"><input type="checkbox"> <b>10. Take your first backup</b></label>
       <ol>
-        <li>Tap <b>Back up everything</b> (My gold, My stock). It opens the Shop app, where you choose a password to lock the backup.</li>
+        <li>Tap <b>Back up everything</b> (bottom of the My gold tab). It opens the Shop app, where you choose a password to lock the backup.</li>
         <li>Save it to <b>Google Drive</b> (or your computer).</li>
         <li>One locked backup covers everything: the Shop, the Buy log with photos, your gold, the diary and cash. Do it every week: the app reminds you on the Advice page when it's due. Everything is also shared with the team, but this is your own copy if a phone or the team server ever goes wrong.</li>
       </ol>
     </div>
 
     <div class="sub">What happens next</div>
-    <p style="margin-top:0">Book visits in <b>Team, Diary</b>, start each purchase from the visit, and log cash in <b>Team, Cash</b>. You don't need to keep the app open for alerts. It checks gold every hour, day and night, and messages you when the call on your stock changes, plus a summary every Friday evening. Days with no message are normal. If even the Friday summary doesn't arrive, check step 3 again. The rest of this guide explains every page in detail.</p>
+    <p style="margin-top:0">Book visits in the <b>Shop's Diary</b>, start each purchase from the visit, and log the cash you carry in the Shop (Sales, <b>Cash we're carrying</b>). You don't need to keep the app open for alerts. It checks gold every hour, day and night, and messages you when the call on your stock changes, plus a summary every Friday evening. Days with no message are normal. If even the Friday summary doesn't arrive, check step 3 again. The rest of this guide explains every page in detail.</p>
   </div>
   <!-- TEAM SETUP END -->
   <div class="card">
@@ -468,9 +459,9 @@
     <div class="sub">The short version</div>
     <ol>
       <li>Work through <b>Start here</b> at the top of this page: home screen, alerts, and joining the team.</li>
-      <li>On <b>My gold</b>, tell it roughly how much you buy in a month (<b>Send</b> tab), then add the gold you're holding with what you paid (<b>My stock</b> tab).</li>
+      <li>On <b>My gold</b>, tell it roughly how much you buy in a month (<b>Send</b> tab), then add any gold you hold that didn't come through the Buy log (<b>+ Add gold you hold</b> on the <b>My gold</b> tab).</li>
       <li>Check the top of the <b>Advice</b> page, or wait for an alert. <b>Your stock: what to do this week</b> tells you how much to keep and how many grams to send, oldest gold first.</li>
-      <li>Book visits in <b>Team, Diary</b> and use the <b>Route</b> button on the day. At the visit, tap <b>Make an offer</b>, show the customer, and if they accept the <b>Buy log</b> opens with everything filled in. Take the ID photo and let the app read the details, add the photos and signature, and save.</li>
+      <li>Book visits in the <b>Shop's Diary</b> and use <b>Route for my visits today</b> on the day. At the visit, tap <b>Make an offer</b>, show the customer, and if they accept the <b>Buy log</b> opens with everything filled in. Take the ID photo and let the app read the details, add the photos and signature, and save.</li>
     </ol>
   </div>
 
@@ -501,7 +492,7 @@
       <tr><td>📅 Friday evening</td><td>Weekly summary of the market and your stock call</td></tr>
       <tr><td>🗓 Sunday evening (lot alerts)</td><td>Your week: what you bought, sent and made, and what's still unsold</td></tr>
     </table>
-    <p class="muted">The stock call only changes now and then, so days without a message are normal. Lot alerts are switched on separately, in My gold, Make money (section 6).</p>
+    <p class="muted">The stock call only changes now and then, so days without a message are normal. Lot alerts are switched on separately, in My gold, Buying (section 6).</p>
   </div>
 
   <div class="card">
@@ -536,17 +527,10 @@
 
   <div class="card">
     <h2>5. My gold, tab by tab</h2>
-    <p style="margin-top:0">Once you've joined the team, My gold is shared: your stock, what you've bought and sent, and the buying-in, margin and refiner settings are the same on both phones, and a change on one shows on the other within a minute. Before you join, it's saved on your phone only. Adam's app never sees any of it.</p>
-    <p><b>Overview.</b> <b>Your week</b> (this week and last): what you bought and your margin on the refiner's price that day, what you sent to the refiner and roughly what you made, and what you're still holding. Under it, the live value of all your gold. If you haven't backed up for 7 days, a reminder shows here too.</p>
-    <p><b>My stock.</b> Add each piece or batch you buy: weight, carat, what you paid and the date. <b>My lots</b> groups it by week or month and shows each lot's break-even price and profit, plus <b>which lots to sell first</b>. Gold bought through the Buy log is added here for you.</p>
-    <p><b>Send.</b> The one place for what to send. <b>Buying in</b>: enter roughly how many grams you buy in a month, and the most stock you want to hold (start with 2 months). It shows how many grams of each carat to send to the refiner this week, oldest first, and roughly what you'll be paid. Under it, <b>Which lots to send first</b> marks each lot <b>Send now</b> (only just above break-even, so a bad week would turn it into a loss), <b>Lock it in</b> (in profit and gold is in the sell zone), <b>Safe for now</b>, or <b>At a loss</b> (with the price it breaks even at). When the batch has gone, tap <b>I've sent this batch</b> so next week's figures are right. If a big announcement is due, a timing tip tells you to wait for it.</p>
-    <p><b>Make money.</b> Shows once you've joined the team (or the Buy log is switched on for your phone). The margin you set here is shared, so you both offer customers the same price per gram:</p>
-    <ol>
-      <li><b>What to pay today.</b> Set the margin you want to keep (e.g. 20%). It's shared, and the offer screen uses it too and it shows the most to pay per gram for each carat, from the refiner's price. Check it before each purchase, especially while gold is falling.</li>
-      
-      <li><b>Your buying margin</b> month by month, for each of you and the business, is in <b>Team, Figures</b>.</li>
-      <li><b>Lot alerts.</b> Type in your alert code and tap <b>Turn on lot alerts</b>. The app tells you where the lot alerts will arrive. If it shows a lot channel code, subscribe to that code in ntfy too. Only the month, grams, carats and what you paid are sent, locked so only your own alert check can read them. Customer details never leave the phone.</li>
-    </ol>
+    <p style="margin-top:0">Once you've joined the team, My gold is shared: your stock, what you've sent, and the margin and refiner settings are the same on every device. Adam's app never sees any of it.</p>
+    <p><b>My gold.</b> What your gold is worth right now, your profit, and what it would be worth at the sell zone. Under it, <b>What you hold</b> groups your lots by week or month with each lot's break-even price and profit. Gold bought in the Buy log is added for you; use <b>+ Add gold you hold</b> for anything else.</p>
+    <p><b>Send.</b> Enter roughly how many grams you buy in a month and the most stock you want to hold (start with 2 months). It shows how many grams of each carat to send this week, oldest first, and <b>which lots to send first</b>. When your gold is in bags in the Shop's safe, record the send in the Shop's Safe: it takes the bags out and this gold off your list together.</p>
+    <p><b>Buying.</b> <b>What to pay today</b>: set the margin you want to keep (shared, and used by the offer screen) and it shows the most to pay per gram for each carat. <b>Lot alerts</b> tell you when a lot should go to the refiner. <b>Refiner prices</b> sets the price used for every "what you'd be paid" figure: Mastermelt's trade counter prices (read automatically each day), or your own % if you get a different rate. Your buying figures month by month are in the Shop's Reports.</p>
     <p><b>Coins.</b> Gold and silver coins, three ways:</p>
     <ol>
       <li><b>Look up a coin.</b> Pick it from the list to see its weight, size, gold or silver content, melt value, what the refiner pays and what to pay.</li>
@@ -554,30 +538,26 @@
       <li><b>Scan with camera.</b> Photograph a coin, a handful of coins or a whole set in its case, up to 4 photos (front, back, certificate). It lists every coin and the set, then totals the pure gold and silver, melt value, what the refiner pays and what to pay, using the official weights. Then weigh them in the box below: it tells you if the weight matches. Anything marked <b>check it</b> needs a closer look.</li>
     </ol>
     <p class="muted" style="margin-top:0">Proof coins, complete boxed sets and old coins are often worth more than melt, and the app says <b>don't scrap</b> when that's likely. A photo can't prove a coin is real, so always weigh before you buy.</p>
-    <p><b>Prices.</b> <b>Refiner prices</b> sets the price used for every "what you'd be paid" figure in the app, including offers. <b>Mastermelt trade counter prices</b> (the default) are read automatically each day, so the figures match Mastermelt. If you get a different rate, choose <b>My own %</b> and type it in. To value pieces for a customer, use <b>Make an offer</b> on a visit.</p>
   </div>
 
   <div class="card">
     <h2>6. The Buy log</h2>
-    <p style="margin-top:0">Tap <b>Buy log</b> in the bottom bar to record every purchase from a customer. It appears once you've joined the team. Every purchase either of you makes is shared, so you can both look up any customer. Each phone has its own PIN lock in <b>Settings</b>.</p>
+    <p style="margin-top:0">Every purchase from a customer is recorded in the Buy log. Open it from <b>Shop</b>, <b>Buy</b> (or from a visit in the Shop's Diary). Every purchase either of you makes is shared, so you can both look up any customer. Each phone has its own PIN lock in <b>Settings</b>.</p>
     <ol>
-      <li><b>Don't melt this.</b> Coins, medals, designer, signed, antique and stone-set pieces are flagged with a yellow <b>Don't melt this?</b> note on the offer screen and in the Buy log, because they usually sell for more as they are than as scrap. Tick <b>Keep it: don't melt</b> and the piece is kept back: it shows under <b>Kept back, don't melt</b> on the Send tab, isn't counted in your stock to send, and never goes in a refiner batch. You can tick it for gold you add by hand on My stock too.</li>
+      <li><b>Don't melt this.</b> Coins, medals, designer, signed, antique and stone-set pieces are flagged with a yellow <b>Don't melt this?</b> note on the offer screen and in the Buy log, because they usually sell for more as they are than as scrap. Tick <b>Keep it: don't melt</b> and the piece is kept back: it shows under <b>Kept back, don't melt</b> on the Send tab, isn't counted in your stock to send, and never goes in a refiner batch. You can tick it for gold you add by hand on My gold too.</li>
       <li><b>New purchase.</b> Take the <b>ID front</b> photo, then tap <b>Fill in the details from the ID photo</b>: the app reads the name, date of birth, ID number, expiry and address into any empty boxes. Always check them against the ID. Then the seller's details, their photo ID and proof of address (with photos), each item (description, carat, weight, price, photos on the scales and of the hallmark), how you paid, and the seller's signature on the declaration. Saving it gives a receipt number and adds the gold to My gold for you.</li>
       <li><b>Records.</b> Search by name, ID number, postcode, phone, item or receipt number. Open a record to <b>email the receipt to the customer</b>. You can print a police report for a date range, or export a spreadsheet (CSV). Receipt numbers carry the buyer's initial, for example DG-20261122-J001 for Jase and DG-20261122-M001 for Mike.</li>
       <li><b>Google reviews.</b> Each record has a <b>Google review</b> card: show the customer a QR code to scan while you're with them, or ask by text, WhatsApp or email, then tap <b>They've left a review</b>. The Records page shows who's still to ask, and nobody is asked twice once they've reviewed. Add the review link once, in Settings.</li>
       <li><b>Settings.</b> The business details for receipts and reports, the Google review link (both shared), plus your own staff name, PIN lock and backups.</li>
     </ol>
-    <p><b>Back up every week.</b> One locked backup covers everything: the Shop, the Buy log with all its photos, your gold, the diary, rota and cash. Tap <b>Back up everything</b> on My stock (or <b>Back up now</b> in the Buy log): it opens the Shop app, where you lock it with a password and save it to Google Drive. Restore it from the Shop app, Settings.</p>
-    <p><b>Data protection.</b> Because you keep customers' names, addresses, ID and photos, the business needs to pay the ICO's yearly data protection fee (small businesses pay the lowest tier) and offer sellers a privacy notice. Buy log, Settings, <b>Data protection</b> has the ICO link, and <b>Show the privacy notice</b> puts it on screen for the customer. It says what you record, why, who sees it, how long you keep it (your retention setting) and their rights. It's also added to the bottom of every emailed receipt.</p>
+    <p><b>Back up every week.</b> One locked backup covers everything: the Shop, the Buy log with all its photos, your gold, the diary, rota and cash. Tap <b>Back up everything</b> on My gold (or <b>Back up now</b> in the Buy log): it opens the Shop app, where you lock it with a password and save it to Google Drive. Restore it from the Shop app, Settings.</p>
+    <p><b>Data protection.</b> Because you keep customers' names, addresses, ID and photos, the business needs to pay the ICO's yearly data protection fee (small businesses pay the lowest tier) and offer sellers a privacy notice. The Shop's Settings, <b>Data protection</b> has the ICO link and the privacy notice to print or show the customer. It says what you record, why, who sees it, how long you keep it (your retention setting) and their rights. It's also added to the bottom of every emailed receipt.</p>
   </div>
 
   <div class="card">
-    <h2>7. The Team page</h2>
-    <p style="margin-top:0">Tap <b>Team</b> in the bottom bar. Everything here is shared between you.</p>
-    <p><b>Diary.</b> Tap <b>Add a visit</b> when a customer calls: the day and time, their name, phone, address, what they've got, and which of you is going. Each visit has <b>Call</b>, <b>Map</b> (opens directions) and <b>Remind</b>, which opens a text confirming the visit and asking them to have photo ID ready. From 3pm, the diary flags any of tomorrow's customers who haven't had a reminder. Each day with visits has a <b>Route</b> button: your visits in appointment order as one Google Maps route from where you are. At the visit, tap <b>Make an offer</b>: type each piece's carat and weight and it works out the offer from today's refiner price and your shared margin (you can type your own price instead, and use <b>Other</b> for silver or anything else). Tap <b>Show the customer</b> for a clean offer with no margin or refiner figures on it. If they accept, the Buy log opens with their details and every item and price filled in. If they say no, the visit is marked no sale with what you offered. <b>Start the purchase without an offer</b> goes straight to the Buy log. Use <b>More</b> to edit a visit, or mark it as no sale or cancelled. Tick <b>Only show my visits</b> to hide the other person's.</p>
-    <p><b>Cash.</b> Shows what each of you should be holding. Add cash when you take it out, pay it back in, or hand it to the other person. Cash payments to customers come off automatically from the Buy log. A negative figure means cash was paid out that was never booked out.</p>
-    <p><b>Figures.</b> Stock held now, split by who bought it, with the business total at today's refiner price. Then month by month: what each of you bought and paid, your margins, and what went to the refiner with a rough profit. <b>Export for the accountant</b> saves it all as a spreadsheet.</p>
-    <p><b>Sharing.</b> Who you're signed in as, when the phone last shared, and any changes still waiting to go up (they go as soon as there's signal). Everything is locked with the team passphrase before it leaves the phone. <b>Visit alerts</b> is also here: copy your own visit channel into ntfy, and you'll get a notification whenever a visit is booked, moved or cancelled for you. It shows the day, time and area, and the customer's details stay in the app.</p>
+    <h2>7. The Shop</h2>
+    <p style="margin-top:0">Tap <b>Shop</b> in the bottom bar. The Shop is the main system for the business, on phones, tablets and the shop computer: sales and deposits, the till and the cash each of you carries, buying, coins, the diary and rota (who's where, home visits, Make an offer, routes), stock, customers, the safe and refiner sends, reports for the accountant, and the locked backup. Its own <b>?</b> button has the full guide.</p>
+    <p>Gold Trader stays the place for the gold price: when to sell, alerts, the chart and what you hold.</p>
   </div>
 
   <div class="card">
@@ -604,7 +584,7 @@
     <p><b>The route opens in the wrong order.</b> It follows appointment times, so add a time to each visit. Visits without a time go last, and only your own visits (or ones marked "either of us") are included.</p>
     <p><b>The scan says it couldn't read the coins.</b> Lay them flat, in good light, close enough that the dates are clear, and try again. Each scan costs a fraction of a penny.</p>
     <p><b>I've got a new phone.</b> Install the app on it and join the team again with the passphrase: everything comes back down. Then set your Buy log PIN and staff name again, and subscribe to the alert code in ntfy. If you weren't in the team, use <b>Back up now</b> on the old phone and <b>Restore backup</b> in the Buy log Settings on the new one.</p>
-    <p><b>Something the other person added isn't showing.</b> Open <b>Team, Sharing</b> on both phones and tap <b>Share now</b>. If it says changes are waiting, that phone hasn't had signal yet. Changes normally show within a minute while the app is open.</p>
+    <p><b>Something the other person added isn't showing.</b> Open the Shop's <b>Settings</b>, <b>Team</b> on both devices and tap <b>Share now</b>. If it says changes are waiting, that phone hasn't had signal yet. Changes normally show within a minute while the app is open.</p>
     <p><b>We both changed the same thing.</b> The most recent change wins for that item, for example one visit or one lot of gold. Different items never overwrite each other, so you can both work at the same time.</p>
     <p><b>The widget won't install.</b> Uninstall the old widget app first (press and hold the Gold Trader icon, tap App info, then Uninstall), then install the new one from the Alerts page.</p>
     <p><b>Is it always right?</b> No. It's based on what has happened before, and big world events can change things fast. It's a strong guide, not a guarantee, and it isn't regulated financial advice. The decision is always yours.</p>
@@ -614,11 +594,11 @@
 <!-- ========== VALUE ========== -->
 <section class="page" id="p-calc">
   <div class="gtabs" id="gtTabs">
-    <button data-t="week">Overview</button><button data-t="stock">My stock</button><button data-t="send">Send</button><button data-t="money" id="gtMoney">Make money</button><button data-t="coins">Coins</button><button data-t="prices">Prices</button>
+    <button data-t="mine">My gold</button><button data-t="send">Send</button><button data-t="money" id="gtMoney">Buying</button><button data-t="coins">Coins</button>
   </div>
-  <div class="card" data-gt="week" id="ovEmpty" style="display:none"><h2>Nothing here yet</h2><p class="muted" style="margin:0">Add the gold you hold in <b>My stock</b>, or buy through the Buy log, and your week and live totals show here.</p></div>
-  <div data-gt="week" class="bkdue" id="bkDue2" style="display:none"></div>
-  <div data-gt="week" class="card" id="weekCard" style="display:none">
+  <div class="card" data-gt="mine" id="ovEmpty" style="display:none"><h2>Nothing here yet</h2><p class="muted" style="margin:0">Buy through the Buy log, or tap <b>+ Add gold you hold</b> below, and your live totals show here.</p></div>
+  <div data-gt="mine" class="bkdue" id="bkDue2" style="display:none"></div>
+  <div data-gt="off" class="card" id="weekCard" style="display:none">
     <h2>Your week</h2>
     <div class="tabs" id="wkTabs" style="margin-bottom:10px">
       <button class="on" data-w="0">This week</button>
@@ -626,7 +606,7 @@
     </div>
     <div id="wkBody"></div>
   </div>
-  <div data-gt="week" class="card" id="stockSum" style="display:none">
+  <div data-gt="mine" class="card" id="stockSum" style="display:none">
     <h2>My gold today · live</h2>
     <div id="stockTotals"></div>
     <div id="stockPlan"></div>
@@ -648,9 +628,42 @@
     <div id="pmLots"></div>
   </div>
 
-  <div data-gt="stock" class="card">
-    <h2>My gold</h2>
-    <p class="muted" style="margin-top:0">Add the gold you're holding to see what it's worth today and exactly how much to sell when the time comes. Once you've joined the team it's shared with your team, locked with the passphrase. Before that it's saved on this phone onlre.</p>
+  <div data-gt="mine" class="card" id="lotsCard">
+    <h2>What you hold</h2>
+    <div class="tabs" id="lotTabs" style="margin-bottom:10px">
+      <button data-v="w">Week</button>
+      <button class="on" data-v="m">Month</button>
+      <button data-v="a">Every item</button>
+    </div>
+    <div id="stockList"></div>
+    <a class="btn ghost" href="shop/?backup=1" style="margin-top:12px">Back up everything</a>
+    <div class="grid2" style="display:none">
+      <button class="btn ghost" id="bkSave" style="margin-top:0">Back up</button>
+      <button class="btn ghost" id="bkLoad" style="margin-top:0">Restore backup</button>
+    </div>
+    <input id="bkFile" type="file" accept=".json,application/json" style="display:none">
+    <p class="muted" id="bkMsg" style="margin:8px 0 0">One locked backup covers everything: the Buy log with its photos, your gold, the diary, cash and the Shop. It's made and restored in the Shop app, Settings.</p>
+  </div>
+
+
+  <div data-gt="money" class="card" id="proCard" style="display:none">
+    <h2>Make more money</h2>
+    <div class="sub">What to pay today</div>
+    <label>Margin you want to keep, %</label>
+    <input id="pmM" type="number" inputmode="decimal" placeholder="e.g. 20">
+    <div id="pmPay"></div>
+    <div id="pmMonths" style="display:none"></div>
+    <p class="muted" style="margin:14px 0 0">Your buying figures month by month, for each of you, are in the <a href="shop/?go=rep" style="color:var(--gold2)">Shop's Reports</a>. Which lots to send first is on the <b>Send</b> tab.</p>
+    <div class="sub" style="margin-top:14px">Lot alerts on your phone</div>
+    <div id="laBox"></div>
+  </div>
+
+
+  <div data-gt="mine" class="card">
+    <h2>Add gold</h2>
+    <p class="muted" style="margin:0">Gold bought in the Buy log is added for you. Use this for anything else you hold.</p>
+    <button class="btn ghost" id="addGoldBtn" onclick="this.style.display='none';document.getElementById('addGoldBody').style.display=''">+ Add gold you hold</button>
+    <div id="addGoldBody" style="display:none">
     <div class="grid2">
       <div><label>Weight (grams)</label><input id="sG" type="number" inputmode="decimal" placeholder="e.g. 120"></div>
       <div><label>Carat</label>
@@ -671,36 +684,8 @@
     <input id="sD" type="date">
     <label style="display:flex;gap:8px;align-items:center;color:var(--text);font-size:15px;margin-top:10px"><input type="checkbox" id="sKeep" style="width:20px;height:20px"> Keep it: don't melt (a coin, designer or antique piece to sell as it is)</label>
     <button class="btn" id="sAdd">Add to my gold</button>
-    <p class="sub" id="blNote" style="margin-top:10px;display:none">Buying from a customer? Use the <a href="buying-log/" style="color:var(--gold2)">Buying log</a>. It records their ID and adds the gold here for you.</p>
-  </div>
-
-  <div data-gt="money" class="card" id="proCard" style="display:none">
-    <h2>Make more money</h2>
-    <div class="sub">What to pay today</div>
-    <label>Margin you want to keep, %</label>
-    <input id="pmM" type="number" inputmode="decimal" placeholder="e.g. 20">
-    <div id="pmPay"></div>
-    <div id="pmMonths" style="display:none"></div>
-    <p class="muted" style="margin:14px 0 0">Your buying margin month by month, for each of you, is in <a href="#" onclick="go('team');setTimeout(()=>document.querySelector('#tmTabs button[data-t=figures]').click(),0);return false" style="color:var(--gold2)">Team, Figures</a>. Which lots to send first is on the <b>Send</b> tab.</p>
-    <div class="sub" style="margin-top:14px">Lot alerts on your phone</div>
-    <div id="laBox"></div>
-  </div>
-
-  <div data-gt="stock" class="card" id="lotsCard">
-    <h2>My lots</h2>
-    <div class="tabs" id="lotTabs" style="margin-bottom:10px">
-      <button data-v="w">Week</button>
-      <button class="on" data-v="m">Month</button>
-      <button data-v="a">Every item</button>
     </div>
-    <div id="stockList"></div>
-    <a class="btn ghost" href="shop/?backup=1" style="margin-top:12px">Back up everything</a>
-    <div class="grid2" style="display:none">
-      <button class="btn ghost" id="bkSave" style="margin-top:0">Back up</button>
-      <button class="btn ghost" id="bkLoad" style="margin-top:0">Restore backup</button>
-    </div>
-    <input id="bkFile" type="file" accept=".json,application/json" style="display:none">
-    <p class="muted" id="bkMsg" style="margin:8px 0 0">One locked backup covers everything: the Buy log with its photos, your gold, the diary, cash and the Shop. It's made and restored in the Shop app, Settings.</p>
+    <p class="sub" id="blNote" style="margin-top:10px;display:none">Buying from a customer? Use <a href="shop/?go=buy" style="color:var(--gold2)">Buy in the Shop</a>. It records their ID and adds the gold here for you.</p>
   </div>
 
 
@@ -738,7 +723,7 @@
     <div id="coinOut"></div>
   </div>
 
-  <div data-gt="prices" class="card">
+  <div data-gt="money" class="card">
     <h2>Refiner prices</h2>
     <div class="grid2" style="display:none">
       <div><label>Weight (grams)</label><input id="cG" type="number" inputmode="decimal" placeholder="e.g. 250"></div>
@@ -768,7 +753,7 @@
       <div class="muted" style="margin-top:8px" id="cZone"></div>
     </div>
     <p class="muted" style="display:none">Pure gold content: <span id="cPure">0</span> g.</p>
-    <p class="muted">To value pieces for a customer, use <b>Make an offer</b> on a visit in Team, Diary.</p>
+    <p class="muted">To value pieces for a customer, use <b>Make an offer</b> on a visit in the <a href="shop/?go=diary" style="color:var(--gold2)">Shop's Diary</a>.</p>
   </div>
 </section>
 
@@ -779,9 +764,8 @@
   <button data-p="alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 21h4"/></svg>Alerts</button>
   <button data-p="chart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M6 16l4-5 3 3 5-7"/></svg>Chart</button>
   <button data-p="calc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/></svg>My gold</button>
-  <button data-p="team"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.5-3.4 3-5.5 6-5.5s5.5 2.1 6 5.5"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14.6c2.4.3 4 2.1 4.5 4.9"/></svg>Team</button>
+  <a href="shop/" class="navlink" id="shopNav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9l1.5-5h13L20 9"/><path d="M4 9h16v11H4z"/><path d="M9 20v-6h6v6"/></svg>Shop</a>
   <button data-p="help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.7-2.5 2-2.5 4M12 17h.01"/></svg>Guide</button>
-  <a href="buying-log/" class="navlink" id="blNav" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16c.6-1.4 1.7-2 3-2s2.4.6 3 2M14 10h4M14 13h3"/></svg>Buy log</a>
 </nav>
 
 <script src="sync.js?v=15"></script>
@@ -1462,15 +1446,14 @@ function buys(){ try { return JSON.parse(store.get("buys") || "[]"); } catch(e){
 
 
 /* =============== My gold: sections as tabs =============== */
-let gtTab = store.get("gtTab") || "week";
+let gtTab = ({week: "mine", stock: "mine", prices: "money"})[store.get("gtTab")] || store.get("gtTab") || "mine";
 function gtEmpty(){
   const vis = id => { const el = $(id); return el && el.style.display !== "none"; };
-  $("ovEmpty").style.display = vis("weekCard") || vis("stockSum") ? "none" : "block";
+  $("ovEmpty").style.display = vis("stockSum") ? "none" : "block";
 }
 function showGt(t){
-  if (t === "money" && !PRO_ON()) t = "week";
+  if (!["mine", "send", "money", "coins"].includes(t)) t = "mine";
   gtTab = t; store.set("gtTab", t);
-  $("gtMoney").style.display = PRO_ON() ? "" : "none";
   document.querySelectorAll("#gtTabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
   document.querySelectorAll("#p-calc [data-gt]").forEach(el => el.classList.toggle("gtHide", el.dataset.gt !== t));
   gtEmpty();
@@ -1533,7 +1516,7 @@ function backupDays(){ const t = store.get("blBackup"); return t ? Math.floor((D
 function renderBackupDue(){
   const has = PRO_ON() && (buys().length > 0 || stock().some(x => x.bl));
   const d = backupDays(), due = has && (d == null || d >= 7);
-  const html = due ? `<b>Weekly backup due</b><div class="muted" style="margin-top:4px">${d == null ? "This phone has never made a backup." : `Last backup was ${d} days ago.`} One tap saves a copy of everything (the Buy log with its ID records, your gold, the diary and cash) to Google Drive or email. It's your own copy if anything ever goes wrong with a phone or the team server.</div>
+  const html = due ? `<b>Weekly backup due</b><div class="muted" style="margin-top:4px">${d == null ? "This phone has never made a backup." : `Last backup was ${d} days ago.`} One tap makes a locked copy of everything (the Shop, the Buy log with its ID records, your gold, the diary and cash) to save to Google Drive. It's your own copy if anything ever goes wrong with a phone or the team server.</div>
     <a class="btn" href="shop/?backup=1">Back up now</a>` : "";
   ["bkDue1", "bkDue2"].forEach(id => { const el = $(id); if (el){ el.innerHTML = html; el.style.display = due ? "block" : "none"; } });
 }
@@ -1800,19 +1783,18 @@ function loadChart(){
 /* =============== navigation =============== */
 /* Buying log: only shown on phones where it has been switched on (open the app once with ?buyinglog=on) */
 try { const q = new URLSearchParams(location.search).get("buyinglog"); if (q === "on") store.set("buyingLog", "1"); if (q === "off") store.del("buyingLog"); if (q) history.replaceState(null, "", location.pathname); } catch(e){}
-if (store.get("buyingLog") === "1") { $("blNav").style.display = ""; $("blNote").style.display = ""; try { showGt(gtTab); renderPro(); } catch(e){} }
+if (store.get("buyingLog") === "1") { $("blNote").style.display = ""; try { showGt(gtTab); renderPro(); } catch(e){} }
 function go(page){ const b = document.querySelector('nav button[data-p="' + page + '"]'); if (b) b.click(); if (page === "help") store.set("seenGuide", "1"); }
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
   document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x === b));
   document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "p-" + b.dataset.p));
   if (b.dataset.p === "chart") loadZoneChart();
-  if (b.dataset.p === "team" && window.TeamPage) TeamPage.render();
   window.scrollTo(0, 0);
 });
 
-/* =============== open the Team page from a visit notification =============== */
-if (location.hash === "#team") setTimeout(() => go("team"), 0);
-window.addEventListener("hashchange", () => { if (location.hash === "#team") go("team"); });
+/* =============== old visit notifications opened the Team page =============== */
+// old visit alerts open #team: the diary now lives in the Shop
+if (location.hash === "#team") location.replace("shop/?go=diary");
 
 /* =============== team sharing: show changes from the other phones =============== */
 window.addEventListener("dgsync-applied", () => {
@@ -1845,9 +1827,8 @@ if (!store.get("seenGuide")) $("welcome").style.display = "block";
 })();
 </script>
 <script src="coins.js?v=1"></script>
-<script src="team.js?v=6"></script>
 <script src="keep.js?v=1"></script>
-<script src="offer.js?v=2"></script>
+<script src="offer.js?v=3"></script>
 <!-- TEAM SETUP SCRIPT START -->
 <style>
   .setup-bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:4px 0 12px}

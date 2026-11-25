@@ -118,13 +118,14 @@ function renderCustomer(){
     localStorage.setItem("offerAccepted", JSON.stringify({visitId: st.visitId, at: new Date().toISOString(),
       items: lines.map(l => ({desc: l.desc || (l.k === "other" ? "Item" : label(l.k) + " gold"), metal: l.k === "other" ? "Mixed / other" : "Gold", purity: PURITY[l.k] || "", hallmark: "", weight: String(l.w || ""), price: String(lineOffer(l)), photos: [], keep: !!l.keep}))}));
     localStorage.removeItem("offerDraft");
-    location.href = "buying-log/?offer=1" + (st.visitId ? "&visit=" + encodeURIComponent(st.visitId) : "");
+    const inShop = /\/shop\//.test(location.pathname);
+    location.href = (inShop ? "../buying-log/?from=shop&offer=1" : "buying-log/?offer=1") + (st.visitId ? "&visit=" + encodeURIComponent(st.visitId) : "");
   };
   const no = box.querySelector("#ofNo");
   if (no) no.onclick = () => {
     const a = jget("visits", []), v = a.find(x => x._id === st.visitId);
     if (v){ v.status = "nosale"; v.offered = lines.reduce((t, l) => t + lineOffer(l), 0); localStorage.setItem("visits", JSON.stringify(a)); }
-    localStorage.removeItem("offerDraft"); close(); if (window.TeamPage) TeamPage.render();
+    localStorage.removeItem("offerDraft"); close(); if (window.TeamPage) TeamPage.render(); if (typeof renderAll === "function") renderAll();
   };
   window.scrollTo(0, 0); box.scrollTop = 0;
 }
