@@ -80,6 +80,14 @@
   .shot button{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;font-size:15px}
   .alert{border-radius:10px;padding:10px 12px;margin-top:10px;font-size:14px;border:1px solid var(--line)}
   .alert.bad{border-color:#6a2a22;color:#f3a296;background:rgba(224,93,79,.08)}.alert.okk{border-color:#2f6b4f;color:#9fe0bd}.alert.wn{border-color:#8a5a20;color:#f0c27a;background:rgba(227,163,59,.08)}
+  /* coin screens (shared coins.js) */
+  .verdict{border-radius:14px;padding:16px;margin-bottom:14px}.verdict .call{font-size:22px;font-weight:800;margin:0 0 6px;line-height:1.2}
+  .t2{background:linear-gradient(135deg,#2e250e,#463712);border:1px solid var(--gold)}.t1{background:linear-gradient(135deg,#14211a,#1b2e23);border:1px solid #3d6b4f}
+  .sub{text-transform:uppercase;letter-spacing:.7px;font-size:12px;color:var(--muted);margin-top:14px}.pos{color:var(--up)}.neg{color:var(--down)}
+  .tabs{display:flex;background:#12110f;border-radius:12px;padding:4px;margin-bottom:12px}.tabs button{flex:1;border:0;background:none;color:var(--muted);padding:10px;border-radius:9px;font-size:15px;font-weight:600;cursor:pointer}.tabs button.on{background:var(--gold);color:#1a1408}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .result{margin-top:14px;padding:14px;border-radius:12px;background:#12110f;border:1px solid var(--line)}.result b{font-size:24px;color:var(--gold2)}.result .warn b,.result td b,.result .muted b{font-size:inherit;color:inherit}
+  @media (max-width:420px){nav button{font-size:11px}nav svg{width:22px;height:22px}}
   *{scrollbar-color:#3a352c #12110f;scrollbar-width:thin}
   ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:#12110f}::-webkit-scrollbar-thumb{background:#3a352c;border-radius:10px}
   #cam{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:35;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:12px}
@@ -167,6 +175,44 @@
       <h2>Recent buys</h2>
       <div id="buyDone"></div>
     </div>
+    </div>
+  </section>
+
+  <!-- ============ COINS (shared with Gold Trader through coins.js) ============ -->
+  <section id="p-coins" style="display:none">
+    <div class="card" id="coinCard">
+      <h2>Coins: gold and silver</h2>
+      <p class="muted" style="margin-top:0" id="coinPrices"></p>
+      <div class="tabs" id="coinTabs" style="margin-bottom:10px">
+        <button class="on" data-c="look">Look up a coin</button>
+        <button data-c="id">Identify a coin</button>
+        <button data-c="scan">Scan with camera</button>
+      </div>
+      <div id="coinScan" style="display:none">
+        <p class="muted" style="margin-top:0">Photograph a coin, a handful of coins or a whole set in its case. For a set, get the certificate in the shot if there is one. Take them now or upload ones already saved. Up to 4 photos, e.g. front and back.</p>
+        <input id="scFile" type="file" accept="image/*" capture="environment" style="display:none">
+        <input id="scPick" type="file" accept="image/*" multiple style="display:none">
+        <div style="display:flex;gap:8px"><button class="btn" id="scTake" style="flex:1;margin-top:0">📷 Take a photo</button><button class="btn" id="scUp" style="flex:1;margin-top:0">🖼 Upload photos</button></div>
+        <div id="scThumbs" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"></div>
+        <button class="btn" id="scGo" style="display:none">Scan these photos</button>
+        <button class="btn ghost" id="scClear" style="display:none">Start again</button>
+      </div>
+      <div id="coinLook">
+        <label>Coin</label>
+        <select id="coinSel"></select>
+        <label>How many</label>
+        <input id="coinQty" type="number" inputmode="numeric" value="1" min="1">
+      </div>
+      <div id="coinId" style="display:none">
+        <p class="muted" style="margin-top:0">Weigh it on your scales and, if you can, measure across it with callipers. It's matched against the official mint specs for the gold and silver coins you're most likely to see.</p>
+        <div class="grid2">
+          <div><label>Weight (grams)</label><input id="coinW" type="number" inputmode="decimal" step="0.01" placeholder="e.g. 7.98"></div>
+          <div><label>Diameter (mm, optional)</label><input id="coinD" type="number" inputmode="decimal" step="0.01" placeholder="e.g. 22.05"></div>
+        </div>
+        <label>Colour</label>
+        <select id="coinM"><option value="any">Not sure</option><option value="au">Gold coloured</option><option value="ag">Silver coloured</option></select>
+      </div>
+      <div id="coinOut"></div>
     </div>
   </section>
 
@@ -332,6 +378,7 @@
 <nav>
   <button data-p="sales" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Sales</button>
   <button data-p="buy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16l-1.5 12a2 2 0 0 1-2 1.8h-9a2 2 0 0 1-2-1.8z"/><path d="M8 7V6a4 4 0 0 1 8 0v1"/><path d="M12 11v6M9 14h6"/></svg>Buy</button>
+  <button data-p="coins"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="9" r="6"/><path d="M15.5 9.3A6 6 0 1 1 9.3 15.5"/><path d="M9 6.5v5M7.5 8h3"/></svg>Coins</button>
   <button data-p="stock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 6 3-6M12 21 9 9M12 21l3-12"/></svg>Stock</button>
   <button data-p="cust"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.3-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14.5c2.4.2 4 1.8 4.5 4.5"/></svg>Customers</button>
   <button data-p="safe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="3.5"/><path d="M12 8.5V7M12 17v-1.5M6 20v1M18 20v1"/></svg>Safe</button>
@@ -2188,6 +2235,41 @@ async function renderDP(){
     ok(!custAll().some(custStale) && !custAll().some(c => c.src === "shop" && pastRetention(c)), "No customer data past the retention period", "Customers, Data to review: erase or remove what you no longer need.");
 }
 
+/* ============ COINS: what coins.js needs from this page ============
+   Live gold price (the same sources as Gold Trader), Mastermelt prices, and the shared refiner and margin settings. */
+const OZ = 31.1034768, CT = {"0.375": "9ct", "0.585": "14ct", "0.75": "18ct", "0.916": "22ct", "0.999": "24ct"};
+const fmt = (n, d = 2) => gbp(n, d);
+const store = {get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch(e){} }, del(k){ try { localStorage.removeItem(k); } catch(e){} }};
+async function fetchJSON(url, ms = 10000){ const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms);
+  try { const r = await fetch(url, {cache: "no-store", signal: ac.signal}); if (!r.ok) throw new Error(r.status); return await r.json(); } finally { clearTimeout(t); } }
+let gbpPerGram = null;
+const mmFresh = () => !!(mm && mm.pure_g && (Date.now() - new Date(mm.date + "T12:00:00")) / 864e5 < 5);
+function mmOn(){ return (store.get("refiner") || "mastermelt") === "mastermelt" && mmFresh() && !!gbpPerGram; }
+function payRatio(){ return mmOn() ? mm.pure_g / gbpPerGram : (parseFloat(store.get("ownPct") || "95") || 95) / 100; }
+function refinerG(k){ return (mmOn() && mm.prices[CT[k]]) ? mm.prices[CT[k]] : gbpPerGram * parseFloat(k) * payRatio(); }
+async function loadGold(){
+  try { const [xau, fx] = await Promise.all([fetchJSON("https://api.gold-api.com/price/XAU").then(d => d.price),
+      fetchJSON("https://open.er-api.com/v6/latest/GBP").then(d => d.rates.USD).catch(() => fetchJSON("https://api.frankfurter.app/latest?from=GBP&to=USD").then(d => d.rates.USD))]);
+    if (xau > 0 && fx > 0){ gbpPerGram = xau / fx / OZ; store.set("gGbp", String(gbpPerGram)); store.set("gGbpAt", new Date().toISOString()); } }
+  catch(e){ const c = parseFloat(store.get("gGbp")); if (c > 0 && !gbpPerGram) gbpPerGram = c; }
+  coinPriceLine(); if (typeof renderCoins === "function") try { renderCoins(); } catch(e){}
+}
+function coinPriceLine(){ if (!$("coinPrices")) return; const at = store.get("gGbpAt");
+  $("coinPrices").innerHTML = gbpPerGram ? `Gold ${gbp(gbpPerGram)}/g pure${typeof agGbpPerGram !== "undefined" && agGbpPerGram ? ` · silver ${gbp(agGbpPerGram)}/g` : ""}${mmOn() ? ` · refiner prices from Mastermelt (${fmtD(mm.date)})` : ""}${at && Date.now() - new Date(at) > 3600e3 ? ` · price from ${fmtDT(at)}, no signal since` : ""}. Margin ${Math.round(coinMargin() * 100)}% (set in Gold Trader).` : "Loading the gold price…"; }
+loadGold(); setInterval(loadGold, 15 * 60000);
+/* "Buy these from the customer": the coins go to the Buy log as a ready-made offer (official weights, pay-up-to prices);
+   coins worth more than melt are marked Keep it, so they come back to Stock to sell rather than the melt pot */
+const BL_PUR = c => c.m === "au" ? (c.f > 0.91 && c.f < 0.92 ? "22ct (916)" : c.f >= 0.999 ? "24ct (999)" : "Unknown / tested") : (Math.abs(c.f - 0.925) < 0.001 ? "Sterling (925)" : Math.abs(c.f - 0.958) < 0.002 ? "Britannia (958)" : c.f >= 0.999 ? "Fine silver (999)" : "Unknown / tested");
+function coinBuy(lines){
+  const m = coinMargin(), items = [];
+  (lines || []).forEach(l => { const c = COIN_ALL.find(x => x.n === l.n); if (!c || c.set || c.m === "cn") return; const v = coinVal(c, l.w || c.w); const n = Math.max(1, l.qty || 1);
+    items.push({desc: `${n > 1 ? n + " × " : ""}${c.n}`, metal: c.m === "au" ? "Gold" : "Silver", purity: BL_PUR(c), hallmark: `${c.y || ""}${c.y ? ", " : ""}official weight ${c.w}g each`, weight: String(Math.round((l.w || c.w) * n * 1000) / 1000),
+      price: v ? String(Math.round((v.pays || v.melt) * (1 - m) * n * 100) / 100) : "", photos: [], keep: (c.p || 0) >= 2}); });
+  if (!items.length) return toast("Nothing here to buy");
+  localStorage.setItem("offerAccepted", JSON.stringify({at: new Date().toISOString(), items}));
+  location.href = "../buying-log/?offer=1&from=shop";
+}
+
 /* ============ GUIDE AND HELP ============
    The ? at the top opens help for the page you're on, with every other topic one tap away and a search. */
 const HELP = [
@@ -2229,6 +2311,12 @@ const HELP = [
     <p><b>Watches, and buys of £1,000 or more,</b> need a stolen-goods check (CheckMEND or similar) before you pay.</p>
     <p>Everything bought is <b>held for the holding period</b> (14 days unless you change it in Settings, Buying rules) before it can be melted or sold on.</p>
     <p>Pieces worth more than scrap: tick <b>Keep it: don't melt</b>, then add them to stock from the Stock page.</p>`},
+  {id: "coins", page: "coins", t: "Coins: look up, identify and scan", b: `
+    <p><b>Look up a coin:</b> the full catalogue of gold and silver coins and sets, with the official weight, size, metal, melt value, what the refiner pays and what to pay up to (keeping your margin). It says when a coin is usually worth more than melt.</p>
+    <p><b>Identify a coin:</b> weigh it (and measure across it if you can). It finds the coin from the official specs and warns if it's too heavy, too light or the wrong size, which are the signs of a fake.</p>
+    <p><b>Scan with camera:</b> photograph a coin, a pile of coins or a boxed set. The AI reads them, then the app prices them from the catalogue. Weigh them all together to check.</p>
+    <p><b>Buy these from the customer</b> takes the coins straight to the Buy log with weights and prices filled in; you add the customer's ID, photos and signature as normal. Coins worth more than melt are marked "Keep it", so they come back to Stock to sell.</p>
+    <p class="muted">The catalogue is the same one Gold Trader uses: anything added there is here too.</p>`},
   {id: "tosafe", page: "buy", t: "Putting buys into the safe", b: `<p>Buys show under <b>Bought, not yet in the safe</b>. Tap <b>Put in the safe</b> (or put several in one bag). Weigh the bag and correct any weight that's different on the scales.</p>`},
   {id: "stock", page: "stock", t: "Stock for sale", b: `
     <p><b>+ Add a piece</b>: kind, description, metal, weight, size, hallmark, up to 6 photos, cost and asking price. It shows the melt value (the least it's worth) and your margin.</p>
@@ -2306,10 +2394,10 @@ function openHelp(focus){
 /* ============ PAGES ============ */
 setTimeout(() => { try { if (!localStorage.getItem("shopHelpSeen")){ localStorage.setItem("shopHelpSeen", "1"); if ($("lock").style.display !== "flex") openHelp("start"); } } catch(e){} }, 1500);
 let page = "sales";
-function go(p){ page = p; ["sales", "buy", "stock", "cust", "safe", "rep", "set"].forEach(x => $("p-" + x).style.display = x === p ? "" : "none");
+function go(p){ page = p; ["sales", "buy", "coins", "stock", "cust", "safe", "rep", "set"].forEach(x => $("p-" + x).style.display = x === p ? "" : "none");
   document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.p === p)); window.scrollTo(0, 0); renderAll(); }
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => go(b.dataset.p));
-function renderAll(){ [renderSales, renderVals, renderBuys, renderStock, renderCustomers, renderSafe, renderReports, renderSettings].forEach(f => { try { f(); } catch(e){ console.log(e); } }); }
+function renderAll(){ [renderSales, renderVals, renderBuys, renderStock, renderCustomers, renderSafe, renderReports, renderSettings, () => { if (page === "coins" && typeof renderCoins === "function"){ renderCoins(); coinPriceLine(); } }].forEach(f => { try { f(); } catch(e){ console.log(e); } }); }
 window.addEventListener("dgsync-applied", () => { renderAll(); let u = ""; try { u = sessionStorage.getItem("shopUser") || ""; } catch(e){}
   if (staffAll().length && !staffAll().some(x => x.name === u) && $("lock").style.display !== "flex") lockNow(); });
 if (!who() && !staffAll().length && !(window.DGSync && DGSync.joined && DGSync.joined())){ /* not in the team: ask once who's using this phone, for "by" on records */
@@ -2321,5 +2409,6 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) load
 loadPin();
 if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../sw.js", {scope: "../"}).catch(() => {}));
 </script>
+<script src="../coins.js?v=1"></script>
 </body>
 </html>
