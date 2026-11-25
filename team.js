@@ -10,7 +10,7 @@ const jset = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 const rid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 const me = () => (S && S.me()) || "";
 const people = () => { const p = new Set(["Jase", "Mike"]); if (me()) p.add(me()); jget("visits", []).forEach(v => v.who && p.add(v.who)); return [...p]; };
-const money = (v, dp = 0) => "£" + (Number(v) || 0).toLocaleString("en-GB", {minimumFractionDigits: dp, maximumFractionDigits: dp});
+const money = (v, dp = 0) => (Number(v) < 0 ? "−£" : "£") + Math.abs(Number(v) || 0).toLocaleString("en-GB", {minimumFractionDigits: dp, maximumFractionDigits: dp});
 const day = d => new Date(d + "T12:00:00");
 const dayName = d => { const t = todayISO(), tm = new Date(Date.now() + 864e5); const tom = new Date(tm.getTime() - tm.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
   return d === t ? "Today" : d === tom ? "Tomorrow" : day(d).toLocaleDateString("en-GB", {weekday: "long", day: "numeric", month: "short"}); };

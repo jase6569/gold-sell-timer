@@ -1768,7 +1768,9 @@ $("dp_ai").onchange = async () => { await blSettingsSave({aiId: $("dp_ai").check
 $("bz_save").onclick = async () => { if (!$("bz_name").value.trim()) return toast("Add the business name"); await blSettingsSave({biz: $("bz_name").value.trim(), addr: $("bz_addr").value.trim(), phone: $("bz_phone").value.trim()}); toast("Business details saved"); };
 $("br_save").onclick = async () => { const o = $("br_offer").value.trim(); if (o && !(+o > 0 && +o <= 100)) return toast("The offer % should be between 1 and 100");
   await blSettingsSave({holdDays: String(Math.max(0, Math.round(+($("br_hold").value || 14)))), cmAt: $("br_cm").value.trim() || "1000", offerPct: o}); toast("Buying rules saved"); };
-window.addEventListener("dgsync-applied", e => { if (e.detail && e.detail.settings) loadPin(); });
+window.addEventListener("dgsync-applied", e => { if (e.detail && e.detail.settings) loadPin();
+  // a purchase added, changed or deleted on another device: reload the Buy log so Buy, Safe, Customers and the till are right without a refresh
+  if (e.detail && e.detail.records) loadBuyLogSellers().then(() => { const k = JSON.parse(localStorage.getItem("shopNoSafe") || "[]"); blRecs.forEach(r => { if (k.includes(r.id)) r.noSafe = true; }); renderAll(); }); });
 function renderSettings(){
   renderStaff(); renderStatus(); fillBizRules(); renderDP().catch(() => {}); $("dp_ai").checked = aiOn();
   const cfg = shopCfg(); if (document.activeElement !== $("cfg_policy")) $("cfg_policy").value = cfg.policy || "";
@@ -1853,7 +1855,7 @@ setInterval(() => { if ((staffAll().length || pinHash) && $("lock").style.displa
 $("lockMins").value = String(lockMins()); $("lockMins").onchange = () => { localStorage.setItem("shopLockMins", $("lockMins").value); toast("Saved for this device"); };
 function renderStaff(){
   const st = staffAll();
-  $("staffList").innerHTML = st.length ? st.map(x => `<div class="item" onclick="editStaff('${esc(x._id)}')"><b>${esc(x.name)}${x.mgr ? '<span class="pill">Manager</span>' : ""}${x.name === who() ? '<span class="pill ok">Signed in</span>' : ""}</b><span class="muted">Own PIN set${x.added ? " · added " + fmtD(x.added) : ""}</span></div>`).join("")
+  $("staffList").innerHTML = st.length ? st.map(x => `<div class="item" onclick="editStaff('${esc(x._id)}')"><b>${esc(x.name)}${x.mgr ? '<span class="pill">Manager</span>' : ""}${x.name === who() ? '<span class="pill ok">Signed in</span>' : ""}</b><span class="muted">Own PIN set${x.phone ? " · " + esc(x.phone) : ""}${x.added ? " · added " + fmtD(x.added) : ""}</span></div>`).join("")
     : '<p class="muted">No one added yet, so the app uses the Buy log PIN (if one is set) and records changes under this device\'s team name.</p>';
   $("pinState").textContent = st.length ? "" : pinHash ? "Using the Buy log PIN until people are added." : "";
   // the same person must have the same name in both apps, or their visits, cash and figures split in two
@@ -1885,22 +1887,24 @@ function editStaffOk(id){
   const x = id ? get("staff").find(y => y._id === id) : null;
   openSheet(x ? x.name : "Add a person", `
     ${x ? "" : `<label>First name</label><input id="sp_name" autocomplete="off">`}
+    <label>Mobile number (for the safety call on home visits)</label><input id="sp_phone" type="tel" value="${esc(x && x.phone || "")}">
     <label>${x ? "New PIN" : "PIN"} (4 to 6 digits)</label><input id="sp_pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password">
     <label>Type it again</label><input id="sp_pin2" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password">
     <label style="display:flex;align-items:center;gap:8px;color:var(--text);margin-top:12px"><input id="sp_mgr" type="checkbox" style="width:auto"${x && x.mgr ? " checked" : ""}> Manager (approves refunds, cancellations and deletions)</label>
-    <p class="muted" style="margin:4px 0 0">${x ? "Leave the PIN boxes empty to only change whether they're a manager." : ""}</p>
+    <p class="muted" style="margin:4px 0 0">${x ? "Leave the PIN boxes empty to only change their number or whether they're a manager." : ""}</p>
     <button class="btn" id="sp_save">${x ? "Save" : "Add"}</button>
     ${x ? `<button class="btn red" id="sp_del">Remove ${esc(x.name)}</button><p class="muted">Removing someone stops them signing in. Everything they recorded stays, with their name on it.</p>` : ""}`);
   $("sp_save").onclick = async () => {
     const name = x ? x.name : $("sp_name").value.trim(), pin = $("sp_pin").value, mgr = $("sp_mgr").checked;
     if (!name) return toast("Add their name");
-    if (x && !pin){ const list = get("staff"); if (!mgr && x.mgr && staffAll().filter(y => y.mgr).length === 1) return toast("Keep at least one manager"); list.find(y => y._id === x._id).mgr = mgr; put("staff", list); closeSheet(); toast("Saved"); renderAll(); return; }
+    const phone = $("sp_phone").value.trim();
+    if (x && !pin){ const list = get("staff"); list.find(y => y._id === x._id).phone = phone; if (!mgr && x.mgr && staffAll().filter(y => y.mgr).length === 1) return toast("Keep at least one manager"); list.find(y => y._id === x._id).mgr = mgr; put("staff", list); closeSheet(); toast("Saved"); renderAll(); return; }
     if (!/^\d{4,6}$/.test(pin)) return toast("The PIN must be 4 to 6 digits");
     if (pin !== $("sp_pin2").value) return toast("The two PINs don't match");
     const list = get("staff");
     if (!x && list.some(y => !y.gone && y.name.toLowerCase() === name.toLowerCase())) return toast("There's already someone with that name");
     const hash = await staffHash(name, pin);
-    if (x){ const y = list.find(z => z._id === x._id); y.pin = hash; y.mgr = mgr; } else list.push({_id: uid(), name, pin: hash, mgr: mgr || !list.some(z => !z.gone && z.mgr), added: new Date().toISOString(), by: who()});
+    if (x){ const y = list.find(z => z._id === x._id); y.pin = hash; y.mgr = mgr; y.phone = phone; } else list.push({_id: uid(), name, phone, pin: hash, mgr: mgr || !list.some(z => !z.gone && z.mgr), added: new Date().toISOString(), by: who()});
     put("staff", list); closeSheet(); toast(x ? "PIN changed" : `${name} added`); renderAll();
     if (!x && list.filter(y => !y.gone).length === 1){ try { sessionStorage.setItem("shopUser", name); } catch(e){} if (window.DGSync && DGSync.setActor) DGSync.setActor(name); renderAll(); }
   };
@@ -2449,7 +2453,8 @@ function renderDiary(){
   $("dNow").innerHTML = (ppl.length ? ws.map(([p, w]) => `<div class="item" style="cursor:default"><b><span class="dot ${w.cls}"></span>${esc(p)}${p === me ? ' <span class="pill ok">You</span>' : ""}</b><span class="muted" style="${w.cls === "bad" ? "color:#f08a7c;font-weight:700" : w.cls === "late" ? "color:var(--amber)" : ""}">${w.text}</span></div>`).join("")
     : '<p class="muted">Add staff in Settings to see who\'s where.</p>');
   const late = ws.filter(([, w]) => w.late);
-  $("dAlarm").innerHTML = late.map(([p, w]) => `<div class="alert bad" style="margin-top:0"><b>${esc(p)} isn't back yet.</b> ${w.where ? "They went to " + esc(w.where) + " and were" : "They were"} due back more than 30 minutes ago. Call them now.</div>`).join("");
+  $("dAlarm").innerHTML = late.map(([p, w]) => `<div class="alert bad" style="margin-top:0"><b>${esc(p)} isn't back yet.</b> ${w.where ? "They went to " + esc(w.where) + " and were" : "They were"} due back more than 30 minutes ago. Call them now.
+    <div class="row" style="margin-top:8px">${staffPhone(p) ? `<a class="btn small" href="tel:${staffPhone(p)}">Call ${esc(p)}</a>` : ""}<button class="btn small ghost" onclick="markBack('${esc(p)}')">I've spoken to them: they're safe</button></div></div>`).join("");
   document.body.classList.toggle("lone", late.length > 0);
   // my buttons
   const mine = me ? get("clock").filter(c => c.who === me && c.at.slice(0, 10) === today()).sort((a, b) => a.at.localeCompare(b.at)) : [], lastK = (mine[mine.length - 1] || {}).kind;
@@ -2483,6 +2488,8 @@ const mins = t => { const [h, m] = String(t || "0:0").split(":").map(Number); re
 function workedHours(p, days){ let h = 0; days.forEach(d => { const cl = get("clock").filter(c => c.who === p && c.at.slice(0, 10) === d).sort((a, b) => a.at.localeCompare(b.at)); let start = null;
   cl.forEach(c => { if (c.kind === "in" && !start) start = c.at; if (c.kind === "outday" && start){ h += (new Date(c.at) - new Date(start)) / 36e5; start = null; } });
   if (start && d === today()) h += (Date.now() - new Date(start)) / 36e5; }); return h; }
+const staffPhone = p => { const x = staffAll().find(y => y.name === p); return x && x.phone ? String(x.phone).replace(/[^\d+]/g, "") : ""; };
+function markBack(p){ const list = get("clock"); list.push({_id: uid(), who: p, at: new Date().toISOString(), kind: "back", by: who(), note: "confirmed safe by " + who()}); put("clock", list); toast(`${p} marked as back`); renderAll(); }
 function clockDo(kind, extra){ const me = who(); if (!me) return toast("Sign in first");
   const list = get("clock"); list.push(Object.assign({_id: uid(), who: me, at: new Date().toISOString(), kind}, extra || {})); put("clock", list);
   toast({in: "Clocked in", back: "Welcome back", outday: "Clocked out", leave: "Have a safe trip"}[kind]); renderAll(); }
