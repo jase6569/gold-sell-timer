@@ -182,7 +182,7 @@
   <section id="p-cust" style="display:none">
     <div class="card">
       <h2>Customers</h2>
-      <div class="chips" id="custChips"><button data-f="all" class="on">Everyone</button><button data-f="trade">Trade contacts</button></div>
+      <div class="chips" id="custChips"><button data-f="all" class="on">Everyone</button><button data-f="trade">Trade contacts</button><button data-f="review">ID to review</button></div>
       <input id="custQ" placeholder="Search name, phone, postcode or customer number">
       <button class="btn" onclick="editCustomer()">+ New customer</button>
       <div id="custList" style="margin-top:10px"></div>
@@ -259,7 +259,7 @@
 <div id="cam"></div>
 <div id="lock"><img src="../icon.png" alt=""><div class="who" id="lockWho"></div><div style="margin-bottom:10px" id="lockAsk">Enter PIN</div><input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><div id="lockMsg" class="muted" style="margin-top:8px"></div></div>
 
-<script src="../sync.js?v=7"></script>
+<script src="../sync.js?v=8"></script>
 <script>
 /* ============ Dorset Gold & Jewellery · Shop ============
    Sales & deposits, stock for sale, customers and the safe log.
@@ -321,11 +321,11 @@ function findCust(id){ return custAll().find(c => c._id === id); }
 function renderCustomers(){
   const q = $("custQ").value.trim().toLowerCase(), qd = q.replace(/\D/g, "");
   const sales = get("sales");
-  const list = custAll().filter(c => custF !== "trade" || c.trade).filter(c => !q || (c.name || "").toLowerCase().includes(q) || (c.pc || "").toLowerCase().replace(/\s/g, "").includes(q.replace(/\s/g, "")) || (qd.length >= 4 && (c.phone || "").replace(/\D/g, "").includes(qd)) || (c.no || "").toLowerCase().includes(q))
+  const list = custAll().filter(c => custF === "all" || (custF === "trade" ? c.trade : c.src === "shop" && pastRetention(c))).filter(c => !q || (c.name || "").toLowerCase().includes(q) || (c.pc || "").toLowerCase().replace(/\s/g, "").includes(q.replace(/\s/g, "")) || (qd.length >= 4 && (c.phone || "").replace(/\D/g, "").includes(qd)) || (c.no || "").toLowerCase().includes(q))
     .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   $("custList").innerHTML = list.length ? list.slice(0, 200).map(c => {
     const bought = sales.filter(s => s.custId === c._id).length, sold = (c.buys || []).length;
-    return `<div class="item" onclick="viewCustomer('${esc(c._id)}')"><b>${esc(c.name || "No name")}${c.trade ? '<span class="pill ok">Trade</span>' : ""}${c.src === "buylog" ? '<span class="pill">Buy log</span>' : ""}${c.src === "shop" && !c.trade ? (idDone(c) ? '<span class="pill ok">ID checked</span>' : '<span class="pill due">No ID</span>') : ""}</b>
+    return `<div class="item" onclick="viewCustomer('${esc(c._id)}')"><b>${esc(c.name || "No name")}${c.trade ? '<span class="pill ok">Trade</span>' : ""}${c.src === "buylog" ? '<span class="pill">Buy log</span>' : ""}${c.src === "shop" && idDone(c) ? (pastRetention(c) ? '<span class="pill due">ID due for review</span>' : idExpired(c) ? '<span class="pill due">ID expired</span>' : '<span class="pill ok">ID on file</span>') : ""}</b>
       <span class="muted">${[c.no, c.phone, c.pc].filter(Boolean).map(esc).join(" · ")}</span>
       <div class="muted">${bought ? `${bought} sale${bought > 1 ? "s" : ""}` : ""}${bought && sold ? " · " : ""}${sold ? `sold to us ${sold} time${sold > 1 ? "s" : ""}` : ""}</div></div>`;
   }).join("") : `<p class="muted">${q ? "No customer matches that." : "No customers yet. Add one, or start a sale and add them there."}</p>`;
@@ -362,15 +362,60 @@ const POA_TYPES = ["Address on photo ID", "Utility bill", "Bank statement", "Cou
 const SHOTS = [["ID front", "environment"], ["ID back", "environment"], ["Proof of address", "environment"], ["Customer", "user"]];
 const ageOn = dob => { if (!dob) return null; const d = new Date(dob), n = new Date(); let a = n.getFullYear() - d.getFullYear(); if (n < new Date(n.getFullYear(), d.getMonth(), d.getDate())) a--; return a; };
 const idDone = c => !!(c && c.idnum && (c.photos || []).some(p => p.label === "ID front"));
-function editCustomer(id, then, trade){
+/* data protection: ID kept only as long as needed. Review it once the customer has had no sale for the retention period (set in the Buy log) */
+const lastSeen = c => [c.added, c.idAt].concat(get("sales").filter(x => x.custId === c._id).map(x => x.at)).filter(Boolean).sort().pop() || "";
+const pastRetention = c => (c.photos || []).length > 0 && lastSeen(c) && (Date.now() - new Date(lastSeen(c))) / (365.25 * 864e5) > retainYears;
+async function removeId(cid){
+  const c = get("customers").find(x => x._id === cid); if (!c) return;
+  if (!confirm(`Remove ${c.name}'s ID details and photos? Their name, contact details and sales stay. This can't be undone, including the earlier saved versions on the team server.`)) return;
+  const refs = (c.photos || []).map(p => p.ref).filter(Boolean);
+  const keep = new Set();   // photos the Buy log also uses stay (it has its own retention)
+  for (const r of blRecs) for (const p of (r.idPhotos || []).concat(r.lotPhotos || [])) if (String(p.src).startsWith("data:")) keep.add("dgph:" + await sha(p.src));
+  get("customers").forEach(x => { if (x._id !== cid) (x.photos || []).forEach(p => keep.add(p.ref)); });
+  const list = get("customers"), x = list.find(y => y._id === cid);
+  ["dob", "idtype", "idnum", "idexp", "poa", "poaDate", "idBy", "idAt"].forEach(k => delete x[k]); x.photos = []; x.idRemovedAt = new Date().toISOString(); x.idRemovedBy = who();
+  put("customers", list); renderAll();
+  try { if (window.DGSync && DGSync.joined && DGSync.joined()) await DGSync.forget("a:customers:" + cid, refs.filter(r => !keep.has(r))); toast("ID removed"); }
+  catch(e){ toast("Removed here. " + e.message); }
+  viewCustomer(cid);
+}
+const idExpired = c => !!(c && c.idexp && new Date(c.idexp + "T23:59") < new Date());
+// full check (needed for cash of £1,000 or more): photo ID in date, plus proof of address
+const idFull = c => idDone(c) && !idExpired(c) && !!c.poa && (c.poa === "Address on photo ID" || (c.photos || []).some(p => p.label === "Proof of address"));
+const ID_AT = 1000;      // a sale of this much or more needs the customer's ID on file (optional below)
+const HVD_WARN = 8000;   // same point the Buy log warns at: €10,000+ in cash makes a business a high value dealer
+const HAS_BACK = ["UK driving licence", "National ID card", "Biometric residence permit"];
+/* ID rule: optional on sales under £1,000; on £1,000 or more the customer needs photo ID (in date) and proof of address on file */
+function idOk(custId, total, back){
+  if (total < ID_AT - 0.004) return true;
+  const c = custId ? findCust(custId) : null;
+  if (c && c.src === "shop" && idFull(c)) return true;
+  if (!c){ toast(`A sale of ${gbp(ID_AT, 0)} or more needs a named customer with their ID`); return false; }
+  if (c.src !== "shop"){ toast("Add this person as a Shop customer with their ID first"); return false; }
+  openSheet("ID needed", `<div class="alert wn" style="margin-top:0">This sale is ${gbp(total)}. Sales of ${gbp(ID_AT, 0)} or more need ${esc(c.name)}'s photo ID (in date) and proof of address on file.</div>
+    ${idExpired(c) ? `<p class="muted">The ID on file expired on ${fmtD(c.idexp)}.</p>` : ""}
+    <button class="btn" id="cn_go">Add their ID now</button><button class="btn ghost" id="cn_back">Go back to the sale</button>`);
+  $("cn_go").onclick = () => editCustomer(c._id, () => back(), false, true);
+  $("cn_back").onclick = () => back();
+  return false;
+}
+/* buyers don't need ID below that. Only very large cash payments matter: taking €10,000 or more in cash (one sale or linked ones)
+   makes the business a high value dealer, which needs HMRC registration and checks on the customer */
+function cashOk(custId, cash){
+  if (cash < HVD_WARN) return true;
+  return confirm(`${gbp(cash)} in cash. Taking €10,000 or more in cash from one customer (on one sale or linked ones) means the business must be registered with HMRC as a high value dealer and check the customer's identity. Go ahead?`);
+}
+function editCustomer(id, then, trade, needId){
   const c = (id && get("customers").find(x => x._id === id)) || (trade ? {trade: true} : {});
   const shots = (c.photos || []).map(p => Object.assign({}, p));   // {label, ref} saved, or {label, src} just taken
   openSheet(id ? "Edit customer" : trade ? "New trade contact" : "New customer", `
-    <label>${c.trade ? "Name (person or business)" : "Full name (as on their ID)"}</label><input id="c_name" value="${esc(c.name)}" autocomplete="off">
+    <label>${c.trade ? "Name (person or business)" : "Full name"}</label><input id="c_name" value="${esc(c.name)}" autocomplete="off">
     <label style="display:flex;align-items:center;gap:8px;color:var(--text);margin-top:12px"><input id="c_trade" type="checkbox" style="width:auto"${c.trade ? " checked" : ""}> Trade contact (a dealer or buyer you sell to)</label>
     <div class="row"><div><label>Date of birth</label><input id="c_dob" type="date" value="${esc(c.dob)}"></div><div><label>Phone</label><input id="c_phone" type="tel" value="${esc(c.phone)}"></div></div>
+    <div id="c_dupes"></div>
     <label>Address</label><input id="c_addr" value="${esc(c.addr)}">
     <div class="row"><div><label>Postcode</label><input id="c_pc" value="${esc(c.pc)}" style="text-transform:uppercase"></div><div><label>Email</label><input id="c_email" type="email" value="${esc(c.email)}"></div></div>
+    <div id="c_idSec">
     <h2 style="margin-top:18px">ID check</h2>
     <p class="muted" style="margin:0" id="c_idNote"></p>
     <div class="row"><div><label>Photo ID</label><select id="c_idtype"><option value="">Choose…</option>${ID_TYPES.map(t => `<option${c.idtype === t ? " selected" : ""}>${t}</option>`).join("")}</select></div>
@@ -380,14 +425,15 @@ function editCustomer(id, then, trade){
     <div id="c_poaDateRow"><label>Date on the proof of address</label><input id="c_poaDate" type="date" value="${esc(c.poaDate)}"></div>
     <label>Photos (tap to take)</label><div class="shots" id="c_shots"></div>
     <button class="btn ghost" id="c_read" style="display:none">✨ Fill in the details from the ID photo</button><div id="c_readMsg"></div>
-    <div id="c_alerts"></div>
+    <div id="c_alerts"></div></div>
     <label>Notes (ring size, what they like, anything to remember)</label><textarea id="c_notes">${esc(c.notes)}</textarea>
     <button class="btn" id="c_save">Save customer</button>`);
   const isTrade = () => $("c_trade").checked;
-  const need = label => !isTrade() && (label === "ID front" || label === "Customer" || (label === "Proof of address" && $("c_poa").value && $("c_poa").value !== "Address on photo ID"));
+  const need = label => !!needId && (label === "ID front" || (label === "Proof of address" && $("c_poa").value && $("c_poa").value !== "Address on photo ID"));
+  const showShot = label => label !== "ID back" || !$("c_idtype").value || HAS_BACK.includes($("c_idtype").value) || shots.some(x => x.label === label);
   const drawShots = async () => {
     const box = $("c_shots"); if (!box) return;
-    box.innerHTML = SHOTS.map(([l]) => { const sh = shots.find(x => x.label === l);
+    box.innerHTML = SHOTS.filter(([l]) => showShot(l)).map(([l]) => { const sh = shots.find(x => x.label === l);
       return sh ? `<div class="shot have" data-view="${l}"><img data-src="${l}" alt=""><span>${l}</span><button data-rm="${l}">×</button></div>` : `<div class="shot${need(l) ? " need" : ""}" data-take="${l}">📷<br>${l}${need(l) ? "<br>needed" : ""}</div>`; }).join("");
     for (const im of box.querySelectorAll("img[data-src]")){ const sh = shots.find(x => x.label === im.dataset.src); im.src = await photoSrc(sh) || ""; }
     box.querySelectorAll("[data-take]").forEach(e => e.onclick = async () => { const l = e.dataset.take, src = await takePhoto((SHOTS.find(x => x[0] === l) || [])[1]); if (!src) return; shots.push({label: l, src}); drawShots(); checks(); });
@@ -398,7 +444,8 @@ function editCustomer(id, then, trade){
   const checks = () => {
     const out = [], exp = $("c_idexp").value, age = ageOn($("c_dob").value), pd = $("c_poaDate").value;
     $("c_poaDateRow").style.display = $("c_poa").value && $("c_poa").value !== "Address on photo ID" ? "" : "none";
-    $("c_idNote").textContent = isTrade() ? "Optional for trade contacts, but worth keeping." : "Needed for every customer: photo ID, proof of address and a photo of the customer.";
+    $("c_idNote").innerHTML = needId ? `<b style="color:var(--amber)">Needed now:</b> photo ID that's in date and proof of address, because the sale is ${gbp(ID_AT, 0)} or more.`
+      : isTrade() ? "Optional for trade contacts." : `Ask for it. It's optional for sales under ${gbp(ID_AT, 0)} and needed for ${gbp(ID_AT, 0)} or more.`;
     if (exp && new Date(exp + "T23:59") < new Date()) out.push(`<div class="alert bad">This ID expired on ${fmtD(exp)}. Ask for another.</div>`);
     if (age !== null && age < 18) out.push(`<div class="alert bad">They are ${age}, under 18.</div>`);
     if (pd && $("c_poaDate").offsetParent && (Date.now() - new Date(pd)) / 864e5 > 92) out.push(`<div class="alert wn">The proof of address is more than 3 months old. Ask for something more recent.</div>`);
@@ -406,6 +453,36 @@ function editCustomer(id, then, trade){
   };
   ["c_dob", "c_idexp", "c_poaDate"].forEach(k => $(k).onchange = checks);
   $("c_poa").onchange = () => { checks(); drawShots(); };
+  $("c_idtype").onchange = () => drawShots();
+  /* the same person already on file? check as details are typed (new customers only) */
+  const dupes = () => {
+    if (id) return;
+    const ph = $("c_phone").value.replace(/\D/g, "").slice(-10), idn = $("c_idnum").value.trim().toUpperCase().replace(/\s/g, ""), nm = $("c_name").value.trim().toLowerCase(), pc = $("c_pc").value.toUpperCase().replace(/\s/g, "");
+    const hits = [];
+    get("customers").forEach(x => { if ((ph.length >= 9 && (x.phone || "").replace(/\D/g, "").slice(-10) === ph) || (idn.length >= 5 && (x.idnum || "").replace(/\s/g, "") === idn) || (nm.length > 3 && pc.length >= 5 && (x.name || "").toLowerCase() === nm && (x.pc || "").replace(/\s/g, "") === pc)) hits.push({c: x}); });
+    const seen = new Set();
+    blRecs.forEach(r => { const sl = r.seller || {}, k = (sl.idnum || "") + (sl.phone || "");
+      if (seen.has(k)) return;
+      if ((ph.length >= 9 && (sl.phone || "").replace(/\D/g, "").slice(-10) === ph) || (idn.length >= 5 && (sl.idnum || "").toUpperCase().replace(/\s/g, "") === idn) || (nm.length > 3 && pc.length >= 5 && [sl.first, sl.last].join(" ").trim().toLowerCase() === nm && (sl.pc || "").replace(/\s/g, "") === pc)){ seen.add(k); hits.push({r}); } });
+    const html = hits.slice(0, 3).map((h, i) => h.c
+      ? `<div class="alert wn">${esc(h.c.name)} (${esc(h.c.no)}) is already a customer with ${[h.c.phone, h.c.pc].filter(Boolean).map(esc).join(", ")}. <button class="btn small ghost" data-open="${esc(h.c._id)}">Open their record</button></div>`
+      : `<div class="alert wn">${esc([h.r.seller.first, h.r.seller.last].join(" "))} sold to you on ${fmtD(h.r.createdAt)} (Buy log ${esc(h.r.receipt)}), with ID. <button class="btn small ghost" data-bl="${esc(h.r.id)}">Bring in their details and ID</button></div>`).join("");
+    if (html === dupes.last || /alert okk/.test($("c_dupes").innerHTML)) return;   // unchanged (or already brought in): don't redraw under a click
+    dupes.last = html; $("c_dupes").innerHTML = html;
+    $("c_dupes").querySelectorAll("[data-open]").forEach(b => b.onclick = () => viewCustomer(b.dataset.open));
+    $("c_dupes").querySelectorAll("[data-bl]").forEach(b => b.onclick = () => fromBuyLog(blRecs.find(r => r.id === b.dataset.bl)));
+  };
+  const fromBuyLog = r => {
+    if (!r) return; const sl = r.seller || {}, set = (k, v) => { if (v && !$(k).value.trim()) $(k).value = v; };
+    set("c_name", [sl.first, sl.last].filter(Boolean).join(" ")); set("c_dob", sl.dob); set("c_phone", sl.phone); set("c_email", sl.email); set("c_addr", (sl.addr || "").replace(/\n/g, ", ")); set("c_pc", sl.pc); set("c_idnum", sl.idnum); set("c_idexp", sl.idexp);
+    if (ID_TYPES.includes(sl.idtype) && !$("c_idtype").value) $("c_idtype").value = sl.idtype;
+    if (POA_TYPES.includes(sl.poa) && !$("c_poa").value) $("c_poa").value = sl.poa;
+    (r.idPhotos || []).forEach(p => { const l = p.label === "Seller" ? "Customer" : p.label; if (SHOTS.some(x => x[0] === l) && !shots.some(x => x.label === l) && String(p.src).startsWith("data:")) shots.push({label: l, src: p.src}); });
+    $("c_dupes").innerHTML = `<div class="alert okk">Details and ID brought in from Buy log ${esc(r.receipt)} (ID checked ${fmtD(r.createdAt)}${r.staff ? " by " + esc(r.staff) : ""}). Check it's still right and the ID is in date.</div>`;
+    checks(); drawShots();
+  };
+  ["c_name", "c_phone", "c_idnum", "c_pc"].forEach(k => $(k).addEventListener("change", dupes));
+  $("c_phone").addEventListener("input", () => { if ($("c_phone").value.replace(/\D/g, "").length >= 10) dupes(); });
   $("c_trade").onchange = () => { checks(); drawShots(); };
   checks(); drawShots();
   $("c_read").onclick = async () => {
@@ -432,14 +509,15 @@ function editCustomer(id, then, trade){
   };
   $("c_save").onclick = async () => {
     const name = $("c_name").value.trim(); if (!name) return toast("Add their name");
-    if (!isTrade()){
+    if (needId){
       const miss = [];
       if (!$("c_idtype").value) miss.push("the type of ID"); if (!$("c_idnum").value.trim()) miss.push("the ID number"); if (!$("c_dob").value) miss.push("date of birth");
       if (!$("c_addr").value.trim() || !$("c_pc").value.trim()) miss.push("address and postcode"); if (!$("c_poa").value) miss.push("proof of address");
-      SHOTS.forEach(([l]) => { if (need(l) && !shots.some(x => x.label === l)) miss.push("a photo of the " + (l === "Customer" ? "customer" : l.toLowerCase().replace("id", "ID"))); });
+      if (!$("c_idexp").value) miss.push("the ID expiry date");
+      SHOTS.forEach(([l]) => { if (need(l) && !shots.some(x => x.label === l)) miss.push("a photo of the " + l.toLowerCase().replace("id", "ID")); });
       if (miss.length) return toast("Still needed: " + miss.join(", "));
-      const exp = $("c_idexp").value; if (exp && new Date(exp + "T23:59") < new Date() && !confirm("This ID has expired. Save anyway?")) return;
-    }
+      if (new Date($("c_idexp").value + "T23:59") < new Date()) return toast("This ID has expired. Ask for another photo ID.");
+    } else if (($("c_idnum").value.trim() || $("c_idtype").value) && !shots.some(x => x.label === "ID front")) return toast("Take a photo of the ID front too, or clear the ID details");
     const btn = $("c_save"); btn.disabled = true; btn.textContent = "Saving…";
     try {
       const photos = [];
@@ -466,7 +544,9 @@ function viewCustomer(id){
       <table><tr><td>${esc(c.idtype)}</td><td><b>${esc(c.idnum)}</b></td></tr>${c.dob ? `<tr><td>Date of birth</td><td>${fmtD(c.dob)}</td></tr>` : ""}${c.idexp ? `<tr><td>ID expires</td><td>${fmtD(c.idexp)}${new Date(c.idexp + "T23:59") < new Date() ? ' <span class="pill due">Expired</span>' : ""}</td></tr>` : ""}
       ${c.poa ? `<tr><td>Proof of address</td><td>${esc(c.poa)}${c.poaDate ? ", " + fmtD(c.poaDate) : ""}</td></tr>` : ""}${c.idAt ? `<tr><td>Checked</td><td>${fmtD(c.idAt)}${c.idBy ? " by " + esc(c.idBy) : ""}</td></tr>` : ""}</table>
       <div class="shots" id="vc_shots">${(c.photos || []).map((p, i) => `<div class="shot have" data-i="${i}"><img alt=""><span>${esc(p.label)}</span></div>`).join("")}</div>`
-      : c.trade ? "" : `<div class="alert wn">No ID on file for this customer. Tap <b>Edit details</b> to add their ID, proof of address and photo.</div>`) : ""}
+      : `<p class="muted">${c.idRemovedAt ? `ID removed ${fmtD(c.idRemovedAt)}${c.idRemovedBy ? " by " + esc(c.idRemovedBy) : ""}.` : c.trade ? "" : `No ID on file. Needed for a sale of ${gbp(ID_AT, 0)} or more.`}</p>`) : ""}
+    ${c.src === "shop" && pastRetention(c) ? `<div class="alert wn">No sale for over ${retainYears} years, so their ID is due for review. Remove it unless you still need it.</div>` : ""}
+    ${c.src === "shop" && idDone(c) ? `<button class="btn ghost" onclick="removeId('${esc(c._id)}')">Remove their ID details and photos</button>` : ""}
     <h2 style="margin-top:16px">Bought from us</h2>
     ${c.trade ? (() => { const ts = sales.filter(x => x.trade && !x.void), g = ts.reduce((t, x) => t + x.items.filter(i => i.kind === "scrap").reduce((a, i) => a + num(i.g), 0), 0), v = ts.reduce((t, x) => t + saleTotal(x), 0), d = ts.reduce((t, x) => t + tradeVsMM(x), 0);
       return ts.length ? `<p class="muted" style="margin-top:0">${ts.length} trade sale${ts.length > 1 ? "s" : ""} · ${gbp(v, 0)}${g ? ` · ${g.toFixed(1)}g scrap` : ""}${d ? ` · <b style="color:${d >= 0 ? "var(--up)" : "var(--down)"}">${d >= 0 ? "+" : "−"}${gbp(Math.abs(d), 0)} against Mastermelt</b>` : ""}</p>` : ""; })() : ""}
@@ -588,7 +668,8 @@ function saleForm(){
   const inStock = get("forsale").filter(s => stStatus(s) === "in" && !draft.items.some(i => i.stockId === s._id));
   openSheet("New sale", `
     <h2>Who is buying?</h2>
-    ${c ? `<div class="item" style="cursor:default"><b>${custLabel(c)}</b><span class="muted">${[c.phone, c.pc].filter(Boolean).map(esc).join(" · ")}</span> <button class="btn small ghost" onclick="draft.custId='';saleForm()">Change</button></div>`
+    ${c ? `<div class="item" style="cursor:default"><b>${custLabel(c)}</b><span class="muted">${[c.phone, c.pc].filter(Boolean).map(esc).join(" · ")}</span> <button class="btn small ghost" onclick="draft.custId='';saleForm()">Change</button></div>
+      ${c.src === "shop" && !c.trade ? (idFull(c) ? '<span class="pill ok">ID on file</span>' : idExpired(c) ? `<div class="alert wn">Their ID expired on ${fmtD(c.idexp)}. Needed again for a sale of ${gbp(ID_AT, 0)} or more.</div>` : `<p class="muted">No ID on file yet. Needed if the sale is ${gbp(ID_AT, 0)} or more.</p>`) : ""}`
       : `<input id="sf_cq" placeholder="Search name, phone or postcode" autocomplete="off"><div id="sf_cres"></div>
          <div class="row"><button class="btn ghost" id="sf_newc">+ New customer</button><button class="btn ghost" id="sf_walk">${draft.walk ? "✓ " : ""}Walk-in, no details</button></div>`}
     <h2 style="margin-top:16px">Items</h2>
@@ -599,6 +680,7 @@ function saleForm(){
     <label>Notes (sizing, engraving, collection date)</label><input id="sf_notes" value="${esc(draft.notes)}">
     <div class="big" id="sf_total" style="margin-top:14px"></div>
     <h2 style="margin-top:14px">Payment now</h2>
+<p class="muted" style="margin:0">Sales of ${gbp(ID_AT, 0)} or more need the customer's ID on file.</p>
     <div class="row"><div><label>Amount paid today (£)</label><input id="sf_pay" type="number" inputmode="decimal" placeholder="full amount or deposit"></div><div><label>How</label><select id="sf_how">${PAY.map(m => `<option>${m}</option>`).join("")}</select></div></div>
     <label style="display:flex;align-items:center;gap:8px;color:var(--text)"><input id="sf_coll" type="checkbox" style="width:auto" checked> Customer is taking it today</label>
     <button class="btn" id="sf_save">Save sale</button>`);
@@ -624,6 +706,8 @@ function saleForm(){
     const total = draft.items.reduce((t, i) => t + num(i.price), 0) - num(draft.discount), paid = num($("sf_pay").value);
     if (paid > total + 0.004) return toast("That's more than the total");
     if (!draft.custId && paid < total - 0.004) return toast("Deposits need a named customer so you know who owes it");
+    if (!idOk(draft.custId, total, () => saleForm())) return;
+    if ($("sf_how").value === "Cash" && !cashOk(draft.custId, paid)) return;
     const list = get("sales"), now = new Date().toISOString();
     const sale = {_id: uid(), no: nextNo(list, "S"), at: now, by: who(), custId: draft.custId, items: draft.items.map(i => ({desc: i.desc.trim(), price: num(i.price), stockId: i.stockId || ""})),
       discount: num(draft.discount), notes: draft.notes.trim(), payments: paid > 0 ? [{at: now, amount: paid, method: $("sf_how").value, by: who()}] : [], collected: $("sf_coll").checked && paid >= total - 0.004 ? now : ""};
@@ -659,6 +743,8 @@ function viewSale(id){
   if ($("vp_go")) $("vp_go").onclick = () => {
     const amt = num($("vp_amt").value); if (!(amt > 0)) return toast("Enter the amount");
     if (amt > due + 0.004) return toast("That's more than what's owed");
+    if ($("vp_how").value === "Cash"){ const cashSoFar = (s.payments || []).filter(p => p.method === "Cash").reduce((t, p) => t + num(p.amount), 0);
+      if (!cashOk(s.custId, cashSoFar + amt)) return; }
     const list = get("sales"), x = list.find(y => y._id === id); x.payments = (x.payments || []).concat({at: new Date().toISOString(), amount: amt, method: $("vp_how").value, by: who()});
     put("sales", list); markStockSold(x); toast(saleDue(x) > 0.004 ? `Payment saved. ${gbp(saleDue(x))} still to pay` : "Paid in full"); renderAll(); viewSale(id);
   };
@@ -771,6 +857,7 @@ function tradeForm(){
     }
     const tot = td.lines.reduce((t, l) => t + priceOf(l), 0), paid = num($("td_pay").value);
     if (paid > tot + 0.004) return toast("That's more than the total");
+    if ($("td_how").value === "Cash" && !cashOk(td.custId, paid)) return;
     const list = get("sales"), now = new Date().toISOString(), mmRef = Math.round(td.lines.reduce((t, l) => t + mmOf(l), 0) * 100) / 100;
     const sale = {_id: uid(), no: nextNo(list, "T"), trade: true, at: now, by: who(), custId: td.custId, discount: 0, notes: td.notes.trim(), collected: now,
       mmRef: mmRef || 0, mmDate: mm ? mm.date : "",
@@ -891,13 +978,13 @@ function renderSettings(){
   $("teamState").innerHTML = j ? `This device is in the team as <b>${esc(DGSync.me())}</b>. Sales, stock, customers and the safe log are shared with the team, locked with your passphrase.`
     : `This phone hasn't joined the team, so everything stays on this phone only. Join the team in Gold Trader (Team page) to share it with Mike.`;
 }
-let pinHash = "";
+let pinHash = "", retainYears = 6;
 const staffAll = () => get("staff").filter(x => x && x.name && !x.gone);
 async function loadPin(){
   try {
     const db = await new Promise((res, rej) => { const r = indexedDB.open("dj-buylog", 1); r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains("records")) d.createObjectStore("records", {keyPath: "id"}); if (!d.objectStoreNames.contains("kv")) d.createObjectStore("kv"); }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
     const s = await new Promise(res => { const q = db.transaction("kv").objectStore("kv").get("settings"); q.onsuccess = () => res(q.result || {}); q.onerror = () => res({}); });
-    pinHash = s.pinHash || "";
+    pinHash = s.pinHash || ""; retainYears = parseFloat(s.retain) || 6;
   } catch(e){}
   renderSettings();
   let signed = ""; try { signed = sessionStorage.getItem("shopUser") || ""; } catch(e){}

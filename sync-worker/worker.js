@@ -8,6 +8,7 @@
 // POST /push  {docs: [...]}   -> {rev}  (a document is only replaced by a newer one: last change wins)
 // POST /history {id}          -> {versions: [{at, who, del, data, current}]}   every saved version of one item, newest first
 // POST /recent {before, limit} -> {changes: [{id, at, who, del}]}              who changed what, newest first (no contents)
+// POST /forget {id, photos}   -> {ok}   erase an item's earlier versions and the listed photos (removing ID after the retention period)
 //
 // Nothing is ever thrown away: when an item is changed or deleted, the version it replaces is kept in "history"
 // (still encrypted). Photos are never changed once sent, so they aren't copied.
@@ -110,6 +111,16 @@ export default {
       const cur = await env.DB.prepare("SELECT at, who, del, data FROM docs WHERE id = ?").bind(id).first();
       const {results} = await env.DB.prepare("SELECT at, who, del, data FROM history WHERE id = ? ORDER BY at DESC LIMIT 60").bind(id).all();
       return reply({versions: (cur ? [Object.assign({current: 1}, cur)] : []).concat(results)}, 200, origin);
+    }
+
+    if (path === "/forget"){   // data protection: erase the old versions of one item, and photos no longer needed
+      const id = String(body.id || ""), photos = Array.isArray(body.photos) ? body.photos.slice(0, 50) : [];
+      if (!id || id.length > 200 || photos.some(h => !/^[0-9a-f]{64}$/.test(h))) return reply({error: "Bad request"}, 400, origin);
+      const st = [env.DB.prepare("DELETE FROM history WHERE id = ?").bind(id)];
+      for (const h of photos) st.push(env.DB.prepare("UPDATE meta SET v = v + 1 WHERE k = 'rev'"),
+        env.DB.prepare("UPDATE docs SET del = 1, data = NULL, at = ?2, rev = (SELECT v FROM meta WHERE k = 'rev') WHERE id = ?1").bind("p:" + h, new Date().toISOString()));
+      await env.DB.batch(st);
+      return reply({ok: 1}, 200, origin);
     }
 
     if (path === "/recent"){

@@ -44,6 +44,7 @@ let syncDB, blDB;
 const sdb = async () => syncDB || (syncDB = await idb("dgsync", 1, d => { d.createObjectStore("kv"); d.createObjectStore("photos"); }));
 const bdb = async () => blDB || (blDB = await idb(BL_DB, 1, d => { if (!d.objectStoreNames.contains("records")) d.createObjectStore("records", {keyPath: "id"}); if (!d.objectStoreNames.contains("kv")) d.createObjectStore("kv"); }));
 const sGet = async (store, k) => rq((await sdb()).transaction(store).objectStore(store).get(k));
+const sDel = async (store, k) => rq((await sdb()).transaction(store, "readwrite").objectStore(store).delete(k));
 const sPut = async (store, k, v) => rq((await sdb()).transaction(store, "readwrite").objectStore(store).put(v, k));
 const bGet = async (store, k) => rq((await bdb()).transaction(store).objectStore(store).get(k));
 const bAll = async () => rq((await bdb()).transaction("records").objectStore("records").getAll());
@@ -204,6 +205,7 @@ async function apply(id, del, data, changed){
       if (del || data.v == null) origRemove.call(LS, k); else rawSet(k, data.v);
       changed.arrays.add(k);
     } else if (kind === "p"){
+      if (del) { await sDel("photos", rest.join(":")); return; }
       if (!del && data && data.v) { await sPut("photos", rest.join(":"), data.v); const sp = sentPhotos(); sp.push(rest.join(":")); jset(P + "sentph", sp.slice(-5000)); }
     } else if (kind === "r"){
       const recId = rest.join(":");
@@ -322,6 +324,15 @@ async function restore(id, data){
 // photos kept apart from the lists (so they don't fill the browser's small list storage), sent once each like Buy log photos
 async function putPhoto(dataUrl){ const h = await sha(dataUrl); await sPut("photos", h, dataUrl); if (joined() && !sentPhotos().includes(h)) enqueue("p:" + h); return "dgph:" + h; }
 async function getPhoto(ref){ if (!ref) return ""; if (!String(ref).startsWith("dgph:")) return ref; return (await sGet("photos", ref.slice(5))) || ""; }
+// after ID is removed from a record: erase its earlier versions on the server, and photos nothing else uses
+async function forget(id, refs){
+  if (!joined()) return;
+  await syncNow();
+  if (queue()[id]) throw new Error("The change hasn't reached the team server yet. Try again when there's signal.");
+  const hashes = (refs || []).filter(r => String(r).startsWith("dgph:")).map(r => r.slice(5));
+  try { await post("/forget", {id, photos: hashes}); } catch(e){ throw new Error(e.status === 404 ? "The team server needs its update first." : e.message); }
+  for (const h of hashes) await sDel("photos", h);
+}
 function setActor(name){ try { if (name) sessionStorage.setItem(P + "actor", name); else sessionStorage.removeItem(P + "actor"); } catch(e){} }
 
 /* ---------- hooks for the Buy log page ---------- */
@@ -332,7 +343,7 @@ const settingsChanged = () => enqueue("b:settings");
 window.DGSync = {
   configured: () => !!SYNC_URL, joined, me, join, leave, syncNow, serverCode,
   status: () => Object.assign({pending: Object.keys(queue()).length}, jget(P + "st", {})),
-  recordChanged, recordDeleted, settingsChanged, history, activity, restore, setActor, actor, putPhoto, getPhoto, people: () => jget(P + "people", ["Jase", "Mike"])
+  recordChanged, recordDeleted, settingsChanged, history, activity, restore, setActor, actor, putPhoto, getPhoto, forget, people: () => jget(P + "people", ["Jase", "Mike"])
 };
 
 let looping = false;
