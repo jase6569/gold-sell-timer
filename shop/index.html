@@ -125,7 +125,8 @@
 <body>
 <header>
   <img src="../icon.png" alt="">
-  <h1>Dorset Gold <span>&amp; Jewellery</span><small id="hdrSub">Shop · sales, stock, customers and safe</small></h1>
+  <h1>Dorset Gold <span>&amp; Jewellery</span><small id="hdrSub">The shop system · everything in one place</small></h1>
+  <a class="x" id="mktBtn" href="../" title="Gold Trader: market prices and when to sell" aria-label="Gold Trader market advice" style="display:flex;align-items:center;justify-content:center;color:var(--gold2)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg></a>
   <button class="x" id="setBtn" title="Settings" aria-label="Settings" onclick="go('set')"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   <button class="x" id="helpBtn" title="Help and guide" aria-label="Help and guide" style="font-weight:800;color:var(--gold2)" onclick="openHelp()">?</button>
 </header>
@@ -338,6 +339,12 @@
     <div class="card">
       <h2>Team</h2>
       <div id="teamState" class="muted"></div>
+      <div id="teamJoin" style="display:none">
+        <label>Who are you?</label><select id="tj_who"></select><input id="tj_other" placeholder="Your first name" style="display:none;margin-top:8px">
+        <label>Business passphrase</label><input id="tj_pass" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="The words you agreed between you">
+        <p class="muted" style="margin:4px 0 0">Type it yourself on each device. Capitals and spaces don't matter.</p>
+        <button class="btn" id="tj_go">Join the team on this device</button><p class="muted" id="tj_msg" style="margin:8px 0 0"></p>
+      </div>
     </div>
     <div class="cols">
     <div class="card">
@@ -1011,7 +1018,7 @@ function cashOnDay(day){
     (s.payments || []).forEach(p => { if ((p.at || "").slice(0, 10) !== day) return; r.byMethod[p.method] = (r.byMethod[p.method] || 0) + num(p.amount); if (p.method === "Cash") r.sales += num(p.amount); r.rows.push({s, p}); });
     (s.refunds || []).forEach(f => { if ((f.at || "").slice(0, 10) !== day) return; r.byMethod[f.method] = (r.byMethod[f.method] || 0) - num(f.amount); if (f.method === "Cash") r.refunds += num(f.amount); r.rows.push({s, p: Object.assign({}, f, {amount: -num(f.amount), refund: 1})}); });
   });
-  blRecs.forEach(b => { if ((b.createdAt || "").slice(0, 10) === day && (b.payment || {}).method === "Cash") r.buys += num(b.total); });
+  blRecs.forEach(b => { if ((b.createdAt || "").slice(0, 10) === day && (b.payment || {}).method === "Cash" && b.payment.from !== "float") r.buys += num(b.total); });   // cash paid from someone's own float is in their Cash, not the till
   return r;
 }
 function renderCashup(){
@@ -1710,7 +1717,13 @@ function renderSettings(){
   [["cfg_valFee", cfg.valFee || ""], ["cfg_valQuals", cfg.valQuals || ""], ["cfg_valBasis", cfg.valBasis || VAL_BASIS], ["cfg_valTerms", cfg.valTerms || VAL_TERMS]].forEach(([k, v]) => { if (document.activeElement !== $(k)) $(k).value = v; }); if (document.activeElement !== $("cfg_footer")) $("cfg_footer").value = cfg.footer || "";
   const j = window.DGSync && DGSync.joined && DGSync.joined();
   $("teamState").innerHTML = j ? `This device is in the team as <b>${esc(DGSync.me())}</b>. Sales, stock, customers and the safe log are shared with the team, locked with your passphrase.`
-    : `This phone hasn't joined the team, so everything stays on this phone only. Join the team in Gold Trader (Team page) to share it with Mike.`;
+    : `This device hasn't joined the team, so everything stays on this device only. Join below: it brings everything down from the team server, and sends up anything only this device has.`;
+  $("teamJoin").style.display = j || !window.DGSync ? "none" : "";
+  if (!j && !$("tj_who").options.length){ const ns = [...new Set(["Jase", "Mike"].concat(staffAll().map(x => x.name)))];
+    $("tj_who").innerHTML = ns.map(n => `<option>${esc(n)}</option>`).join("") + '<option value="">Someone else…</option>';
+    $("tj_who").onchange = () => { $("tj_other").style.display = $("tj_who").value ? "none" : ""; };
+    $("tj_go").onclick = async () => { const w = $("tj_who").value || $("tj_other").value.trim(); $("tj_go").disabled = true; $("tj_msg").textContent = "Joining and bringing everything across. This can take a minute the first time…";
+      try { await DGSync.join($("tj_pass").value, w, false); $("tj_pass").value = ""; location.reload(); } catch(e){ $("tj_msg").textContent = e.message; $("tj_go").disabled = false; } }; }
 }
 let pinHash = "", retainYears = 6;
 const staffAll = () => get("staff").filter(x => x && x.name && !x.gone);
@@ -1762,6 +1775,12 @@ function renderStaff(){
   $("staffList").innerHTML = st.length ? st.map(x => `<div class="item" onclick="editStaff('${esc(x._id)}')"><b>${esc(x.name)}${x.mgr ? '<span class="pill">Manager</span>' : ""}${x.name === who() ? '<span class="pill ok">Signed in</span>' : ""}</b><span class="muted">Own PIN set${x.added ? " · added " + fmtD(x.added) : ""}</span></div>`).join("")
     : '<p class="muted">No one added yet, so the app uses the Buy log PIN (if one is set) and records changes under this device\'s team name.</p>';
   $("pinState").textContent = st.length ? "" : pinHash ? "Using the Buy log PIN until people are added." : "";
+  // the same person must have the same name in both apps, or their visits, cash and figures split in two
+  const names = new Set(st.map(x => x.name.trim().toLowerCase())), gt = new Set();
+  get("visits").forEach(v => v.who && gt.add(v.who)); get("cash").forEach(c => { c.who && gt.add(c.who); c.to && gt.add(c.to); }); get("stock").forEach(x => x._who && gt.add(x._who));
+  if (window.DGSync && DGSync.me && DGSync.me()) gt.add(DGSync.me());
+  const odd = st.length ? [...gt].filter(n => !names.has(n.trim().toLowerCase())) : [];
+  if (odd.length) $("pinState").innerHTML = `<div class="alert wn">Gold Trader has records under ${odd.map(n => "<b>" + esc(n) + "</b>").join(", ")}, but no one in Staff has that name. Use exactly the same first name here as in Gold Trader, or that person's diary, cash and figures will be split in two.</div>`;
 }
 /* manager approval: if a manager is signed in (or no managers are set up yet) it just goes ahead; otherwise a manager types their PIN */
 let approvedBy = "";
@@ -1817,7 +1836,7 @@ function renderStatus(){
   else { cls = "ok"; t = st.ok ? `All saved to the team server · ${new Date(st.ok).toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"})}` : "Connecting to the team server…"; }
   bar.className = cls; $("sbarT").textContent = t; $("sbarU").textContent = who() ? who() : "";
   $("recState").innerHTML = j ? `Everything on this device is saved to the team's own server in your Cloudflare account, locked with the business passphrase, so only your team's devices can read it. Every earlier version is kept as well. A lost or broken phone loses nothing: join the team again on a new one and it all comes back.${st.pending ? `<br><b style="color:var(--amber)">${st.pending} change${st.pending > 1 ? "s" : ""} still waiting to go up.</b>` : ""}`
-    : `<b style="color:#f08a7c">This device hasn't joined the team.</b> Its records are only on this device and would be lost with it. Open Gold Trader on this device, go to Team, then Sharing, and join with the business passphrase.`;
+    : `<b style="color:#f08a7c">This device hasn't joined the team.</b> Its records are only on this device and would be lost with it. Join the team in Settings, under Team.`;
 }
 window.addEventListener("dgsync-status", renderStatus);
 setInterval(renderStatus, 20000);
@@ -2147,33 +2166,46 @@ async function backup(){
   const pw = await askPassword("Lock the backup", true); if (!pw) return;
   toast("Making the backup…");
   const data = {app: "dgj-shop", version: 3, exportedAt: new Date().toISOString(), sales: get("sales"), forsale: get("forsale"), customers: get("customers"), safebags: get("safebags"), staff: get("staff"), till: get("till"), shopcfg: get("shopcfg"),
-    stockchecks: get("stockchecks"), sends: get("sends"), safechecks: get("safechecks"), valuations: get("valuations"), rota: get("rota"), clock: get("clock"), photos: {}};
+    stockchecks: get("stockchecks"), sends: get("sends"), safechecks: get("safechecks"), valuations: get("valuations"), rota: get("rota"), clock: get("clock"), photos: {},
+    // the Buy log (with its photos) and Gold Trader's lists, so this one file covers the whole business
+    buylog: await blAll(), blSettings: Object.assign({}, blSettings || {}, {pinHash: ""}), myGold: {stock: get("stock"), buys: get("buys"), sent: get("sent"), visits: get("visits"), cash: get("cash")}};
   for (const c of data.customers.concat(data.forsale, data.valuations.flatMap(v => v.items))) for (const p of (c.photos || [])) if (p.ref && !data.photos[p.ref]) data.photos[p.ref] = await photoSrc(p);
   const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
   const ct = new Uint8Array(await crypto.subtle.encrypt({name: "AES-GCM", iv}, await pwKey(pw, salt), enc8.encode(JSON.stringify(data))));
   const body = JSON.stringify({app: "dgj-shop-locked", version: 3, made: data.exportedAt, salt: toB64(salt), iv: toB64(iv), data: toB64(ct)});
   const name = `shop-backup-${today()}.dgbackup`, blob = new Blob([body], {type: "application/octet-stream"}), file = new File([blob], name, {type: "application/octet-stream"});
-  localStorage.setItem("shopLastBackup", new Date().toISOString());
+  const bt = new Date().toISOString(); localStorage.setItem("shopLastBackup", bt); localStorage.setItem("blBackup", bt); blKv("lastBackup", bt);   // the Buy log and Gold Trader reminders see it too
   if (coarse && navigator.canShare && navigator.canShare({files: [file]})) navigator.share({files: [file], title: name}).catch(() => {});   // phones: save to Drive or Files
   else { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }   // computers: a download
   renderSettings(); toast("Backup saved, locked with your password");
 }
+/* the Buy log's own database */
+function blDb(){ return new Promise((res, rej) => { const r = indexedDB.open("dj-buylog", 1); r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains("records")) d.createObjectStore("records", {keyPath: "id"}); if (!d.objectStoreNames.contains("kv")) d.createObjectStore("kv"); }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+async function blAll(){ try { const db = await blDb(); const a = await new Promise((res, rej) => { const q = db.transaction("records").objectStore("records").getAll(); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); db.close(); return a; } catch(e){ return []; } }
+async function blPut(recs){ const db = await blDb(); await new Promise((res, rej) => { const t = db.transaction("records", "readwrite"); recs.forEach(r => t.objectStore("records").put(r)); t.oncomplete = res; t.onerror = () => rej(t.error); }); db.close(); recs.forEach(r => { if (window.DGSync && DGSync.recordChanged) DGSync.recordChanged(r.id); }); }
+async function blKv(k, v){ try { const db = await blDb(); await new Promise(res => { const t = db.transaction("kv", "readwrite"); t.objectStore("kv").put(v, k); t.oncomplete = res; t.onerror = res; }); db.close(); } catch(e){} }
 function restorePick(){ const f = document.createElement("input"); f.type = "file"; f.accept = ".dgbackup,.json"; f.onchange = () => f.files[0] && restoreFile(f.files[0]); f.click(); }
 async function restoreFile(file){
   let j; try { j = JSON.parse(await file.text()); } catch(e){ return toast("That isn't a backup file"); }
   let data = j;
   if (j.app === "dgj-shop-locked"){ const pw = await askPassword("Open the backup", false); if (!pw) return;
     try { data = JSON.parse(dec8.decode(await crypto.subtle.decrypt({name: "AES-GCM", iv: fromB64(j.iv)}, await pwKey(pw, fromB64(j.salt)), fromB64(j.data)))); } catch(e){ return toast("Wrong password, or the file is damaged"); } }
-  if (data.app !== "dgj-shop") return toast("That isn't a Shop backup");
+  if (data.app !== "dgj-shop") return toast("That isn't a Shop backup. An older Buy log backup (.json) is restored in the Buy log, Settings.");
   const keys = ["sales", "forsale", "customers", "safebags", "staff", "till", "shopcfg", "stockchecks", "sends", "safechecks", "valuations", "rota", "clock"];
   const adds = {}; keys.forEach(k => { const cur = get(k), have = new Set(cur.map(x => x._id)), add = (data[k] || []).filter(x => x && x._id && !have.has(x._id)); adds[k] = add; });
-  const n = Object.values(adds).reduce((t, a) => t + a.length, 0);
+  // the Buy log and Gold Trader's lists (in backups made since they were added)
+  const haveRec = new Set((await blAll()).map(r => r.id)), recAdd = (data.buylog || []).filter(r => r && r.id && !haveRec.has(r.id));
+  const gKey = {stock: x => x._id || x.bl || JSON.stringify(x), buys: x => x.id || JSON.stringify(x), sent: x => JSON.stringify([x.d, x.by, x.pure]), visits: x => x._id, cash: x => x._id}, gAdd = {};
+  Object.keys(gKey).forEach(k => { const have = new Set(get(k).map(gKey[k])); gAdd[k] = ((data.myGold || {})[k] || []).filter(x => x && !have.has(gKey[k](x))); });
+  const n = Object.values(adds).concat(Object.values(gAdd)).reduce((t, a) => t + a.length, 0) + recAdd.length;
   if (!n) return toast("Nothing to restore: everything in the backup is already here");
   if (!confirm(`Restore ${n} record${n > 1 ? "s" : ""} from the backup made ${fmtD(data.exportedAt)}? Only records missing here are added; nothing here is changed.`)) return;
   const refMap = {};
   for (const [ref, src] of Object.entries(data.photos || {})) if (src && window.DGSync && DGSync.putPhoto) refMap[ref] = await DGSync.putPhoto(src);
+  if (recAdd.length) await blPut(recAdd);
+  Object.keys(gAdd).forEach(k => { if (gAdd[k].length) put(k, get(k).concat(gAdd[k])); });
   keys.forEach(k => { if (!adds[k].length) return; const fix = x => { (x.photos || []).forEach(p => { if (refMap[p.ref]) p.ref = refMap[p.ref]; }); (x.items || []).forEach(fix); return x; }; put(k, get(k).concat(adds[k].map(fix))); });
-  renderAll(); toast(`${n} record${n > 1 ? "s" : ""} restored`);
+  await loadBuyLogSellers(); renderAll(); toast(`${n} record${n > 1 ? "s" : ""} restored`);
 }
 
 /* right of access: everything held about one person, from the Shop and the Buy log, to print or give them as a file */
@@ -2473,7 +2505,7 @@ setInterval(() => { if (page === "diary" || document.body.classList.contains("lo
 const HELP = [
   {id: "start", page: "", t: "Getting started (do these once)", b: `
     <ol>
-      <li><b>Join the team on every device.</b> Open Gold Trader on the phone, tablet or shop computer, go to <b>Team</b>, then <b>Sharing</b>, and join with the business passphrase. The bar at the top of this app turns green when that device is saving to the team server.</li>
+      <li><b>Join the team on every device.</b> Open this Shop app on each phone, tablet and the shop computer, go to <b>Settings</b>, then <b>Team</b>, and join with the business passphrase. The bar at the top of this app turns green when that device is saving to the team server.</li>
       <li><b>Add everyone's PIN.</b> Settings, then Staff and sign-in. Tick <b>Manager</b> for whoever can approve refunds, cancellations and deletions.</li>
       <li><b>Check the business details and buying rules</b> in Settings: they go on receipts, dispatch notes and price tags.</li>
       <li><b>Add your returns policy</b> in Settings, then Receipts.</li>
@@ -2483,7 +2515,7 @@ const HELP = [
     <p><b>Opening:</b> Sales, then Till and cash-up: type the opening float.</p>
     <p><b>During the day:</b> sales on Sales, buying through Buy (the Buy log), new pieces on Stock.</p>
     <p><b>Closing:</b> count the till and type what's there. It shows straight away if it's over or short. Put the day's buys into the safe from the Buy page.</p>
-    <p><b>Weekly:</b> a safe check (Safe page). <b>Monthly:</b> a stock check (Stock page) and a backup (Settings).</p>`},
+    <p><b>Weekly:</b> a safe check (Safe page). <b>Weekly:</b> a backup (Settings). <b>Monthly:</b> a stock check (Stock page).</p>`},
   {id: "sales", page: "sales", t: "Sales, deposits and payments", b: `
     <p><b>+ Start a new sale:</b> choose the customer (or walk-in), add items or tap <b>+ From stock</b>, then how they're paying.</p>
     <p><b>Part cash, part card:</b> tap <b>+ Split the payment</b>.</p>
@@ -2560,7 +2592,7 @@ const HELP = [
     <p>Each person has their own PIN; whoever is signed in is recorded on everything they do. The app locks itself when not used (set how long in Settings). Tap <b>Lock / switch person</b> when someone else takes over.</p>
     <p><b>Managers</b> approve refunds, cancelling sales, deleting stock, putting back old versions and removing ID. If someone else is signed in, the app asks a manager for their PIN there and then.</p>`},
   {id: "history", page: "set", t: "Activity, history and putting things back", b: `<p>Settings, then <b>Activity</b> shows every change: who, when and what. On any sale, piece, customer or bag, <b>History of changes</b> shows each earlier version and what changed. <b>Put this version back</b> restores it (even after a deletion); nothing is ever lost.</p>`},
-  {id: "backup", page: "set", t: "Where records are kept and backups", b: `<p>Everything is saved to the team's own server in your Cloudflare account, locked with the business passphrase, with every earlier version kept. A lost phone loses nothing: join the team on a new one. For your own copy, use <b>Back up now</b> monthly (and the Buy log's own backup for purchase records). Keep backups private: they hold customers' ID.</p>`},
+  {id: "backup", page: "set", t: "Where records are kept and backups", b: `<p>Everything is saved to the team's own server in your Cloudflare account, locked with the business passphrase, with every earlier version kept. A lost phone loses nothing: join the team on a new one. For your own copy, use <b>Back up now</b> every week. That one file covers the whole business: the Shop, the Buy log with its photos, My gold, the diary, rota and cash. It's locked with a password you choose, because it holds customers' ID. The Back up buttons in Gold Trader and the Buy log all come here. <b>Restore from a backup file</b> only adds what's missing on this device.</p><p>Nightly, at midnight, the team server also copies everything to a separate backup database, kept 7 years.</p>`},
   {id: "law", page: "", t: "The rules this app helps you follow", b: `
     <ul><li><b>Buying:</b> record who you bought from, with photo ID and address, what you bought and how you paid. Keep records for the period set in the Buy log (6 years by default).</li>
     <li><b>Holding period:</b> many police forces and licences expect bought items to be held before melting. Check what applies to you and set it in Settings.</li>
@@ -2602,6 +2634,8 @@ let page = "sales";
 function go(p){ page = p; ["sales", "buy", "coins", "diary", "stock", "cust", "safe", "rep", "set"].forEach(x => $("p-" + x).style.display = x === p ? "" : "none");
   document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.p === p)); window.scrollTo(0, 0); renderAll(); }
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => go(b.dataset.p));
+{ const qs = new URLSearchParams(location.search), gp = qs.get("go"); if (["diary", "safe", "rep", "coins", "stock", "cust", "buy"].includes(gp)) setTimeout(() => go(gp), 0);
+  if (qs.get("backup")) setTimeout(() => { history.replaceState(null, "", location.pathname); go("set"); const b = document.querySelector('[onclick="backup()"]'); if (b) b.scrollIntoView({block: "center"}); backup(); }, 900); }   // links from Gold Trader
 function renderAll(){ [renderSales, renderVals, renderBuys, renderDiary, renderStock, renderCustomers, renderSafe, renderReports, renderSettings, () => { if (page === "coins" && typeof renderCoins === "function"){ renderCoins(); coinPriceLine(); } }].forEach(f => { try { f(); } catch(e){ console.log(e); } }); }
 window.addEventListener("dgsync-applied", () => { renderAll(); let u = ""; try { u = sessionStorage.getItem("shopUser") || ""; } catch(e){}
   if (staffAll().length && !staffAll().some(x => x.name === u) && $("lock").style.display !== "flex") lockNow(); });

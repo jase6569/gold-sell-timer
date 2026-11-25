@@ -1,11 +1,11 @@
 {
   "name": "Dorset Gold & Jewellery Shop",
   "short_name": "Shop",
-  "description": "Sales and deposits, stock for sale, customers and the safe log.",
+  "description": "The Dorset Gold & Jewellery shop system: sales, buying, coins, diary, stock, customers, safe and reports.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#0f0e0c",
   "theme_color": "#0f0e0c",
   "icons": [

@@ -155,7 +155,7 @@
 </div>
 
 <header>
-  <a href="../" class="back" aria-label="Back to Gold Trader">‹</a>
+  <a href="../shop/" class="back" aria-label="Back to the Shop">‹</a>
   <script>try{if(new URLSearchParams(location.search).get('px')==='1')sessionStorage.setItem('blPx','1');if(new URLSearchParams(location.search).get('from')==='shop')sessionStorage.setItem('blFrom','shop');if(sessionStorage.getItem('blFrom')==='shop'){var _b=document.currentScript.previousElementSibling;_b.href='../shop/';_b.setAttribute('aria-label','Back to Shop');}}catch(e){}</script>
   <img class="logo" src="../logo.png" alt="">
   <div><h1>Buying Log<small>Dorset Gold &amp; Jewellery</small></h1></div>
@@ -293,6 +293,9 @@
           </select></div>
         <div><label>Payment reference</label><input id="f_payref" autocomplete="off" placeholder="Bank ref, cheque no."></div>
       </div>
+      <div class="hidden" id="cashRow"><label>Where the cash came from*</label>
+        <select id="f_cashfrom"><option value="">Choose…</option><option value="till">The shop till</option><option value="float">Cash I'm carrying (my own float)</option></select>
+        <p class="muted" style="margin:4px 0 0">So the shop's till count and each person's cash in Gold Trader both come out right.</p></div>
       <div class="row hidden" id="bankRow">
         <div><label>Paid to (account name)</label><input id="f_bankname" autocomplete="off"></div>
         <div><label>Account last 4 digits</label><input id="f_banklast4" inputmode="numeric" maxlength="4" autocomplete="off"></div>
@@ -647,7 +650,9 @@ function cmRule(){
 }
 
 ['#f_idtype','#f_poa'].forEach(k => $(k).addEventListener('change', () => checkId()));
-$('#f_pay').onchange = () => { $('#bankRow').classList.toggle('hidden', $('#f_pay').value!=='Bank transfer'); checkPay(); };
+$('#f_pay').onchange = () => { $('#bankRow').classList.toggle('hidden', $('#f_pay').value!=='Bank transfer');
+  const cash = $('#f_pay').value==='Cash'; $('#cashRow').classList.toggle('hidden', !cash);
+  if (cash && !$('#f_cashfrom').value) $('#f_cashfrom').value = visitId ? 'float' : 'till'; checkPay(); };
 function checkPay(){
   const out = [];
   if ($('#f_pay').value==='Cash' && total() >= 8000) out.push(`<div class="alert warn">Large cash payment (${gbp(total())}). Check your high-value dealer and anti-money-laundering obligations before paying this much in cash.</div>`);
@@ -729,7 +734,7 @@ function resetForm(){
   $('#f_staff').value = signedIn || settings.staff||''; $('#f_loc').value = settings.loc||'';
   idPhotos=[]; lotPhotos=[]; items=[blankItem()]; $('#idScanMsg').innerHTML=''; renderIdPhotos(); renderLotPhotos(); renderItems();
   $('#sigClear').click(); setAlerts(''); $('#payAlerts').innerHTML=''; $('#formErrors').innerHTML='';
-  $('#bankRow').classList.add('hidden'); try { cmRule(); priceHelp(); } catch(e){}
+  $('#bankRow').classList.add('hidden'); $('#cashRow').classList.add('hidden'); try { cmRule(); priceHelp(); } catch(e){}
 }
 $('#resetBtn').onclick = () => { if (confirm('Clear everything on this form?')) resetForm(); };
 
@@ -761,6 +766,7 @@ $('#saveBtn').onclick = async () => {
     if (isGold(it) && !FINENESS[it.purity]) errs.push(`The carat for gold item ${n} (test it if unsure), so it can go into My gold`);
     if (isGold(it) && !(parseFloat(it.weight) > 0)) errs.push(`The weight of gold item ${n}, so it can go into My gold`); });
   if (!v('#f_pay')) errs.push('Payment method');
+  if (v('#f_pay')==='Cash' && !v('#f_cashfrom')) errs.push('Where the cash came from');
   if (cmNeeded() && !$('#f_cm').checked) errs.push('The stolen-goods check (tick it once done)');
   if (!$('#f_decl').checked) errs.push('Seller declaration ticked');
   if (!sigDirty) errs.push('Seller signature');
@@ -785,7 +791,7 @@ $('#saveBtn').onclick = async () => {
     lotPhotos: lotPhotos.slice(),
     items: goodItems.map(it => ({...it, price: parseFloat(it.price)||0, weight: it.weight})),
     total: goodItems.reduce((s,it)=>s+(parseFloat(it.price)||0),0),
-    payment: { method:v('#f_pay'), ref:v('#f_payref'), bankName:v('#f_bankname'), bankLast4:v('#f_banklast4') },
+    payment: { method:v('#f_pay'), from: v('#f_pay')==='Cash' ? v('#f_cashfrom') : '', ref:v('#f_payref'), bankName:v('#f_bankname'), bankLast4:v('#f_banklast4') },
     declaration: true,
     signature: sig.toDataURL('image/png'),
     staff: v('#f_staff'), location: v('#f_loc'), notes: v('#f_notes'), flagged: $('#f_flag').checked,
@@ -1267,8 +1273,10 @@ async function runBackup(){
   fillSettings(); checkBackupDue();
   toast(how === 'shared' ? 'Backup saved' : 'Backup downloaded. Move it to Google Drive or email it to yourself');
 }
-$('#backupBtn').onclick = runBackup;
-$('#bkNagBtn').onclick = runBackup;
+// one locked backup for the whole business, made in the Shop app (it includes these records and their photos)
+const toShopBackup = () => { location.href = '../shop/?backup=1'; };
+$('#backupBtn').onclick = toShopBackup;
+$('#bkNagBtn').onclick = toShopBackup;
 async function checkBackupDue(){
   try {
     const n = (await allRecords()).length, t = await kvGet('lastBackup');

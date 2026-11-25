@@ -163,6 +163,7 @@ function renderDiary(){
   const tm = new Date(Date.now() + 864e5), tom = new Date(tm.getTime() - tm.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
   const toRemind = upcoming.filter(v => v.date === tom && v.phone && !v.reminded);
   box.innerHTML = `<h2>Visit diary</h2>
+    <p class="muted" style="margin-top:0">The same visits as the Shop app. The rota, clocking in and out, and who's where now are in the <a href="shop/?go=diary" style="color:var(--gold2)">Shop app's Diary</a>. Use <b>Going out</b> there before a home visit.</p>
     ${editing !== null ? visitForm(editing === "new" ? null : visits().find(v => v._id === editing)) : `<button class="btn" id="vAdd" style="margin-top:0">Add a visit</button>`}
     ${me() ? `<label style="display:flex;gap:8px;align-items:center;color:var(--text);font-size:15px;margin-top:12px"><input type="checkbox" id="vMine" style="width:20px;height:20px" ${mineOnly ? "checked" : ""}> Only show my visits</label>` : ""}
     ${toRemind.length && new Date().getHours() >= 15 ? `<div class="warn">${toRemind.length} of tomorrow's customer${toRemind.length === 1 ? " hasn't" : "s haven't"} had a reminder text yet. Tap <b>Remind</b> on each one below.</div>` : ""}
@@ -206,7 +207,8 @@ async function cashPurchases(){
     const db = await new Promise((res, rej) => { const r = indexedDB.open("dj-buylog", 1); r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains("records")) d.createObjectStore("records", {keyPath: "id"}); if (!d.objectStoreNames.contains("kv")) d.createObjectStore("kv"); }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
     const recs = await new Promise((res, rej) => { const r = db.transaction("records").objectStore("records").getAll(); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
     db.close();
-    return recs.filter(r => r.payment && r.payment.method === "Cash").map(r => ({date: r.createdAt.slice(0, 10), at: r.createdAt, who: r._who || r.staff || "", type: "paid", amount: r.total, note: `${r.receipt} · ${r.seller.first} ${r.seller.last}`}));
+    // cash from the shop till is counted by the Shop app's till, not against a person. Older records (no "from") count here as they always did.
+    return recs.filter(r => r.payment && r.payment.method === "Cash" && r.payment.from !== "till").map(r => ({date: r.createdAt.slice(0, 10), at: r.createdAt, who: r._who || r.staff || "", type: "paid", amount: r.total, note: `${r.receipt} · ${r.seller.first} ${r.seller.last}`}));
   } catch(e){ return []; }
 }
 async function renderCash(){
@@ -272,15 +274,7 @@ function renderFigures(){
         ${per.size > 1 ? `<tr><td><b>Business bought</b><div class="muted">${all.w.toFixed(1)}g${mg(all) ? " · " + mg(all) : ""}</div></td><td><b>${money(all.paid)}</b></td></tr>` : ""}
         ${s ? `<tr><td>Sent to the refiner<div class="muted">${s.pure.toFixed(1)}g pure · cost ${money(s.cost)} · roughly ${money(s.value - s.cost)} profit</div></td><td>${money(s.value)}</td></tr>` : ""}</table>`; }).join("") || '<p class="muted">Fills in as you buy and send gold.</p>'}
     <p class="muted" style="margin:10px 0 0">Margin is what you paid against what the refiner was paying on the day you bought. Refiner figures are estimates until Mastermelt's statement comes in.</p>
-    <button class="btn ghost" id="fCsv">Export for the accountant (CSV)</button>`;
-  $("fCsv").onclick = () => {
-    const out = [["Month", "Person", "Grams bought", "Pure gold (g)", "Paid (£)", "Refiner value on the day (£)"]];
-    [...rows.entries()].sort().forEach(([m, per]) => per.forEach((t, p) => out.push([m, p, t.w.toFixed(2), t.pure.toFixed(3), t.paid.toFixed(2), t.ref.toFixed(2)])));
-    out.push([]); out.push(["Month", "Sent to refiner: pure gold (g)", "Cost (£)", "Estimated payout (£)"]);
-    [...sent.entries()].sort().forEach(([m, s]) => out.push([m, s.pure.toFixed(3), s.cost.toFixed(2), s.value.toFixed(2)]));
-    const csv = out.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], {type: "text/csv"})); a.download = `dorset-gold-figures-${todayISO()}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500);
-  };
+    <p class="muted">For the accountant, use the export in the <a href="shop/?go=rep" style="color:var(--gold2)">Shop app's Reports</a>: it covers buying, sales, refiner sends and the till in one place.</p>`;
 }
 
 /* ================= page ================= */
