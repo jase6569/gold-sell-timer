@@ -3,9 +3,9 @@
 // and the copy saved here is only used when there's no signal (or it's too slow).
 // Adam's app (adam/) is left completely alone.
 const CACHE = "gt-offline-v1";
-const CORE = ["./", "index.html", "sync.js?v=9", "team.js?v=4", "keep.js?v=1", "offer.js?v=2", "manifest.json",
+const CORE = ["./", "index.html", "sync.js?v=10", "team.js?v=4", "keep.js?v=1", "offer.js?v=2", "manifest.json",
   "icon.png", "logo.png", "favicon.png", "apple-touch-icon.png", "data.json", "news.json", "mastermelt.json", "widget.json",
-  "buying-log/", "buying-log/index.html", "buying-log/qrcode.min.js",
+  "buying-log/", "buying-log/index.html", "buying-log/qrcode.min.js", "shop/", "shop/index.html", "shop/manifest.json",
   "https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"];
 const SLOW_MS = 4000;   // weak signal: after this long, use the saved copy instead of waiting
 
