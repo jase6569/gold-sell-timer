@@ -113,6 +113,7 @@
 <header>
   <img src="../icon.png" alt="">
   <h1>Dorset Gold <span>&amp; Jewellery</span><small id="hdrSub">Shop · sales, stock, customers and safe</small></h1>
+  <button class="x" id="helpBtn" title="Help and guide" aria-label="Help and guide" style="font-weight:800;color:var(--gold2)" onclick="openHelp()">?</button>
 </header>
 <div id="sbar" onclick="go('set')"><i></i><span id="sbarT">Checking…</span><b id="sbarU"></b></div>
 
@@ -238,17 +239,31 @@
       <h2>Team</h2>
       <div id="teamState" class="muted"></div>
     </div>
+    <div class="cols">
     <div class="card">
-      <h2>Link with Gold Trader</h2>
-      <p class="muted" style="margin-top:0">Buying always uses the Buy log, and everyone who sells to you appears in Customers. On: safe bags can also be filled from your My gold list in Gold Trader.</p>
-      <select id="linkGT"><option value="off">Off, keep separate</option><option value="on">On, link with Gold Trader</option></select>
+      <h2>Business details</h2>
+      <p class="muted" style="margin-top:0">On receipts, dispatch notes, labels and the Buy log. Shared with the team.</p>
+      <label>Business name</label><input id="bz_name">
+      <label>Address</label><textarea id="bz_addr" style="min-height:56px"></textarea>
+      <label>Phone</label><input id="bz_phone">
+      <button class="btn ghost" id="bz_save">Save business details</button>
+    </div>
+    <div class="card">
+      <h2>Buying rules</h2>
+      <p class="muted" style="margin-top:0">Used by the Buy log. Shared with the team.</p>
+      <label>Holding period before bought gold is melted or sold on (days)</label><input id="br_hold" type="number" inputmode="numeric" placeholder="14">
+      <label>Stolen-goods check needed for buys of (£) or more (watches always)</label><input id="br_cm" type="number" inputmode="decimal" placeholder="1000">
+      <label>Your offer, as a % of what Mastermelt pays (optional)</label><input id="br_offer" type="number" inputmode="decimal" placeholder="e.g. 75">
+      <button class="btn ghost" id="br_save">Save buying rules</button>
+    </div>
     </div>
     <div class="card">
       <h2>Staff and sign-in</h2>
-      <p class="muted" style="margin-top:0">Give each person their own PIN. Whoever signs in is recorded on every sale, payment, bag and change they make, so on a shared shop computer or tablet you always know who did what. It locks itself after 5 minutes unused.</p>
+      <p class="muted" style="margin-top:0">Give each person their own PIN. Whoever signs in is recorded on every sale, payment, bag and change they make. <b>Managers</b> approve refunds, cancelled sales, deleted stock, putting back old versions and removing ID.</p>
       <div id="staffList"></div>
       <button class="btn ghost" onclick="editStaff()">+ Add a person</button>
       <div id="pinState" class="muted" style="margin-top:10px"></div>
+      <label>Lock the app after this long unused</label><select id="lockMins"><option value="2">2 minutes</option><option value="5">5 minutes</option><option value="10">10 minutes</option><option value="15">15 minutes</option><option value="30">30 minutes</option></select>
       <button class="btn ghost" onclick="lockNow()">Lock / switch person</button>
     </div>
     <div class="card">
@@ -269,7 +284,7 @@
     </div>
     <div class="card">
       <h2>Back up</h2>
-      <p class="muted" style="margin-top:0">Saves all sales, stock, customers (with their ID photos) and the safe log to one file. It holds customers' ID, so keep it somewhere private.</p>
+      <p class="muted" style="margin-top:0">Saves all sales, stock, customers (with their ID photos), the till and the safe log to one file. It holds customers' ID, so keep it somewhere private. Purchase records have their own backup in the Buy log's Settings.</p>
       <button class="btn ghost" onclick="backup()">Back up now</button>
     </div>
   </section>
@@ -312,7 +327,7 @@ function toast(m){ const t = $("toast"); t.textContent = m; t.style.display = "b
 function openSheet(title, html){ $("shTitle").textContent = title; $("shBody").innerHTML = html; $("sheet").classList.add("open"); $("sheet").querySelector(".in").scrollTop = 0; }
 function closeSheet(){ $("sheet").classList.remove("open"); }
 $("sheet").addEventListener("click", e => { if (e.target.id === "sheet") closeSheet(); });
-const linked = () => localStorage.getItem("shopLinkGT") === "on";
+const linked = () => true;   // one system: the Shop always works with the Buy log and My gold
 const CARATS = [["9ct", 0.375], ["14ct", 0.585], ["18ct", 0.75], ["22ct", 0.916], ["24ct", 0.999], ["Silver 925", 0.925], ["Silver 958", 0.958], ["Silver 999", 0.999], ["Platinum 950", 0.95], ["Palladium 950", 0.95], ["Other", 0]];
 const PAY = ["Cash", "Card", "Bank transfer", "Other"];
 
@@ -437,7 +452,8 @@ const idDone = c => !!(c && c.idnum && (c.photos || []).some(p => p.label === "I
 /* data protection: ID kept only as long as needed. Review it once the customer has had no sale for the retention period (set in the Buy log) */
 const lastSeen = c => [c.added, c.idAt].concat(get("sales").filter(x => x.custId === c._id).map(x => x.at)).filter(Boolean).sort().pop() || "";
 const pastRetention = c => (c.photos || []).length > 0 && lastSeen(c) && (Date.now() - new Date(lastSeen(c))) / (365.25 * 864e5) > retainYears;
-async function removeId(cid){
+function removeId(cid){ withManager("Removing a customer's ID", () => removeIdOk(cid)); }
+async function removeIdOk(cid){
   const c = get("customers").find(x => x._id === cid); if (!c) return;
   if (!confirm(`Remove ${c.name}'s ID details and photos? Their name, contact details and sales stay. This can't be undone, including the earlier saved versions on the team server.`)) return;
   const refs = (c.photos || []).map(p => p.ref).filter(Boolean);
@@ -759,7 +775,7 @@ function editStock(id, pre){
       if (!id && wm.length){ toast(`${wm.length} customer${wm.length > 1 ? "s" : ""} may want this`); viewStock(rec._id); } else toast("Saved");
     } catch(e){ toast(e.message); btn.disabled = false; btn.textContent = "Save piece"; }
   };
-  if (id) $("st_del").onclick = () => { if (!confirm("Delete this piece? It stays in the history of changes, but leaves the stock list.")) return; put("forsale", get("forsale").filter(x => x._id !== id)); closeSheet(); renderAll(); };
+  if (id) $("st_del").onclick = () => withManager("Deleting a stock piece", () => { if (!confirm("Delete this piece? It stays in the history of changes, but leaves the stock list.")) return; put("forsale", get("forsale").filter(x => x._id !== id)); closeSheet(); renderAll(); });
 }
 function viewStock(id){
   const s = get("forsale").find(x => x._id === id); if (!s) return;
@@ -918,7 +934,8 @@ function tillEntry(kind){
   $("te_go").onclick = () => { const a = num($("te_amt").value); if (!(a > 0)) return toast("Enter the amount"); if (kind !== "bank" && !$("te_note").value.trim()) return toast("Say what it was for");
     const list = get("till"); list.push({_id: uid(), day, kind, amount: a, note: $("te_note").value.trim(), by: who(), at: new Date().toISOString()}); put("till", list); closeSheet(); renderCashup(); };
 }
-function delTill(id){ if (!confirm("Remove this entry?")) return; put("till", get("till").filter(x => x._id !== id)); renderCashup(); }
+function delTill(id){ withManager("Removing a till entry", () => delTillOk(id)); }
+function delTillOk(id){ if (!confirm("Remove this entry?")) return; put("till", get("till").filter(x => x._id !== id)); renderCashup(); }
 $("cuDay").value = today(); $("cuDay").addEventListener("change", renderCashup);
 (function moveOldCounts(){ try { const old = JSON.parse(localStorage.getItem("shopCashups") || "{}"), list = get("till"); let n = 0;
   Object.entries(old).forEach(([d, v]) => { if (v !== "" && !list.some(x => x.day === d && x.kind === "count")){ list.push({_id: uid(), day: d, kind: "count", amount: num(v), by: who(), at: new Date().toISOString()}); n++; } });
@@ -1095,7 +1112,7 @@ function viewSale(id){
     location.href = `sms:${c.phone.replace(/\s/g, "")}?&body=${encodeURIComponent(msg)}`;
   };
   if ($("vp_coll")) $("vp_coll").onclick = () => { const list = get("sales"), x = list.find(y => y._id === id); x.collected = new Date().toISOString(); put("sales", list); markStockSold(x); renderAll(); viewSale(id); };
-  if ($("vp_void")) $("vp_void").onclick = () => { if (!confirm("Cancel this sale? Any stock on it goes back to In stock.")) return; voidSale(id); closeSheet(); };
+  if ($("vp_void")) $("vp_void").onclick = () => withManager("Cancelling a sale", () => { if (!confirm("Cancel this sale? Any stock on it goes back to In stock.")) return; voidSale(id); closeSheet(); });
 }
 function voidSale(id){
   const list = get("sales"), x = list.find(y => y._id === id); x.void = new Date().toISOString(); x.voidBy = who(); put("sales", list);
@@ -1104,7 +1121,8 @@ function voidSale(id){
   renderAll();
 }
 /* refunds: money back (any method), optionally with items returned to stock; or cancel the whole order and refund the deposit */
-function refundForm(id){
+function refundForm(id){ withManager("Refunds and returns", () => refundFormOk(id)); }
+function refundFormOk(id){
   const s = get("sales").find(x => x._id === id); if (!s) return;
   const net = Math.round((salePaid(s) - saleRefunded(s)) * 100) / 100, due = saleDue(s);
   const lastMethod = ((s.payments || []).slice(-1)[0] || {}).method || "Cash";
@@ -1130,7 +1148,7 @@ function refundForm(id){
     if (!why) return toast("Choose the reason");
     if ($("rf_how").value === "Cash" && amt > 0){ const c = cashOnDay(today()), fl = tillDay(today()).find(x => x.kind === "float"); if (fl && num(fl.amount) + c.sales - c.refunds - c.buys < amt - 0.004 && !confirm("That's more cash than the till should hold. Go ahead?")) return; }
     const list = get("sales"), x = list.find(y => y._id === id), now = new Date().toISOString();
-    if (amt > 0) x.refunds = (x.refunds || []).concat({at: now, amount: amt, method: $("rf_how").value, reason: why + ($("rf_note").value.trim() ? ": " + $("rf_note").value.trim() : ""), items, by: who()});
+    if (amt > 0) x.refunds = (x.refunds || []).concat(Object.assign({at: now, amount: amt, method: $("rf_how").value, reason: why + ($("rf_note").value.trim() ? ": " + $("rf_note").value.trim() : ""), items, by: who()}, approvedBy ? {approvedBy} : {}));
     items.forEach(n => { x.items[n].returned = now; });
     put("sales", list);
     if (items.length && (!$("rf_restock") || $("rf_restock").checked)){ const st = get("forsale"); items.forEach(n => { const p = st.find(z => z._id === x.items[n].stockId); if (p){ p.status = "in"; p.saleId = ""; } }); put("forsale", st); }
@@ -1549,10 +1567,20 @@ function safeCheck(){
 
 /* ============ SETTINGS, LOCK, BACKUP ============ */
 $("cfg_save").onclick = () => { const list = get("shopcfg").filter(x => x._id !== "cfg"); list.push(Object.assign({}, shopCfg(), {_id: "cfg", policy: $("cfg_policy").value.trim(), footer: $("cfg_footer").value.trim(), by: who()})); put("shopcfg", list); toast("Saved"); };
-$("linkGT").value = linked() ? "on" : "off";
-$("linkGT").onchange = async () => { localStorage.setItem("shopLinkGT", $("linkGT").value); await loadBuyLogSellers(); renderAll(); toast($("linkGT").value === "on" ? "Linked with Gold Trader" : "Kept separate"); };
+async function blSettingsSave(patch){
+  const db = await new Promise((res, rej) => { const r = indexedDB.open("dj-buylog", 1); r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains("records")) d.createObjectStore("records", {keyPath: "id"}); if (!d.objectStoreNames.contains("kv")) d.createObjectStore("kv"); }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  const cur = await new Promise(res => { const q = db.transaction("kv").objectStore("kv").get("settings"); q.onsuccess = () => res(q.result || {}); q.onerror = () => res({}); });
+  Object.assign(cur, patch); await new Promise((res, rej) => { const q = db.transaction("kv", "readwrite").objectStore("kv").put(cur, "settings"); q.onsuccess = res; q.onerror = () => rej(q.error); });
+  blSettings = cur; if (window.DGSync && DGSync.settingsChanged) DGSync.settingsChanged();
+}
+function fillBizRules(){ const s = blSettings || {}, set = (k, v) => { if (document.activeElement !== $(k)) $(k).value = v; };
+  set("bz_name", s.biz || "Dorset Gold & Jewellery"); set("bz_addr", s.addr || ""); set("bz_phone", s.phone || ""); set("br_hold", s.holdDays ?? "14"); set("br_cm", s.cmAt || "1000"); set("br_offer", s.offerPct || ""); }
+$("bz_save").onclick = async () => { if (!$("bz_name").value.trim()) return toast("Add the business name"); await blSettingsSave({biz: $("bz_name").value.trim(), addr: $("bz_addr").value.trim(), phone: $("bz_phone").value.trim()}); toast("Business details saved"); };
+$("br_save").onclick = async () => { const o = $("br_offer").value.trim(); if (o && !(+o > 0 && +o <= 100)) return toast("The offer % should be between 1 and 100");
+  await blSettingsSave({holdDays: String(Math.max(0, Math.round(+($("br_hold").value || 14)))), cmAt: $("br_cm").value.trim() || "1000", offerPct: o}); toast("Buying rules saved"); };
+window.addEventListener("dgsync-applied", e => { if (e.detail && e.detail.settings) loadPin(); });
 function renderSettings(){
-  renderStaff(); renderStatus();
+  renderStaff(); renderStatus(); fillBizRules();
   const cfg = shopCfg(); if (document.activeElement !== $("cfg_policy")) $("cfg_policy").value = cfg.policy || ""; if (document.activeElement !== $("cfg_footer")) $("cfg_footer").value = cfg.footer || "";
   const j = window.DGSync && DGSync.joined && DGSync.joined();
   $("teamState").innerHTML = j ? `This device is in the team as <b>${esc(DGSync.me())}</b>. Sales, stock, customers and the safe log are shared with the team, locked with your passphrase.`
@@ -1600,30 +1628,53 @@ $("pinIn").addEventListener("input", async () => { const v = $("pinIn").value; i
   if (await sha("gl-salt:" + v) === pinHash){ $("lock").style.display = "none"; lastActive = Date.now(); } else if (v.length >= 8) { $("lockMsg").textContent = "Wrong PIN"; $("pinIn").value = ""; } });
 let lastActive = Date.now();
 ["click", "keydown", "touchstart"].forEach(e => document.addEventListener(e, () => lastActive = Date.now(), {passive: true}));
-setInterval(() => { if ((staffAll().length || pinHash) && $("lock").style.display !== "flex" && Date.now() - lastActive > 5 * 60000) lockNow(); }, 15000);
+const lockMins = () => parseFloat(localStorage.getItem("shopLockMins") || "5") || 5;
+setInterval(() => { if ((staffAll().length || pinHash) && $("lock").style.display !== "flex" && Date.now() - lastActive > lockMins() * 60000) lockNow(); }, 15000);
+$("lockMins").value = String(lockMins()); $("lockMins").onchange = () => { localStorage.setItem("shopLockMins", $("lockMins").value); toast("Saved for this device"); };
 function renderStaff(){
   const st = staffAll();
-  $("staffList").innerHTML = st.length ? st.map(x => `<div class="item" onclick="editStaff('${esc(x._id)}')"><b>${esc(x.name)}${x.name === who() ? '<span class="pill ok">Signed in</span>' : ""}</b><span class="muted">Own PIN set${x.added ? " · added " + fmtD(x.added) : ""}</span></div>`).join("")
+  $("staffList").innerHTML = st.length ? st.map(x => `<div class="item" onclick="editStaff('${esc(x._id)}')"><b>${esc(x.name)}${x.mgr ? '<span class="pill">Manager</span>' : ""}${x.name === who() ? '<span class="pill ok">Signed in</span>' : ""}</b><span class="muted">Own PIN set${x.added ? " · added " + fmtD(x.added) : ""}</span></div>`).join("")
     : '<p class="muted">No one added yet, so the app uses the Buy log PIN (if one is set) and records changes under this device\'s team name.</p>';
   $("pinState").textContent = st.length ? "" : pinHash ? "Using the Buy log PIN until people are added." : "";
 }
+/* manager approval: if a manager is signed in (or no managers are set up yet) it just goes ahead; otherwise a manager types their PIN */
+let approvedBy = "";
+const isMgr = () => { const st = staffAll(); if (!st.some(x => x.mgr)) return true; const me = st.find(x => x.name === who()); return !!(me && me.mgr); };
+function withManager(what, fn){
+  approvedBy = "";
+  if (isMgr()) return fn();
+  const mgrs = staffAll().filter(x => x.mgr);
+  openSheet("A manager needs to approve this", `<p class="muted" style="margin-top:0">${esc(what)}</p>
+    <label>Manager</label><select id="mg_who">${mgrs.map(m => `<option>${esc(m.name)}</option>`).join("")}</select>
+    <label>Their PIN</label><input id="mg_pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off"><button class="btn" id="mg_go">Approve</button>`);
+  setTimeout(() => $("mg_pin").focus(), 50);
+  $("mg_go").onclick = async () => { const m = mgrs.find(x => x.name === $("mg_who").value);
+    if (m && await staffHash(m.name, $("mg_pin").value) === m.pin){ approvedBy = m.name; closeSheet(); fn(); } else { toast("Wrong PIN"); $("mg_pin").value = ""; } };
+}
 function editStaff(id){
+  if (staffAll().some(x => x.mgr) && !isMgr()) return withManager("Adding people and changing PINs", () => editStaffOk(id));
+  editStaffOk(id);
+}
+function editStaffOk(id){
   const x = id ? get("staff").find(y => y._id === id) : null;
   openSheet(x ? x.name : "Add a person", `
     ${x ? "" : `<label>First name</label><input id="sp_name" autocomplete="off">`}
     <label>${x ? "New PIN" : "PIN"} (4 to 6 digits)</label><input id="sp_pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password">
     <label>Type it again</label><input id="sp_pin2" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password">
-    <button class="btn" id="sp_save">${x ? "Change PIN" : "Add"}</button>
+    <label style="display:flex;align-items:center;gap:8px;color:var(--text);margin-top:12px"><input id="sp_mgr" type="checkbox" style="width:auto"${x && x.mgr ? " checked" : ""}> Manager (approves refunds, cancellations and deletions)</label>
+    <p class="muted" style="margin:4px 0 0">${x ? "Leave the PIN boxes empty to only change whether they're a manager." : ""}</p>
+    <button class="btn" id="sp_save">${x ? "Save" : "Add"}</button>
     ${x ? `<button class="btn red" id="sp_del">Remove ${esc(x.name)}</button><p class="muted">Removing someone stops them signing in. Everything they recorded stays, with their name on it.</p>` : ""}`);
   $("sp_save").onclick = async () => {
-    const name = x ? x.name : $("sp_name").value.trim(), pin = $("sp_pin").value;
+    const name = x ? x.name : $("sp_name").value.trim(), pin = $("sp_pin").value, mgr = $("sp_mgr").checked;
     if (!name) return toast("Add their name");
+    if (x && !pin){ const list = get("staff"); if (!mgr && x.mgr && staffAll().filter(y => y.mgr).length === 1) return toast("Keep at least one manager"); list.find(y => y._id === x._id).mgr = mgr; put("staff", list); closeSheet(); toast("Saved"); renderAll(); return; }
     if (!/^\d{4,6}$/.test(pin)) return toast("The PIN must be 4 to 6 digits");
     if (pin !== $("sp_pin2").value) return toast("The two PINs don't match");
     const list = get("staff");
     if (!x && list.some(y => !y.gone && y.name.toLowerCase() === name.toLowerCase())) return toast("There's already someone with that name");
     const hash = await staffHash(name, pin);
-    if (x) list.find(y => y._id === x._id).pin = hash; else list.push({_id: uid(), name, pin: hash, added: new Date().toISOString(), by: who()});
+    if (x){ const y = list.find(z => z._id === x._id); y.pin = hash; y.mgr = mgr; } else list.push({_id: uid(), name, pin: hash, mgr: mgr || !list.some(z => !z.gone && z.mgr), added: new Date().toISOString(), by: who()});
     put("staff", list); closeSheet(); toast(x ? "PIN changed" : `${name} added`); renderAll();
     if (!x && list.filter(y => !y.gone).length === 1){ try { sessionStorage.setItem("shopUser", name); } catch(e){} if (window.DGSync && DGSync.setActor) DGSync.setActor(name); renderAll(); }
   };
@@ -1691,10 +1742,10 @@ async function showHistory(id){
       return `<div class="ver"><b>${v.del ? '<span style="color:var(--down)">Deleted</span>' : v.current ? "Current version" : "Earlier version"}</b> <span class="muted">· ${fmtDT(v.at)} · ${esc(v.who || "?")}</span>
         ${v.del ? "" : `<div class="d">${diffs(older && older.data, v.data).map(x => `<div>${x}</div>`).join("")}</div>`}
         ${canRestore && !v.del && !v.current ? `<button class="btn small ghost" style="margin-top:8px" data-v="${i}">Put this version back</button>` : ""}</div>`; }).join("");
-    $("shBody").querySelectorAll("[data-v]").forEach(b => b.onclick = async () => {
+    $("shBody").querySelectorAll("[data-v]").forEach(b => b.onclick = () => withManager("Putting back an earlier version", async () => {
       if (!confirm("Put this version back? It becomes the current version for everyone. Nothing is lost: the version it replaces stays in the history.")) return;
       try { await DGSync.restore(id, vs[+b.dataset.v].data); if (id[0] === "r") await loadBuyLogSellers(); toast("Put back"); closeSheet(); renderAll(); } catch(e){ toast(e.message); }
-    });
+    }));
   } catch(e){ $("shBody").innerHTML = `<p class="muted">${esc(e.message)}</p>`; }
 }
 const histBtn = (key, id) => window.DGSync && DGSync.joined && DGSync.joined() ? `<button class="btn ghost" onclick="showHistory('a:${key}:${esc(id)}')">History of changes</button>` : "";
@@ -1706,7 +1757,102 @@ async function backup(){
   else { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); }
 }
 
+/* ============ GUIDE AND HELP ============
+   The ? at the top opens help for the page you're on, with every other topic one tap away and a search. */
+const HELP = [
+  {id: "start", page: "", t: "Getting started (do these once)", b: `
+    <ol>
+      <li><b>Join the team on every device.</b> Open Gold Trader on the phone, tablet or shop computer, go to <b>Team</b>, then <b>Sharing</b>, and join with the business passphrase. The bar at the top of this app turns green when that device is saving to the team server.</li>
+      <li><b>Add everyone's PIN.</b> Settings, then Staff and sign-in. Tick <b>Manager</b> for whoever can approve refunds, cancellations and deletions.</li>
+      <li><b>Check the business details and buying rules</b> in Settings: they go on receipts, dispatch notes and price tags.</li>
+      <li><b>Add your returns policy</b> in Settings, then Receipts.</li>
+      <li><b>Print a test price tag and bag label</b> to check they fit your labels.</li>
+    </ol>`},
+  {id: "day", page: "", t: "A normal day", b: `
+    <p><b>Opening:</b> Sales, then Till and cash-up: type the opening float.</p>
+    <p><b>During the day:</b> sales on Sales, buying through Buy (the Buy log), new pieces on Stock.</p>
+    <p><b>Closing:</b> count the till and type what's there. It shows straight away if it's over or short. Put the day's buys into the safe from the Buy page.</p>
+    <p><b>Weekly:</b> a safe check (Safe page). <b>Monthly:</b> a stock check (Stock page) and a backup (Settings).</p>`},
+  {id: "sales", page: "sales", t: "Sales, deposits and payments", b: `
+    <p><b>+ Start a new sale:</b> choose the customer (or walk-in), add items or tap <b>+ From stock</b>, then how they're paying.</p>
+    <p><b>Part cash, part card:</b> tap <b>+ Split the payment</b>.</p>
+    <p><b>Deposits:</b> type what they pay today and the date the rest is due. It shows in <b>Open sales</b> until it's paid, and turns red when overdue. On the sale, <b>Text a reminder</b> writes the message for you.</p>
+    <p><b>Taking the rest later:</b> open the sale (or <b>£ Take a payment</b>) and record it. Every payment is kept separately.</p>
+    <p><b>Discount:</b> type an amount (50) or a percentage (10%).</p>
+    <p><b>ID:</b> optional on sales under £1,000; needed for £1,000 or more. The app asks for it when it's needed.</p>`},
+  {id: "px", page: "sales", t: "Part exchange (old gold traded in)", b: `
+    <p>In a new sale, tap <b>+ Part exchange</b>, then <b>Open the Buy log</b>. Record the old gold with the customer's ID, photos and signature as a normal purchase. The payment is already set to <b>Part exchange</b>. When you save, you come straight back to the sale with its value taken off.</p>`},
+  {id: "refund", page: "sales", t: "Refunds, returns and cancelling an order", b: `
+    <p>Open the sale and tap <b>Refund or return</b>. Tick the items coming back (leave them unticked for money back only), choose how the money goes back and the reason. Returned stock goes back in stock.</p>
+    <p>For an order that won't go ahead, tick <b>Cancel the whole order</b>: it refunds what was paid and clears the balance.</p>
+    <p>Card refunds are done on your card machine; this keeps the record. A manager has to approve refunds and cancellations.</p>`},
+  {id: "receipt", page: "sales", t: "Receipts", b: `<p>On any sale: <b>Print receipt</b>, or <b>Email it</b> / <b>Text it</b> if you have their details. Receipts show the shop's details, item descriptions, payments, refunds and your returns policy (Settings, Receipts).</p>`},
+  {id: "till", page: "sales", t: "Till and cash-up", b: `
+    <p>The app works out the cash that <b>should</b> be in the till: opening float, plus cash taken on sales, minus cash refunds, minus cash paid for gold in the Buy log, plus <b>Paid in</b>, minus <b>Paid out</b> (window cleaner, postage) and <b>Banked</b>.</p>
+    <p>Count the till and type it in: it shows over or short. If it doesn't match, check every cash payment and buy was recorded.</p>`},
+  {id: "trade", page: "sales", t: "Selling to a trade contact", b: `
+    <p><b>⇄ Sell to a contact</b>: scrap by weight (or whole bags from the safe), pieces from stock, and coins or bullion, in one sale. It shows what Mastermelt would have paid, so you can see if the contact beat it. Bags go out of the safe automatically.</p>`},
+  {id: "buy", page: "buy", t: "Buying from a customer", b: `
+    <p>Tap <b>+ Buy from a customer</b>. The Buy log is the one register of everything you buy: name, address, in-date photo ID, photos of the items, what you paid and the seller's signature.</p>
+    <p>As you type carat and weight it shows each item's <b>melt value</b> at Mastermelt today and your margin, and warns if a price doesn't add up.</p>
+    <p><b>Watches, and buys of £1,000 or more,</b> need a stolen-goods check (CheckMEND or similar) before you pay.</p>
+    <p>Everything bought is <b>held for the holding period</b> (14 days unless you change it in Settings, Buying rules) before it can be melted or sold on.</p>
+    <p>Pieces worth more than scrap: tick <b>Keep it: don't melt</b>, then add them to stock from the Stock page.</p>`},
+  {id: "tosafe", page: "buy", t: "Putting buys into the safe", b: `<p>Buys show under <b>Bought, not yet in the safe</b>. Tap <b>Put in the safe</b> (or put several in one bag). Weigh the bag and correct any weight that's different on the scales.</p>`},
+  {id: "stock", page: "stock", t: "Stock for sale", b: `
+    <p><b>+ Add a piece</b>: kind, description, metal, weight, size, hallmark, up to 6 photos, cost and asking price. It shows the melt value (the least it's worth) and your margin.</p>
+    <p>Pieces you bought to sell appear under <b>Bought to sell, not in stock yet</b>: tap one to add it with everything filled in.</p>
+    <p>Each piece shows how long it's been in stock; amber means 90 days or more. If a customer is looking for something similar, the app tells you and writes the text.</p>`},
+  {id: "tags", page: "stock", t: "Price tags and scanning", b: `<p><b>Print price tags</b> prints 58 × 30mm tags with the price and a QR code. With a QR barcode scanner plugged in (about £25 to £40), scan a tag into the search box to open that piece. Typing the stock number and pressing Enter does the same.</p>`},
+  {id: "stockcheck", page: "stock", t: "Stock check", b: `<p>Tap <b>Stock check</b>, then scan or tick every piece you can see. It saves the check and lists anything missing, so you can find out if it was sold without being recorded or has gone.</p>`},
+  {id: "cust", page: "cust", t: "Customers", b: `
+    <p>Everyone who buys from you or sells to you is in one list. Sellers from the Buy log show a <b>Seller</b> tag: open one and tap <b>Make them a Shop customer</b> to bring their details across.</p>
+    <p>Each record shows what they've spent and sold you, ring size, birthday, anniversary and what they're <b>looking for</b>.</p>
+    <p>The app warns if you add someone who's already on file.</p>`},
+  {id: "consent", page: "cust", t: "Marketing messages and consent", b: `<p>Only tick <b>Happy to get texts / emails</b> if the customer has agreed. The app records when and by whom. <b>Export marketing list</b> only includes people who agreed. Messages about their own order (a balance reminder, their receipt) don't need this.</p>`},
+  {id: "idcust", page: "cust", t: "ID for customers", b: `<p>Ask for it; it's optional on sales under £1,000 and needed for £1,000 or more. <b>Fill in the details from the ID photo</b> reads it for you: always check what it fills in. After the retention period with no sales, ID shows under <b>ID to review</b>; remove it if you don't need it.</p>`},
+  {id: "safe", page: "safe", t: "The safe", b: `
+    <p>Every bag is numbered (and sealed if you use seals) and logged with its weight by carat. <b>Print bag labels</b> for the bags. The safe shows what everything is worth to Mastermelt today, and which bags are on hold.</p>
+    <p><b>Safe check</b> weekly: scan or tick every bag, check the seals.</p>`},
+  {id: "send", page: "safe", t: "Sending to Mastermelt and getting paid", b: `
+    <ol><li><b>Send to the refiner</b> ticks every bag that's out of its holding period.</li>
+    <li>Weigh everything going, together, and type it in: it must match what was logged.</li>
+    <li>Add the tracking number, record the send and <b>print the dispatch note</b> for the parcel.</li>
+    <li>When they pay, open the send and record the amount (and the fine gold from their assay if you have it).</li></ol>
+    <p>It compares the payment with what the gold was worth at their prices on the day it went and flags anything over 2% short. Sending also takes that gold off Gold Trader's My gold list, so don't mark it sent there as well.</p>`},
+  {id: "staff", page: "set", t: "Staff, managers and signing in", b: `
+    <p>Each person has their own PIN; whoever is signed in is recorded on everything they do. The app locks itself when not used (set how long in Settings). Tap <b>Lock / switch person</b> when someone else takes over.</p>
+    <p><b>Managers</b> approve refunds, cancelling sales, deleting stock, putting back old versions and removing ID. If someone else is signed in, the app asks a manager for their PIN there and then.</p>`},
+  {id: "history", page: "set", t: "Activity, history and putting things back", b: `<p>Settings, then <b>Activity</b> shows every change: who, when and what. On any sale, piece, customer or bag, <b>History of changes</b> shows each earlier version and what changed. <b>Put this version back</b> restores it (even after a deletion); nothing is ever lost.</p>`},
+  {id: "backup", page: "set", t: "Where records are kept and backups", b: `<p>Everything is saved to the team's own server in your Cloudflare account, locked with the business passphrase, with every earlier version kept. A lost phone loses nothing: join the team on a new one. For your own copy, use <b>Back up now</b> monthly (and the Buy log's own backup for purchase records). Keep backups private: they hold customers' ID.</p>`},
+  {id: "law", page: "", t: "The rules this app helps you follow", b: `
+    <ul><li><b>Buying:</b> record who you bought from, with photo ID and address, what you bought and how you paid. Keep records for the period set in the Buy log (6 years by default).</li>
+    <li><b>Holding period:</b> many police forces and licences expect bought items to be held before melting. Check what applies to you and set it in Settings.</li>
+    <li><b>Cash:</b> taking €10,000 or more in cash from one customer (on one sale or linked ones) means registering with HMRC as a high value dealer. The app warns you at £8,000.</li>
+    <li><b>Data protection:</b> you hold customers' details and ID, so the business needs to be registered with the ICO, and only keep ID as long as you need it.</li>
+    <li><b>Marketing:</b> only send offers to customers who agreed.</li></ul>
+    <p class="muted">This is a summary, not legal advice. Check anything you're unsure of with your local police licensing team, HMRC or the ICO.</p>`},
+  {id: "trouble", page: "", t: "If something's not right", b: `
+    <ul><li><b>Bar at the top is amber:</b> changes are waiting for signal; they go up on their own.</li>
+    <li><b>Bar is red ("not joined"):</b> this device isn't in the team. Join in Gold Trader, Team, Sharing.</li>
+    <li><b>Someone else's change isn't showing:</b> wait a minute or reopen the app; it checks every minute.</li>
+    <li><b>Something was deleted or changed by mistake:</b> Settings, Activity, open it, Put this version back.</li>
+    <li><b>Price tags or labels print the wrong size:</b> in the print window, set scale to 100% and margins to none.</li>
+    <li><b>Camera doesn't open on the computer:</b> click Allow when the browser asks, or the camera icon in the address bar.</li></ul>`}
+];
+function openHelp(focus){
+  const order = HELP.filter(h => h.page === page).concat(HELP.filter(h => h.page !== page));
+  openSheet("Help and guide", `<input id="hp_q" placeholder="Search the guide, e.g. refund, deposit, safe" autocomplete="off">
+    <div id="hp_list" style="margin-top:8px"></div>`);
+  const draw = () => { const q = $("hp_q").value.trim().toLowerCase();
+    const list = order.filter(h => !q || (h.t + " " + h.b.replace(/<[^>]+>/g, " ")).toLowerCase().includes(q));
+    $("hp_list").innerHTML = list.length ? list.map((h, i) => `<details class="card" style="padding:12px;margin:8px 0"${(focus ? h.id === focus : !q && i === 0 && h.page === page) || (q && list.length <= 2) ? " open" : ""}><summary style="cursor:pointer;font-weight:700">${h.page === page && page ? "★ " : ""}${esc(h.t)}</summary><div style="margin-top:8px;font-size:15px">${h.b}</div></details>`).join("")
+      : '<p class="muted">Nothing found. Try another word.</p>'; };
+  $("hp_q").oninput = draw; draw();
+}
+
 /* ============ PAGES ============ */
+setTimeout(() => { try { if (!localStorage.getItem("shopHelpSeen")){ localStorage.setItem("shopHelpSeen", "1"); if ($("lock").style.display !== "flex") openHelp("start"); } } catch(e){} }, 1500);
 let page = "sales";
 function go(p){ page = p; ["sales", "buy", "stock", "cust", "safe", "set"].forEach(x => $("p-" + x).style.display = x === p ? "" : "none");
   document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.p === p)); window.scrollTo(0, 0); renderAll(); }
