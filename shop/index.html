@@ -88,6 +88,11 @@
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .result{margin-top:14px;padding:14px;border-radius:12px;background:#12110f;border:1px solid var(--line)}.result b{font-size:24px;color:var(--gold2)}.result .warn b,.result td b,.result .muted b{font-size:inherit;color:inherit}
   @media (max-width:420px){nav button{font-size:11px}nav svg{width:22px;height:22px}}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;background:#555;vertical-align:middle}.dot.in{background:var(--up)}.dot.out{background:var(--gold)}.dot.bad{background:var(--down);box-shadow:0 0 0 4px rgba(224,93,79,.25)}.dot.late{background:var(--amber)}.dot.plan{background:#6d6a62}
+  .wk{overflow-x:auto}.wk table{min-width:760px;font-size:13px}.wk th,.wk td{border-top:1px solid var(--line);padding:6px 4px;text-align:left;vertical-align:top}.wk th{color:var(--muted);font-weight:600}.wk td:last-child{text-align:left}.wk .today{background:rgba(212,168,67,.06)}
+  .ent{border-radius:7px;padding:3px 6px;margin:2px 0;cursor:pointer;font-size:12px;background:#24211b;border-left:3px solid #6d6a62}.ent.shop{border-color:var(--up)}.ent.out{border-color:var(--gold)}.ent.visit{border-color:#5aa0e0}.ent.visit.done{opacity:.6}.ent.off,.ent.holiday,.ent.sick{border-color:#888;color:var(--muted)}
+  body.lone #sbar{background:#3a1512}
+  @media (max-width:700px){nav{overflow-x:auto;justify-content:flex-start}nav button{flex:0 0 64px}}
   *{scrollbar-color:#3a352c #12110f;scrollbar-width:thin}
   ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:#12110f}::-webkit-scrollbar-thumb{background:#3a352c;border-radius:10px}
   #cam{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:35;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:12px}
@@ -213,6 +218,30 @@
         <select id="coinM"><option value="any">Not sure</option><option value="au">Gold coloured</option><option value="ag">Silver coloured</option></select>
       </div>
       <div id="coinOut"></div>
+    </div>
+  </section>
+
+  <!-- ============ DIARY ============ -->
+  <section id="p-diary" style="display:none">
+    <div id="dAlarm"></div>
+    <div class="cols">
+    <div class="card">
+      <h2>Who's where now</h2>
+      <div id="dNow"></div>
+      <div id="dMe" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <h2>Home visits</h2>
+      <button class="btn" onclick="visitForm()" style="margin-top:0">+ Book a home visit</button>
+      <div id="dVisits" style="margin-top:8px"></div>
+    </div>
+    </div>
+    <div class="card">
+      <h2>The week</h2>
+      <div class="row" style="align-items:center"><button class="btn small ghost" onclick="dWeek--;renderDiary()">‹ Previous</button><b id="dWeekLbl" style="text-align:center"></b><button class="btn small ghost" onclick="dWeek++;renderDiary()">Next ›</button></div>
+      <div id="dWeek" style="margin-top:8px"></div>
+      <div class="row"><button class="btn ghost" onclick="rotaForm()">+ Add to the rota</button><button class="btn ghost" onclick="dWeek=0;renderDiary()">This week</button></div>
+      <p class="muted">Green: in the shop · gold: out · blue: home visit · grey: off. Tap anything to change it.</p>
     </div>
   </section>
 
@@ -379,6 +408,7 @@
   <button data-p="sales" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Sales</button>
   <button data-p="buy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16l-1.5 12a2 2 0 0 1-2 1.8h-9a2 2 0 0 1-2-1.8z"/><path d="M8 7V6a4 4 0 0 1 8 0v1"/><path d="M12 11v6M9 14h6"/></svg>Buy</button>
   <button data-p="coins"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="9" r="6"/><path d="M15.5 9.3A6 6 0 1 1 9.3 15.5"/><path d="M9 6.5v5M7.5 8h3"/></svg>Coins</button>
+  <button data-p="diary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="12" cy="15" r="2"/></svg>Diary</button>
   <button data-p="stock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 6 3-6M12 21 9 9M12 21l3-12"/></svg>Stock</button>
   <button data-p="cust"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.3-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14.5c2.4.2 4 1.8 4.5 4.5"/></svg>Customers</button>
   <button data-p="safe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="3.5"/><path d="M12 8.5V7M12 17v-1.5M6 20v1M18 20v1"/></svg>Safe</button>
@@ -390,7 +420,7 @@
 <div id="cam"></div>
 <div id="lock"><img src="../icon.png" alt=""><div class="who" id="lockWho"></div><div style="margin-bottom:10px" id="lockAsk">Enter PIN</div><input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><div id="lockMsg" class="muted" style="margin-top:8px"></div></div>
 
-<script src="../sync.js?v=14"></script>
+<script src="../sync.js?v=15"></script>
 <script src="../buying-log/qrcode.min.js"></script>
 <script>
 /* ============ Dorset Gold & Jewellery · Shop ============
@@ -1791,7 +1821,7 @@ function renderStatus(){
 }
 window.addEventListener("dgsync-status", renderStatus);
 setInterval(renderStatus, 20000);
-const KIND = {sales: "Sale", forsale: "Stock piece", customers: "Customer", safebags: "Safe bag", stock: "My gold lot", buys: "Buying entry", sent: "Refiner batch", visits: "Diary visit", cash: "Cash entry", staff: "Staff", till: "Till entry", shopcfg: "Receipt settings", stockchecks: "Stock check", sends: "Refiner send", safechecks: "Safe check", valuations: "Valuation"};
+const KIND = {sales: "Sale", forsale: "Stock piece", customers: "Customer", safebags: "Safe bag", stock: "My gold lot", buys: "Buying entry", sent: "Refiner batch", cash: "Cash entry", staff: "Staff", till: "Till entry", shopcfg: "Receipt settings", stockchecks: "Stock check", sends: "Refiner send", safechecks: "Safe check", valuations: "Valuation", rota: "Rota entry", clock: "Clocking", visits: "Home visit"};
 function docLabel(id){
   const [k, ...r] = id.split(":");
   if (k === "a"){ const key = r[0], iid = r.slice(1).join(":"), x = get(key).find(y => y._id === iid), name = KIND[key] || key;
@@ -2117,7 +2147,7 @@ async function backup(){
   const pw = await askPassword("Lock the backup", true); if (!pw) return;
   toast("Making the backup…");
   const data = {app: "dgj-shop", version: 3, exportedAt: new Date().toISOString(), sales: get("sales"), forsale: get("forsale"), customers: get("customers"), safebags: get("safebags"), staff: get("staff"), till: get("till"), shopcfg: get("shopcfg"),
-    stockchecks: get("stockchecks"), sends: get("sends"), safechecks: get("safechecks"), valuations: get("valuations"), photos: {}};
+    stockchecks: get("stockchecks"), sends: get("sends"), safechecks: get("safechecks"), valuations: get("valuations"), rota: get("rota"), clock: get("clock"), photos: {}};
   for (const c of data.customers.concat(data.forsale, data.valuations.flatMap(v => v.items))) for (const p of (c.photos || [])) if (p.ref && !data.photos[p.ref]) data.photos[p.ref] = await photoSrc(p);
   const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
   const ct = new Uint8Array(await crypto.subtle.encrypt({name: "AES-GCM", iv}, await pwKey(pw, salt), enc8.encode(JSON.stringify(data))));
@@ -2135,7 +2165,7 @@ async function restoreFile(file){
   if (j.app === "dgj-shop-locked"){ const pw = await askPassword("Open the backup", false); if (!pw) return;
     try { data = JSON.parse(dec8.decode(await crypto.subtle.decrypt({name: "AES-GCM", iv: fromB64(j.iv)}, await pwKey(pw, fromB64(j.salt)), fromB64(j.data)))); } catch(e){ return toast("Wrong password, or the file is damaged"); } }
   if (data.app !== "dgj-shop") return toast("That isn't a Shop backup");
-  const keys = ["sales", "forsale", "customers", "safebags", "staff", "till", "shopcfg", "stockchecks", "sends", "safechecks", "valuations"];
+  const keys = ["sales", "forsale", "customers", "safebags", "staff", "till", "shopcfg", "stockchecks", "sends", "safechecks", "valuations", "rota", "clock"];
   const adds = {}; keys.forEach(k => { const cur = get(k), have = new Set(cur.map(x => x._id)), add = (data[k] || []).filter(x => x && x._id && !have.has(x._id)); adds[k] = add; });
   const n = Object.values(adds).reduce((t, a) => t + a.length, 0);
   if (!n) return toast("Nothing to restore: everything in the backup is already here");
@@ -2270,6 +2300,174 @@ function coinBuy(lines){
   location.href = "../buying-log/?offer=1&from=shop";
 }
 
+/* ============ DIARY: rota, visits, clocking and who's where ============
+   Uses the same visit list as Gold Trader's diary (one diary for the business), plus:
+   rota: {who, date, start, end, kind: shop|out|off|holiday|sick, where, notes}
+   clock: {who, at, kind: in|leave|back|outday, where, until, visitId}   (what actually happened, by the person themselves) */
+const RK = {shop: "In the shop", out: "Out (errand)", off: "Day off", holiday: "Holiday", sick: "Off sick"};
+const visitsAll = () => get("visits");
+const isoDay = d => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+const hm = iso => new Date(iso).toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"});
+const addMins = (t, m) => { const [h, mi] = String(t || "00:00").split(":").map(Number), x = h * 60 + mi + m; return String(Math.floor(x / 60) % 24).padStart(2, "0") + ":" + String(x % 60).padStart(2, "0"); };
+const nowHM = () => new Date().toTimeString().slice(0, 5);
+const pArea = pc => { const m = String(pc || "").toUpperCase().trim().match(/^([A-Z]{1,2}\d[A-Z\d]?)/); return m ? m[1] : ""; };
+function diaryPeople(){ const s = new Set(staffAll().map(x => x.name)); get("rota").forEach(r => r.who && s.add(r.who)); visitsAll().forEach(v => v.who && s.add(v.who)); if (window.DGSync && DGSync.me && DGSync.me()) s.add(DGSync.me()); return [...s].filter(Boolean).sort(); }
+const visitEnd = v => v.end || addMins(v.time || "09:00", num(v.dur) || 60);
+/* where someone is right now, from their clocking today, falling back to the plan */
+function whereNow(p){
+  const t = today(), cl = get("clock").filter(c => c.who === p && c.at.slice(0, 10) === t).sort((a, b) => a.at.localeCompare(b.at)), last = cl[cl.length - 1];
+  const plan = get("rota").filter(r => r.who === p && r.date === t), vis = visitsAll().filter(v => v.who === p && v.date === t && (!v.status || v.status === "booked")).sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+  const off = plan.find(r => ["off", "holiday", "sick"].includes(r.kind)), shift = plan.find(r => r.kind === "shop"), nextVisit = vis.find(v => (v.time || "99:99") >= nowHM());
+  if (last && last.kind === "leave"){ const late = last.until && nowHM() > addMins(last.until, 30);
+    return {cls: late ? "bad" : "out", text: `Out: ${esc(last.where || "visit")} since ${hm(last.at)}${last.until ? `, due back ${last.until}` : ""}`, late, where: last.where}; }
+  if (last && (last.kind === "in" || last.kind === "back")) return {cls: "in", text: `In the shop since ${hm(cl.find(c => c.kind === "in") ? cl.find(c => c.kind === "in").at : last.at)}${shift ? ` (until ${shift.end})` : ""}${nextVisit ? ` · visit at ${nextVisit.time}` : ""}`};
+  if (last && last.kind === "outday") return {cls: "off", text: `Finished at ${hm(last.at)}`};
+  if (off) return {cls: "off", text: RK[off.kind]};
+  if (shift) return {cls: nowHM() > addMins(shift.start, 15) && nowHM() < shift.end ? "late" : "plan", text: nowHM() < shift.start ? `Due in at ${shift.start}` : nowHM() < shift.end ? `Should be in (shift ${shift.start}–${shift.end}), not clocked in` : `Shift was ${shift.start}–${shift.end}`};
+  if (nextVisit) return {cls: "plan", text: `Visit at ${nextVisit.time}${pArea(nextVisit.postcode) ? " in " + pArea(nextVisit.postcode) : ""}`};
+  return {cls: "off", text: "Not working today"};
+}
+let dWeek = 0;
+function renderDiary(){
+  if (!$("dNow")) return;
+  const ppl = diaryPeople(), me = who();
+  // who's where now, and lone-working warnings
+  const ws = ppl.map(p => [p, whereNow(p)]);
+  $("dNow").innerHTML = (ppl.length ? ws.map(([p, w]) => `<div class="item" style="cursor:default"><b><span class="dot ${w.cls}"></span>${esc(p)}${p === me ? ' <span class="pill ok">You</span>' : ""}</b><span class="muted" style="${w.cls === "bad" ? "color:#f08a7c;font-weight:700" : w.cls === "late" ? "color:var(--amber)" : ""}">${w.text}</span></div>`).join("")
+    : '<p class="muted">Add staff in Settings to see who\'s where.</p>');
+  const late = ws.filter(([, w]) => w.late);
+  $("dAlarm").innerHTML = late.map(([p, w]) => `<div class="alert bad" style="margin-top:0"><b>${esc(p)} isn't back yet.</b> ${w.where ? "They went to " + esc(w.where) + " and were" : "They were"} due back more than 30 minutes ago. Call them now.</div>`).join("");
+  document.body.classList.toggle("lone", late.length > 0);
+  // my buttons
+  const mine = me ? get("clock").filter(c => c.who === me && c.at.slice(0, 10) === today()).sort((a, b) => a.at.localeCompare(b.at)) : [], lastK = (mine[mine.length - 1] || {}).kind;
+  $("dMe").innerHTML = !me ? '<p class="muted">Sign in to clock in and out.</p>' : `<div class="row" style="flex-wrap:wrap">
+    ${!lastK || lastK === "outday" ? `<button class="btn small" onclick="clockDo('in')">Clock in</button>` : ""}
+    ${lastK === "in" || lastK === "back" ? `<button class="btn small" onclick="goingOut()">Going out (visit or errand)</button><button class="btn small ghost" onclick="clockDo('outday')">Clock out</button>` : ""}
+    ${lastK === "leave" ? `<button class="btn small" onclick="clockDo('back')">I'm back</button>` : ""}</div>
+    ${mine.length ? `<p class="muted" style="margin:6px 0 0">Today: ${mine.map(c => `${{in: "in", leave: "out", back: "back", outday: "finished"}[c.kind]} ${hm(c.at)}`).join(" · ")}</p>` : ""}`;
+  // week
+  const mon = new Date(); mon.setHours(12, 0, 0, 0); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7) + dWeek * 7);
+  const days = [...Array(7)].map((_, i) => { const d = new Date(mon); d.setDate(d.getDate() + i); return isoDay(d); });
+  $("dWeekLbl").textContent = `${fmtD(days[0])} to ${fmtD(days[6])}`;
+  const cell = (p, d) => {
+    const r = get("rota").filter(x => x.who === p && x.date === d).sort((a, b) => (a.start || "").localeCompare(b.start || ""));
+    const v = visitsAll().filter(x => x.date === d && (x.who === p || (!x.who && p === "__any")) && x.status !== "cancelled").sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+    return r.map(x => `<div class="ent ${x.kind}" onclick="rotaForm('${x._id}')">${["off", "holiday", "sick"].includes(x.kind) ? RK[x.kind] : `${x.start}–${x.end} ${x.kind === "shop" ? "Shop" : esc(x.where || "Out")}`}</div>`).join("")
+      + v.map(x => `<div class="ent visit${x.status === "done" ? " done" : ""}" onclick="visitView('${x._id}')">${esc(x.time || "")} Visit${pArea(x.postcode) ? " " + pArea(x.postcode) : ""}${x.status === "done" ? " ✓" : x.status === "nosale" ? " ✗" : ""}</div>`).join("");
+  };
+  const anyV = days.some(d => visitsAll().some(x => x.date === d && !x.who && x.status !== "cancelled"));
+  const rows = ppl.concat(anyV ? ["__any"] : []);
+  $("dWeek").innerHTML = `<div class="wk"><table><tr><th></th>${days.map(d => `<th class="${d === today() ? "today" : ""}">${new Date(d + "T12:00").toLocaleDateString("en-GB", {weekday: "short", day: "numeric"})}</th>`).join("")}<th>Hours</th></tr>
+    ${rows.map(p => { const planned = p === "__any" ? 0 : get("rota").filter(x => x.who === p && days.includes(x.date) && x.kind === "shop").reduce((t, x) => t + (mins(x.end) - mins(x.start)) / 60, 0), worked = p === "__any" ? 0 : workedHours(p, days);
+      return `<tr><th>${p === "__any" ? "Either" : esc(p)}</th>${days.map(d => `<td class="${d === today() ? "today" : ""}">${cell(p, d)}</td>`).join("")}<td class="muted">${p === "__any" ? "" : `${planned.toFixed(1)} planned${worked >= 0.05 ? `<br>${worked.toFixed(1)} worked` : ""}`}</td></tr>`; }).join("")}</table></div>`;
+  // visits list (the shared diary)
+  const t = today(), up = visitsAll().filter(v => v.date >= t && (!v.status || v.status === "booked")).sort((a, b) => (a.date + (a.time || "99")).localeCompare(b.date + (b.time || "99")));
+  const tom = isoDay(new Date(Date.now() + 864e5)), toRemind = up.filter(v => v.date === tom && v.phone && !v.reminded);
+  $("dVisits").innerHTML = (toRemind.length && new Date().getHours() >= 15 ? `<div class="alert wn" style="margin-top:0">${toRemind.length} of tomorrow's customer${toRemind.length === 1 ? " hasn't" : "s haven't"} had a reminder yet.</div>` : "")
+    + (up.length ? up.slice(0, 30).map(v => `<div class="item" onclick="visitView('${v._id}')"><span class="r" style="font-weight:600">${esc(v.who || "Either")}</span><b>${v.date === t ? "Today" : v.date === tom ? "Tomorrow" : fmtD(v.date)}${v.time ? " " + v.time : ""} · ${esc(v.name || "No name")}</b><span class="muted">${esc([v.address, v.postcode].filter(Boolean).join(", ") || "No address")}${v.what ? " · " + esc(v.what) : ""}</span></div>`).join("") : '<p class="muted">No visits booked.</p>');
+}
+const mins = t => { const [h, m] = String(t || "0:0").split(":").map(Number); return h * 60 + m; };
+function workedHours(p, days){ let h = 0; days.forEach(d => { const cl = get("clock").filter(c => c.who === p && c.at.slice(0, 10) === d).sort((a, b) => a.at.localeCompare(b.at)); let start = null;
+  cl.forEach(c => { if (c.kind === "in" && !start) start = c.at; if (c.kind === "outday" && start){ h += (new Date(c.at) - new Date(start)) / 36e5; start = null; } });
+  if (start && d === today()) h += (Date.now() - new Date(start)) / 36e5; }); return h; }
+function clockDo(kind, extra){ const me = who(); if (!me) return toast("Sign in first");
+  const list = get("clock"); list.push(Object.assign({_id: uid(), who: me, at: new Date().toISOString(), kind}, extra || {})); put("clock", list);
+  toast({in: "Clocked in", back: "Welcome back", outday: "Clocked out", leave: "Have a safe trip"}[kind]); renderAll(); }
+function goingOut(){
+  const vs = visitsAll().filter(v => v.date === today() && (!v.status || v.status === "booked") && (!v.who || v.who === who())).sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+  openSheet("Going out", `${vs.length ? `<h2>To a visit</h2>${vs.map(v => `<div class="item" onclick="goOut('${v._id}')"><b>${esc(v.time || "")} · ${esc(v.name || "")}</b><span class="muted">${esc([v.address, v.postcode].filter(Boolean).join(", "))} · back by about ${visitEnd(v)}</span></div>`).join("")}<h2 style="margin-top:14px">Somewhere else</h2>` : ""}
+    <label>Where</label><input id="go_where" placeholder="e.g. bank, Mastermelt, post office"><label>Back by</label><input id="go_until" type="time" value="${addMins(nowHM(), 60)}">
+    <button class="btn" onclick="goOut()">Go</button><p class="muted">If you're not back 30 minutes after this time, everyone's app shows a warning.</p>`);
+}
+function goOut(vid){
+  if (vid){ const v = visitsAll().find(x => x._id === vid); closeSheet(); return clockDo("leave", {where: `visit to ${v.name || "customer"}${pArea(v.postcode) ? " in " + pArea(v.postcode) : ""}${v.address ? " (" + v.address + ")" : ""}`, until: addMins(visitEnd(v), 20), visitId: vid}); }
+  const w = $("go_where").value.trim(); if (!w) return toast("Say where you're going"); const u = $("go_until").value; closeSheet(); clockDo("leave", {where: w, until: u});
+}
+function rotaForm(id, preset){
+  const r = id ? get("rota").find(x => x._id === id) : Object.assign({date: today(), kind: "shop", start: "09:00", end: "17:30", who: who()}, preset || {});
+  if (!r) return;
+  openSheet(id ? "Rota entry" : "Add to the rota", `
+    <div class="row"><div><label>Who</label><select id="rt_who">${diaryPeople().map(p => `<option${p === r.who ? " selected" : ""}>${esc(p)}</option>`).join("")}</select></div><div><label>What</label><select id="rt_kind">${Object.entries(RK).map(([k, l]) => `<option value="${k}"${k === r.kind ? " selected" : ""}>${l}</option>`).join("")}</select></div></div>
+    <div class="row"><div><label>Day</label><input id="rt_date" type="date" value="${esc(r.date)}"></div><div><label>Repeat for</label><select id="rt_rep"${id ? " disabled" : ""}><option value="0">Just this day</option><option value="5">Mon to Fri this week</option><option value="6">Mon to Sat this week</option><option value="w4">Same day for 4 weeks</option></select></div></div>
+    <div class="row" id="rt_times"><div><label>From</label><input id="rt_start" type="time" value="${esc(r.start || "09:00")}"></div><div><label>To</label><input id="rt_end" type="time" value="${esc(r.end || "17:30")}"></div></div>
+    <div id="rt_whereRow"><label>Where</label><input id="rt_where" value="${esc(r.where || "")}" placeholder="e.g. bank, Mastermelt, gold fair"></div>
+    <label>Notes</label><input id="rt_notes" value="${esc(r.notes || "")}">
+    <button class="btn" id="rt_save">Save</button>${id ? `<button class="btn red" id="rt_del">Remove</button>` : ""}`);
+  const upd = () => { const k = $("rt_kind").value; $("rt_times").style.display = ["off", "holiday", "sick"].includes(k) ? "none" : ""; $("rt_whereRow").style.display = k === "out" ? "" : "none"; };
+  $("rt_kind").onchange = upd; upd();
+  $("rt_save").onclick = () => {
+    const k = $("rt_kind").value, base = {who: $("rt_who").value, kind: k, start: $("rt_start").value, end: $("rt_end").value, where: k === "out" ? $("rt_where").value.trim() : "", notes: $("rt_notes").value.trim(), by: who()};
+    if (!base.who) return toast("Choose who"); if (!["off", "holiday", "sick"].includes(k) && !(base.start < base.end)) return toast("The finish time must be after the start");
+    const list = get("rota");
+    if (id){ Object.assign(list.find(x => x._id === id), base, {date: $("rt_date").value}); }
+    else { const d0 = new Date($("rt_date").value + "T12:00"), rep = $("rt_rep").value, dates = [];
+      if (rep === "0") dates.push($("rt_date").value); else if (rep === "w4") for (let i = 0; i < 4; i++){ const d = new Date(d0); d.setDate(d.getDate() + 7 * i); dates.push(isoDay(d)); }
+      else { const mon = new Date(d0); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7)); for (let i = 0; i < +rep; i++){ const d = new Date(mon); d.setDate(d.getDate() + i); dates.push(isoDay(d)); } }
+      dates.forEach(d => { if (!list.some(x => x.who === base.who && x.date === d && x.kind === base.kind && x.start === base.start)) list.push(Object.assign({_id: uid(), date: d, at: new Date().toISOString()}, base)); }); }
+    put("rota", list); closeSheet(); toast("Saved"); renderAll(); };
+  if (id) $("rt_del").onclick = () => { if (!confirm("Remove this from the rota?")) return; put("rota", get("rota").filter(x => x._id !== id)); closeSheet(); renderAll(); };
+}
+/* visits: the same records Gold Trader's diary uses */
+async function visitAlert(v, kind){   // the same private alert channel as Gold Trader (day, time and area only)
+  if (!(window.DGSync && DGSync.joined && DGSync.joined())) return;
+  const tok = localStorage.getItem("dgs:tok"); if (!tok) return;
+  const to = (v.who ? [v.who] : diaryPeople()).filter(p => p && p !== (DGSync.me() || ""));
+  const body = [fmtD(v.date) + (v.time ? " at " + v.time : ""), pArea(v.postcode) ? pArea(v.postcode) + " area" : "", (kind === "new" ? "booked" : kind) + " by " + who()].filter(Boolean).join(" · ") + ". Open the diary for the details.";
+  for (const p of to){ const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(tok + "|visits|" + p.trim().toLowerCase()));
+    const topic = "dgv" + [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("").slice(0, 28);
+    try { await fetch("https://ntfy.sh/" + topic, {method: "POST", body, headers: {Title: {new: "New visit booked for you", changed: "Visit changed", cancelled: "Visit cancelled"}[kind], Tags: kind === "cancelled" ? "x" : "calendar", Priority: kind === "cancelled" ? "default" : "high", Click: "https://jase6569.github.io/gold-sell-timer/shop/"}}); } catch(e){} }
+}
+function visitForm(id, preset){
+  const v = id ? visitsAll().find(x => x._id === id) : Object.assign({date: today(), time: "", dur: 60, who: who()}, preset || {}); if (!v) return;
+  openSheet(id ? "Edit visit" : "Book a home visit", `
+    <div class="row"><div><label>Day</label><input id="vf_date" type="date" value="${esc(v.date)}"></div><div><label>Time</label><input id="vf_time" type="time" value="${esc(v.time || "")}"></div><div><label>How long</label><select id="vf_dur">${[30, 45, 60, 90, 120].map(m => `<option value="${m}"${num(v.dur || 60) === m ? " selected" : ""}>${m < 60 ? m + " min" : m / 60 + " hr"}</option>`).join("")}</select></div></div>
+    <label>Who's going</label><select id="vf_who"><option value="">Either of us</option>${diaryPeople().map(p => `<option${p === v.who ? " selected" : ""}>${esc(p)}</option>`).join("")}</select><div id="vf_clash"></div>
+    <label>Customer's name</label><input id="vf_name" value="${esc(v.name || "")}"><label>Phone</label><input id="vf_phone" type="tel" value="${esc(v.phone || "")}">
+    <label>Address</label><input id="vf_addr" value="${esc(v.address || "")}"><label>Postcode</label><input id="vf_pc" value="${esc(v.postcode || "")}" style="text-transform:uppercase">
+    <label>What they've got</label><input id="vf_what" value="${esc(v.what || "")}" placeholder="e.g. box of gold chains, 2 sovereigns, a watch">
+    <label>Notes</label><input id="vf_notes" value="${esc(v.notes || "")}" placeholder="e.g. ring the side door">
+    <button class="btn" id="vf_save">${id ? "Save changes" : "Book it"}</button>`);
+  const clash = () => { const w = $("vf_who").value, d = $("vf_date").value, t = $("vf_time").value; if (!w || !d){ $("vf_clash").innerHTML = ""; return; }
+    const off = get("rota").find(r => r.who === w && r.date === d && ["off", "holiday", "sick"].includes(r.kind)), other = t && visitsAll().find(x => x._id !== id && x.who === w && x.date === d && x.time && x.status !== "cancelled" && !(visitEnd(x) <= t || addMins(t, num($("vf_dur").value)) <= x.time));
+    const shift = get("rota").find(r => r.who === w && r.date === d && r.kind === "shop" && t && t >= r.start && t < r.end);
+    $("vf_clash").innerHTML = off ? `<div class="alert wn">${esc(w)} is ${{off: "on a day off", holiday: "on holiday", sick: "off sick"}[off.kind]} that day.</div>` : other ? `<div class="alert wn">${esc(w)} already has a visit at ${other.time}.</div>` : shift ? `<p class="muted">${esc(w)} is rota'd in the shop then (${shift.start}–${shift.end}): make sure the shop is covered.</p>` : ""; };
+  ["vf_who", "vf_date", "vf_time", "vf_dur"].forEach(k => $(k).onchange = clash); clash();
+  $("vf_save").onclick = () => {
+    const nv = {date: $("vf_date").value, time: $("vf_time").value, dur: num($("vf_dur").value), who: $("vf_who").value, name: $("vf_name").value.trim(), phone: $("vf_phone").value.trim(), address: $("vf_addr").value.trim(), postcode: $("vf_pc").value.trim().toUpperCase(), what: $("vf_what").value.trim(), notes: $("vf_notes").value.trim()};
+    if (!nv.date || !nv.name) return toast("Add at least the day and the customer's name");
+    const list = visitsAll();
+    if (!id){ const rec = Object.assign({_id: uid(), status: "booked", added: new Date().toISOString(), addedBy: who()}, nv); list.push(rec); visitAlert(rec, "new"); }
+    else { const x = list.find(y => y._id === id), moved = x.who !== nv.who || x.date !== nv.date || x.time !== nv.time, was = x.who; Object.assign(x, nv); if (moved) visitAlert(x, was !== nv.who ? "new" : "changed"); }
+    put("visits", list); closeSheet(); toast(id ? "Saved" : "Visit booked"); renderAll(); };
+}
+function visitView(id){
+  const v = visitsAll().find(x => x._id === id); if (!v) return;
+  const open = !v.status || v.status === "booked", place = [v.address, v.postcode].filter(Boolean).join(", "), digits = String(v.phone || "").replace(/[^\d+]/g, "");
+  const outNow = get("clock").filter(c => c.visitId === id).sort((a, b) => b.at.localeCompare(a.at))[0];
+  openSheet(`Visit · ${v.name || "customer"}`, `
+    <table><tr><td>When</td><td>${fmtD(v.date)}${v.time ? " at " + v.time + " to " + visitEnd(v) : ""}</td></tr><tr><td>Who's going</td><td>${esc(v.who || "Either")}</td></tr>
+    <tr><td>Where</td><td>${esc(place || "No address yet")}</td></tr>${v.phone ? `<tr><td>Phone</td><td>${esc(v.phone)}</td></tr>` : ""}${v.what ? `<tr><td>What they've got</td><td>${esc(v.what)}</td></tr>` : ""}${v.notes ? `<tr><td>Notes</td><td>${esc(v.notes)}</td></tr>` : ""}
+    <tr><td>Status</td><td>${{done: `Bought${v.receipt ? " · " + esc(v.receipt) : ""}${v.total ? " · " + gbp(v.total, 0) : ""}`, nosale: "No sale", cancelled: "Cancelled"}[v.status] || "Booked"}${outNow ? `<br><span class="muted">Left the shop ${hm(outNow.at)}</span>` : ""}</td></tr>
+    ${v.addedBy ? `<tr><td>Booked by</td><td>${esc(v.addedBy)}${v.added ? ", " + fmtD(v.added) : ""}</td></tr>` : ""}</table>
+    ${open ? `<div class="row" style="flex-wrap:wrap">${v.phone ? `<a class="btn small ghost" href="tel:${digits}">Call</a><button class="btn small ghost" id="vv_rem">Text a reminder</button>` : ""}${place ? `<a class="btn small ghost" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}">Map</a>` : ""}</div>
+      ${v.date === today() && (!v.who || v.who === who()) ? `<button class="btn" onclick="goOut('${v._id}');closeSheet()">I'm leaving for this visit</button>` : ""}
+      <a class="btn ghost" href="../buying-log/?visit=${encodeURIComponent(v._id)}&from=shop">Start the purchase in the Buy log</a>
+      <div class="row"><button class="btn small ghost" id="vv_no">No sale</button><button class="btn small ghost" id="vv_cancel">Cancelled</button></div>` : `<button class="btn small ghost" id="vv_reopen">Back to booked</button>`}
+    <div class="row"><button class="btn small ghost" onclick="visitForm('${v._id}')">Edit</button><button class="btn small red" id="vv_del">Delete</button></div>`);
+  const set = st => { const list = visitsAll(), x = list.find(y => y._id === id); x.status = st; put("visits", list); if (st === "cancelled") visitAlert(x, "cancelled"); closeSheet(); renderAll(); };
+  if ($("vv_rem")) $("vv_rem").onclick = () => { const list = visitsAll(), x = list.find(y => y._id === id); x.reminded = new Date().toISOString(); put("visits", list);
+    location.href = `sms:${digits}?&body=${encodeURIComponent(`Hi ${String(v.name || "").split(" ")[0]}, just confirming your free home valuation with ${bizName()} on ${new Date(v.date + "T12:00").toLocaleDateString("en-GB", {weekday: "long", day: "numeric", month: "long"})}${v.time ? " at " + v.time : ""}. Please have photo ID ready. Any questions, call us${blSettings.phone ? " on " + blSettings.phone : ""}.`)}`; };
+  if ($("vv_no")) $("vv_no").onclick = () => set("nosale");
+  if ($("vv_cancel")) $("vv_cancel").onclick = () => set("cancelled");
+  if ($("vv_reopen")) $("vv_reopen").onclick = () => set("booked");
+  $("vv_del").onclick = () => withManager("Deleting a visit", () => { if (!confirm("Delete this visit for everyone?")) return; put("visits", visitsAll().filter(x => x._id !== id)); closeSheet(); renderAll(); });
+}
+/* data protection: a year after a visit, the customer's name, phone and address come out of the diary (the day, who went and the area stay) */
+(function trimOldVisits(){ try { const cut = isoDay(new Date(Date.now() - 365 * 864e5)), list = visitsAll(); let n = 0;
+  list.forEach(v => { if (v.date < cut && (v.name || v.phone || v.address)){ v.name = ""; v.phone = ""; v.address = ""; v.postcode = pArea(v.postcode); v.notes = ""; v.trimmed = today(); n++; } });
+  if (n) put("visits", list); } catch(e){} })();
+setInterval(() => { if (page === "diary" || document.body.classList.contains("lone")) renderDiary(); }, 60000);
+
 /* ============ GUIDE AND HELP ============
    The ? at the top opens help for the page you're on, with every other topic one tap away and a search. */
 const HELP = [
@@ -2317,6 +2515,13 @@ const HELP = [
     <p><b>Scan with camera:</b> photograph a coin, a pile of coins or a boxed set. The AI reads them, then the app prices them from the catalogue. Weigh them all together to check.</p>
     <p><b>Buy these from the customer</b> takes the coins straight to the Buy log with weights and prices filled in; you add the customer's ID, photos and signature as normal. Coins worth more than melt are marked "Keep it", so they come back to Stock to sell.</p>
     <p class="muted">The catalogue is the same one Gold Trader uses: anything added there is here too.</p>`},
+  {id: "diary", page: "diary", t: "The diary: rota, visits and who's where", b: `
+    <p><b>Who's where now</b> shows everyone: in the shop, out (where, and when they're due back), off, or due in. It's worked out from clocking in, then the rota.</p>
+    <p><b>Your buttons:</b> <b>Clock in</b> when you arrive, <b>Going out</b> when you leave for a home visit or an errand (pick the visit, or say where and when you'll be back), <b>I'm back</b>, and <b>Clock out</b> at the end of the day.</p>
+    <p><b>Safety:</b> if someone isn't back 30 minutes after they said, every device shows a red warning telling you to call them. Home visits carry gold and cash, so use Going out every time.</p>
+    <p><b>The week:</b> everyone's shifts, visits and days off, with hours planned against hours worked. <b>+ Add to the rota</b> adds a shift, a day off, holiday, sickness or time out, and can repeat it for the week or four weeks.</p>
+    <p><b>Home visits</b> are the same diary as Gold Trader. Booking one warns if that person is off, already busy, or rota'd in the shop. The person going gets an alert (day, time and area only). From a visit you can call, map it, text a reminder, and start the purchase in the Buy log.</p>
+    <p class="muted">A year after a visit, the customer's name, phone and address are removed from the diary automatically.</p>`},
   {id: "tosafe", page: "buy", t: "Putting buys into the safe", b: `<p>Buys show under <b>Bought, not yet in the safe</b>. Tap <b>Put in the safe</b> (or put several in one bag). Weigh the bag and correct any weight that's different on the scales.</p>`},
   {id: "stock", page: "stock", t: "Stock for sale", b: `
     <p><b>+ Add a piece</b>: kind, description, metal, weight, size, hallmark, up to 6 photos, cost and asking price. It shows the melt value (the least it's worth) and your margin.</p>
@@ -2394,10 +2599,10 @@ function openHelp(focus){
 /* ============ PAGES ============ */
 setTimeout(() => { try { if (!localStorage.getItem("shopHelpSeen")){ localStorage.setItem("shopHelpSeen", "1"); if ($("lock").style.display !== "flex") openHelp("start"); } } catch(e){} }, 1500);
 let page = "sales";
-function go(p){ page = p; ["sales", "buy", "coins", "stock", "cust", "safe", "rep", "set"].forEach(x => $("p-" + x).style.display = x === p ? "" : "none");
+function go(p){ page = p; ["sales", "buy", "coins", "diary", "stock", "cust", "safe", "rep", "set"].forEach(x => $("p-" + x).style.display = x === p ? "" : "none");
   document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.p === p)); window.scrollTo(0, 0); renderAll(); }
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => go(b.dataset.p));
-function renderAll(){ [renderSales, renderVals, renderBuys, renderStock, renderCustomers, renderSafe, renderReports, renderSettings, () => { if (page === "coins" && typeof renderCoins === "function"){ renderCoins(); coinPriceLine(); } }].forEach(f => { try { f(); } catch(e){ console.log(e); } }); }
+function renderAll(){ [renderSales, renderVals, renderBuys, renderDiary, renderStock, renderCustomers, renderSafe, renderReports, renderSettings, () => { if (page === "coins" && typeof renderCoins === "function"){ renderCoins(); coinPriceLine(); } }].forEach(f => { try { f(); } catch(e){ console.log(e); } }); }
 window.addEventListener("dgsync-applied", () => { renderAll(); let u = ""; try { u = sessionStorage.getItem("shopUser") || ""; } catch(e){}
   if (staffAll().length && !staffAll().some(x => x.name === u) && $("lock").style.display !== "flex") lockNow(); });
 if (!who() && !staffAll().length && !(window.DGSync && DGSync.joined && DGSync.joined())){ /* not in the team: ask once who's using this phone, for "by" on records */
