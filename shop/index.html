@@ -360,6 +360,11 @@
       <div id="sendsDone"></div>
     </div>
     </div>
+      <div class="card">
+      <h2>Your gold: what you hold, when to send</h2>
+      <p class="muted" style="margin-top:0">Gold Trader's stock tools: what you hold and its profit at today's price, how much to send and which lots first, lot alerts and the refiner price used everywhere.</p>
+      <iframe id="goldFrame" title="Your gold" style="width:100%;border:0;display:block;min-height:400px;background:transparent" loading="lazy"></iframe>
+    </div>
   </section>
 
   <!-- ============ REPORTS ============ -->
@@ -1554,7 +1559,9 @@ const bagGrams = b => (b.lines || []).reduce((t, l) => t + num(l.g), 0);
 const bagValue = (b, m) => (b.lines || []).reduce((t, l) => t + ((m || mm) && (m || mm).prices && (m || mm).prices[l.carat] ? num(l.g) * (m || mm).prices[l.carat] : 0), 0);
 const sendsAll = () => get("sends");
 const sendOf = b => b.sendId && sendsAll().find(s => s._id === b.sendId);
+window.addEventListener("message", e => { if (e.origin === location.origin && e.data && e.data.dgGoldH && $("goldFrame")) $("goldFrame").style.height = (e.data.dgGoldH + 4) + "px"; });
 function renderSafe(){
+  if (page === "safe" && $("goldFrame") && !$("goldFrame").src) $("goldFrame").src = "../?embed=gold";
   const all = get("safebags").slice().sort((a, b) => (b.inAt || "").localeCompare(a.inAt || ""));
   const inn = all.filter(b => !b.outAt), out = all.filter(b => b.outAt);
   const by = {}; inn.forEach(b => (b.lines || []).forEach(l => { by[l.carat] = (by[l.carat] || 0) + num(l.g); }));
@@ -2717,6 +2724,7 @@ const HELP = [
   {id: "consent", page: "cust", t: "Marketing messages and consent", b: `<p>Only tick <b>Happy to get texts / emails</b> if the customer has agreed. The app records when and by whom. <b>Export marketing list</b> only includes people who agreed. Messages about their own order (a balance reminder, their receipt) don't need this.</p>`},
   {id: "idcust", page: "cust", t: "ID for customers", b: `<p>Ask for it; it's optional on sales under £1,000 and needed for £1,000 or more. <b>Fill in the details from the ID photo</b> reads it for you: always check what it fills in. After the retention period with no sales, ID shows under <b>ID to review</b>; remove it if you don't need it.</p>`},
   {id: "safe", page: "safe", t: "The safe", b: `
+    <p><b>Your gold</b> (bottom of the Safe page) is Gold Trader's stock view: what you hold and the profit on it at today's price, <b>Send</b> (how much to send this week and which lots first), adding gold that didn't come through the Buy log, <b>lot alerts</b> and the <b>refiner price</b> used everywhere. Buy log purchases are added automatically, and sends recorded here take the gold off.</p>
     <p>Every bag is numbered (and sealed if you use seals) and logged with its weight by carat. <b>Print bag labels</b> for the bags. The safe shows what everything is worth to Mastermelt today, and which bags are on hold.</p>
     <p><b>Safe check</b> weekly: scan or tick every bag, check the seals.</p>`},
   {id: "send", page: "safe", t: "Sending to Mastermelt and getting paid", b: `

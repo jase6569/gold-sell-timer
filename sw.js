@@ -3,7 +3,7 @@
 // and the copy saved here is only used when there's no signal (or it's too slow).
 // Adam's app (adam/) is left completely alone.
 const CACHE = "gt-offline-v1";
-const CORE = ["./", "index.html", "sync.js?v=15", "coins.js?v=1", "keep.js?v=1", "offer.js?v=3", "manifest.json",
+const CORE = ["./", "index.html", "sync.js?v=15", "coins.js?v=1", "keep.js?v=1", "offer.js?v=3", "out.js?v=1", "manifest.json",
   "icon.png", "logo.png", "favicon.png", "apple-touch-icon.png", "data.json", "news.json", "mastermelt.json", "widget.json",
   "buying-log/", "buying-log/index.html", "buying-log/qrcode.min.js", "shop/", "shop/index.html", "shop/manifest.json",
   "https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"];

@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en-GB">
 <head>
+<script>/* shown inside the Shop's Safe page: only the gold you hold, sending and lot alerts */
+try{if(/[?&]embed=gold\b/.test(location.search))document.documentElement.classList.add("embed")}catch(e){}</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -36,6 +38,10 @@
   header{padding:18px 16px 4px;max-width:720px;margin:0 auto}
   header{display:flex;align-items:center;gap:12px}
   header img{width:56px;height:56px;flex:none}
+  header .hdrHelp{margin-left:auto;flex:none;width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--gold2);font-size:18px;font-weight:800;cursor:pointer}
+  .ovisit{border-top:1px solid var(--line);padding:12px 0}.ovisit:first-of-type{border-top:0;padding-top:0}.ovisit.done{opacity:.6}
+  .ovtop{display:flex;justify-content:space-between;gap:8px}
+  .ovbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.ovbtns .btn{flex:1 1 auto;width:auto;margin:0;padding:10px 12px;font-size:14px;text-align:center;text-decoration:none}
   header h1{margin:0;font-size:22px}
   header h1 span{color:var(--gold)}
   header p{margin:2px 0 0;color:var(--muted);font-size:13px}
@@ -129,6 +135,9 @@
   nav a.navlink svg{display:block;margin:0 auto 3px;width:22px;height:22px}
   nav button.on{color:var(--gold2)}
   .page{display:none}.page.on{display:block}
+  html.embed header,html.embed nav,html.embed #splash,html.embed .bkdue,html.embed #blNote,html.embed #toastUpd{display:none!important}
+  html.embed .page{display:none!important}html.embed #p-calc{display:block!important}
+  html.embed body{padding-bottom:0!important;background:transparent}html.embed main{padding:0;max-width:none}
   .alertbox{margin-top:10px;padding:12px;border-radius:12px;border:1px solid var(--gold);background:rgba(212,168,67,.12);display:none}
   .live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--up);margin-right:6px;animation:p 1.6s infinite}
   @keyframes p{50%{opacity:.25}}
@@ -165,6 +174,7 @@
     <h1>Gold <span>Trader</span></h1>
     <p><i class="live"></i>Dorset Gold &amp; Jewellery · when to sell gold · UK, live</p>
   </div>
+  <button class="hdrHelp" onclick="go('help')" aria-label="Guide" title="Guide">?</button>
 </header>
 
 <main>
@@ -198,7 +208,7 @@
   <div class="card" id="liveMine" style="display:none">
     <h2>Your gold right now · live</h2>
     <div id="liveMineBody"></div>
-    <p class="muted" style="margin:8px 0 0">Updates every minute with the live price. Uses Mastermelt's counter price unless you pick your own % (in the Prices tab, on the My gold page).</p>
+    <p class="muted" style="margin:8px 0 0">Updates every minute with the live price. Uses Mastermelt's counter price unless you pick your own % (Shop, Safe, Your gold, Alerts &amp; prices).</p>
   </div>
 
   <div class="card" style="border-color:var(--gold)">
@@ -401,18 +411,18 @@
     <div class="setup-step" data-s="lots">
       <label class="setup-tick"><input type="checkbox"> <b>6. Turn on lot alerts</b></label>
       <ol>
-        <li>Tap <b>My gold</b> in the bottom bar, then the <b>Buying</b> tab.</li>
+        <li>Open the <b>Shop</b>, go to <b>Safe</b>, scroll to <b>Your gold</b> and open <b>Alerts &amp; prices</b>.</li>
         <li>Scroll to <b>Lot alerts</b>, type the same business alert code and tap <b>Turn on lot alerts</b>.</li>
         <li>If it shows a <b>lot channel code</b>, subscribe to that in ntfy too (tap <b>+</b> again). You'll then get a ping when a batch of gold should go to the refiner, plus a summary of the week every Sunday evening.</li>
       </ol>
-      <button class="btn ghost" onclick="go('calc')">Open My gold</button>
+      <a class="btn ghost" href="shop/?go=safe" style="display:block;text-align:center;text-decoration:none">Open your gold in the Shop</a>
     </div>
 
     <div class="setup-step" data-s="stock">
       <label class="setup-tick"><input type="checkbox"> <b>7. Tell it about your buying and stock</b> <span class="muted">(once for the business)</span></label>
       <ol>
-        <li>In <b>My gold</b>, open the <b>Send</b> tab. Under <b>Buying in</b>, enter roughly how many grams you buy in a month, and the most stock you want to hold. Start with <b>2 months</b>.</li>
-        <li>On the <b>My gold</b> tab, tap <b>+ Add gold you hold</b> for the gold you're holding now: weight, carat, what you paid and the date. Gold you buy through the Buy log is added for you.</li>
+        <li>In the Shop, <b>Safe</b>, <b>Your gold</b>, open the <b>Send</b> tab. Under <b>Buying in</b>, enter roughly how many grams you buy in a month, and the most stock you want to hold. Start with <b>2 months</b>.</li>
+        <li>On the <b>Your gold</b> tab, tap <b>+ Add gold you hold</b> for the gold you're holding now: weight, carat, what you paid and the date. Gold you buy through the Buy log is added for you.</li>
         <li>Open the <b>Prices</b> tab. It uses Mastermelt's trade counter price unless you change it. If you get a different rate, choose <b>My own %</b> and type it in.</li>
         <li>Open <b>Buying</b> and set the margin you want to keep (for example 20%). It then shows the most to pay per gram each day.</li>
       </ol>
@@ -443,7 +453,7 @@
     <div class="setup-step" data-s="backup">
       <label class="setup-tick"><input type="checkbox"> <b>10. Take your first backup</b></label>
       <ol>
-        <li>Tap <b>Back up everything</b> (bottom of the My gold tab). It opens the Shop app, where you choose a password to lock the backup.</li>
+        <li>Tap <b>Back up everything</b> (Shop, Safe, Your gold). It opens the Shop app, where you choose a password to lock the backup.</li>
         <li>Save it to <b>Google Drive</b> (or your computer).</li>
         <li>One locked backup covers everything: the Shop, the Buy log with photos, your gold, the diary and cash. Do it every week: the app reminds you on the Advice page when it's due. Everything is also shared with the team, but this is your own copy if a phone or the team server ever goes wrong.</li>
       </ol>
@@ -459,7 +469,7 @@
     <div class="sub">The short version</div>
     <ol>
       <li>Work through <b>Start here</b> at the top of this page: home screen, alerts, and joining the team.</li>
-      <li>On <b>My gold</b>, tell it roughly how much you buy in a month (<b>Send</b> tab), then add any gold you hold that didn't come through the Buy log (<b>+ Add gold you hold</b> on the <b>My gold</b> tab).</li>
+      <li>In the Shop's <b>Safe</b>, under <b>Your gold</b>, tell it roughly how much you buy in a month (<b>Send</b> tab), then add any gold you hold that didn't come through the Buy log.</li>
       <li>Check the top of the <b>Advice</b> page, or wait for an alert. <b>Your stock: what to do this week</b> tells you how much to keep and how many grams to send, oldest gold first.</li>
       <li>Book visits in the <b>Shop's Diary</b> and use <b>Route for my visits today</b> on the day. At the visit, tap <b>Make an offer</b>, show the customer, and if they accept the <b>Buy log</b> opens with everything filled in. Take the ID photo and let the app read the details, add the photos and signature, and save.</li>
     </ol>
@@ -492,7 +502,7 @@
       <tr><td>📅 Friday evening</td><td>Weekly summary of the market and your stock call</td></tr>
       <tr><td>🗓 Sunday evening (lot alerts)</td><td>Your week: what you bought, sent and made, and what's still unsold</td></tr>
     </table>
-    <p class="muted">The stock call only changes now and then, so days without a message are normal. Lot alerts are switched on separately, in My gold, Buying (section 6).</p>
+    <p class="muted">The stock call only changes now and then, so days without a message are normal. Lot alerts are switched on separately, in the Shop's Safe, Your gold (section 6).</p>
   </div>
 
   <div class="card">
@@ -526,11 +536,9 @@
   </div>
 
   <div class="card">
-    <h2>5. My gold, tab by tab</h2>
-    <p style="margin-top:0">Once you've joined the team, My gold is shared: your stock, what you've sent, and the margin and refiner settings are the same on every device. Adam's app never sees any of it.</p>
-    <p><b>My gold.</b> What your gold is worth right now, your profit, and what it would be worth at the sell zone. Under it, <b>What you hold</b> groups your lots by week or month with each lot's break-even price and profit. Gold bought in the Buy log is added for you; use <b>+ Add gold you hold</b> for anything else.</p>
-    <p><b>Send.</b> Enter roughly how many grams you buy in a month and the most stock you want to hold (start with 2 months). It shows how many grams of each carat to send this week, oldest first, and <b>which lots to send first</b>. When your gold is in bags in the Shop's safe, record the send in the Shop's Safe: it takes the bags out and this gold off your list together.</p>
-    <p><b>Buying.</b> <b>What to pay today</b>: set the margin you want to keep (shared, and used by the offer screen) and it shows the most to pay per gram for each carat. <b>Lot alerts</b> tell you when a lot should go to the refiner. <b>Refiner prices</b> sets the price used for every "what you'd be paid" figure: Mastermelt's trade counter prices (read automatically each day), or your own % if you get a different rate. Your buying figures month by month are in the Shop's Reports.</p>
+    <h2>5. Out today, Coins and your gold</h2>
+    <p style="margin-top:0"><b>Out today</b> is for home visits, linked live to the Shop. It shows your visits for today with <b>Call</b>, <b>Text</b> (a reminder asking them to have photo ID ready), <b>Directions</b>, <b>Leaving now</b>, <b>Make an offer</b>, <b>Start the purchase</b> and <b>No sale</b>, plus a route for the whole day. <b>Clock in</b>, <b>Going out</b> and <b>I'm back</b> keep the Shop's "who's where" right, and the Shop warns the others if you're not back 30 minutes after your time. Under that: <b>what to pay today</b> per carat, and <b>the cash you're carrying</b> (purchases paid from your own cash come off automatically). To book or move a visit, use the Shop's Diary.</p>
+    <p><b>Your gold</b> (what you hold, how much to send and which lots first, adding gold, lot alerts and the refiner price) is in the Shop, on the <b>Safe</b> page, next to the bags it's in. The Advice page still tells you what to do with your stock this week.</p>
     <p><b>Coins.</b> Gold and silver coins, three ways:</p>
     <ol>
       <li><b>Look up a coin.</b> Pick it from the list to see its weight, size, gold or silver content, melt value, what the refiner pays and what to pay.</li>
@@ -544,13 +552,13 @@
     <h2>6. The Buy log</h2>
     <p style="margin-top:0">Every purchase from a customer is recorded in the Buy log. Open it from <b>Shop</b>, <b>Buy</b> (or from a visit in the Shop's Diary). Every purchase either of you makes is shared, so you can both look up any customer. Each phone has its own PIN lock in <b>Settings</b>.</p>
     <ol>
-      <li><b>Don't melt this.</b> Coins, medals, designer, signed, antique and stone-set pieces are flagged with a yellow <b>Don't melt this?</b> note on the offer screen and in the Buy log, because they usually sell for more as they are than as scrap. Tick <b>Keep it: don't melt</b> and the piece is kept back: it shows under <b>Kept back, don't melt</b> on the Send tab, isn't counted in your stock to send, and never goes in a refiner batch. You can tick it for gold you add by hand on My gold too.</li>
-      <li><b>New purchase.</b> Take the <b>ID front</b> photo, then tap <b>Fill in the details from the ID photo</b>: the app reads the name, date of birth, ID number, expiry and address into any empty boxes. Always check them against the ID. Then the seller's details, their photo ID and proof of address (with photos), each item (description, carat, weight, price, photos on the scales and of the hallmark), how you paid, and the seller's signature on the declaration. Saving it gives a receipt number and adds the gold to My gold for you.</li>
+      <li><b>Don't melt this.</b> Coins, medals, designer, signed, antique and stone-set pieces are flagged with a yellow <b>Don't melt this?</b> note on the offer screen and in the Buy log, because they usually sell for more as they are than as scrap. Tick <b>Keep it: don't melt</b> and the piece is kept back: it shows under <b>Kept back, don't melt</b> on the Send tab, isn't counted in your stock to send, and never goes in a refiner batch. You can tick it for gold you add by hand under Your gold too.</li>
+      <li><b>New purchase.</b> Take the <b>ID front</b> photo, then tap <b>Fill in the details from the ID photo</b>: the app reads the name, date of birth, ID number, expiry and address into any empty boxes. Always check them against the ID. Then the seller's details, their photo ID and proof of address (with photos), each item (description, carat, weight, price, photos on the scales and of the hallmark), how you paid, and the seller's signature on the declaration. Saving it gives a receipt number and adds the gold to your gold list for you.</li>
       <li><b>Records.</b> Search by name, ID number, postcode, phone, item or receipt number. Open a record to <b>email the receipt to the customer</b>. You can print a police report for a date range, or export a spreadsheet (CSV). Receipt numbers carry the buyer's initial, for example DG-20261122-J001 for Jase and DG-20261122-M001 for Mike.</li>
       <li><b>Google reviews.</b> Each record has a <b>Google review</b> card: show the customer a QR code to scan while you're with them, or ask by text, WhatsApp or email, then tap <b>They've left a review</b>. The Records page shows who's still to ask, and nobody is asked twice once they've reviewed. Add the review link once, in Settings.</li>
       <li><b>Settings.</b> The business details for receipts and reports, the Google review link (both shared), plus your own staff name, PIN lock and backups.</li>
     </ol>
-    <p><b>Back up every week.</b> One locked backup covers everything: the Shop, the Buy log with all its photos, your gold, the diary, rota and cash. Tap <b>Back up everything</b> on My gold (or <b>Back up now</b> in the Buy log): it opens the Shop app, where you lock it with a password and save it to Google Drive. Restore it from the Shop app, Settings.</p>
+    <p><b>Back up every week.</b> One locked backup covers everything: the Shop, the Buy log with all its photos, your gold, the diary, rota and cash. Tap <b>Back up everything</b> in the Shop (or <b>Back up now</b> in the Buy log): it opens the Shop app, where you lock it with a password and save it to Google Drive. Restore it from the Shop app, Settings.</p>
     <p><b>Data protection.</b> Because you keep customers' names, addresses, ID and photos, the business needs to pay the ICO's yearly data protection fee (small businesses pay the lowest tier) and offer sellers a privacy notice. The Shop's Settings, <b>Data protection</b> has the ICO link and the privacy notice to print or show the customer. It says what you record, why, who sees it, how long you keep it (your retention setting) and their rights. It's also added to the bottom of every emailed receipt.</p>
   </div>
 
@@ -574,9 +582,9 @@
 
   <div class="card">
     <h2>Questions</h2>
-    <p style="margin-top:0"><b>The price is different from my refiner's.</b> The top of the Advice page shows the market (spot) price. Every "what you'd be paid" figure uses the refiner price from <b>My gold, Prices</b>: Mastermelt's daily counter price, or your own %.</p>
+    <p style="margin-top:0"><b>The price is different from my refiner's.</b> The top of the Advice page shows the market (spot) price. Every "what you'd be paid" figure uses the refiner price set in the Shop (<b>Safe</b>, <b>Your gold</b>, <b>Alerts &amp; prices</b>): Mastermelt's daily counter price, or your own %.</p>
     <p><b>The Mastermelt figure doesn't move during the day.</b> That's right. Mastermelt sets its counter price once a day, so it changes when they update it. The live value above it moves every minute.</p>
-    <p><b>No signal?</b> The app still opens, with your stock call, My gold, coins and the Buy log. It shows the last live price your phone saw, with the time, and updates as soon as you're back online. Anything you add with no signal is saved on the phone and shared with the team when the signal returns. Only the coin scanner needs a signal. Open the app once with signal after an update so the phone keeps the newest copy.</p>
+    <p><b>No signal?</b> The app still opens, with your stock call, Out today, coins and the Buy log. It shows the last live price your phone saw, with the time, and updates as soon as you're back online. Anything you add with no signal is saved on the phone and shared with the team when the signal returns. Only the coin scanner needs a signal. Open the app once with signal after an update so the phone keeps the newest copy.</p>
     <p><b>It says "Live feed unavailable".</b> The app is showing the last saved price and keeps retrying every minute. The advice still works.</p>
     <p><b>I haven't had an alert for a while.</b> That's normal: alerts come when the stock call changes, plus the Friday summary. If even the Friday summary stops, check you're still subscribed in ntfy and that notifications for it aren't muted.</p>
     <p><b>The ID reader filled in something wrong, or nothing at all.</b> It only fills boxes that are empty and can misread a worn or shiny card, so always check every detail against the ID itself before saving. If it says the photo is hard to read, retake it flat, in good light, with the whole card filling the frame. It never decides whether an ID is genuine: that's your check.</p>
@@ -592,9 +600,58 @@
 </section>
 
 <!-- ========== VALUE ========== -->
+<section class="page" id="p-out">
+  <div id="outBody"></div>
+  <div class="card" id="proCard" style="display:none">
+    <h2>What to pay today</h2>
+    <label>Margin you want to keep, %</label>
+    <input id="pmM" type="number" inputmode="decimal" placeholder="e.g. 20">
+    <div id="pmPay"></div>
+    <div id="pmMonths" style="display:none"></div>
+    <p class="muted" style="margin:14px 0 0">The margin is shared with the Shop and the offer screen. Your buying figures are in the <a href="shop/?go=rep" style="color:var(--gold2)">Shop's Reports</a>.</p>
+  </div>
+  <a class="btn" href="buying-log/" style="display:block;text-align:center;text-decoration:none;margin:12px 0">Open the Buy log</a>
+</section>
+
+<section class="page" id="p-coins">
+  <div class="card" id="coinCard">
+    <h2>Coins: gold and silver</h2>
+    <div class="tabs" id="coinTabs" style="margin-bottom:10px">
+      <button class="on" data-c="look">Look up a coin</button>
+      <button data-c="id">Identify a coin</button>
+      <button data-c="scan">Scan with camera</button>
+    </div>
+    <div id="coinScan" style="display:none">
+      <p class="muted" style="margin-top:0">Photograph a coin, a handful of coins or a whole set in its case. For a set, get the certificate in the shot if there is one. Take them now or upload ones already on your phone. Up to 4 photos, e.g. front and back.</p>
+      <input id="scFile" type="file" accept="image/*" capture="environment" style="display:none">
+      <input id="scPick" type="file" accept="image/*" multiple style="display:none">
+      <div style="display:flex;gap:8px"><button class="btn" id="scTake" style="flex:1">📷 Take a photo</button><button class="btn" id="scUp" style="flex:1">🖼 Upload photos</button></div>
+      <div id="scThumbs" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"></div>
+      <button class="btn" id="scGo" style="display:none">Scan these photos</button>
+      <button class="btn" id="scClear" style="display:none;background:none;border:1px solid var(--line);color:var(--muted)">Start again</button>
+    </div>
+    <div id="coinLook">
+      <label>Coin</label>
+      <select id="coinSel"></select>
+      <label>How many</label>
+      <input id="coinQty" type="number" inputmode="numeric" value="1" min="1">
+    </div>
+    <div id="coinId" style="display:none">
+      <p class="muted" style="margin-top:0">Weigh it on your scales and, if you can, measure across it with callipers. It's matched against the official mint specs for the gold and silver coins you're most likely to see.</p>
+      <div class="grid2">
+        <div><label>Weight (grams)</label><input id="coinW" type="number" inputmode="decimal" step="0.01" placeholder="e.g. 7.98"></div>
+        <div><label>Diameter (mm, optional)</label><input id="coinD" type="number" inputmode="decimal" step="0.01" placeholder="e.g. 22.05"></div>
+      </div>
+      <label>Colour</label>
+      <select id="coinM"><option value="any">Not sure</option><option value="au">Gold coloured</option><option value="ag">Silver coloured</option></select>
+    </div>
+    <div id="coinOut"></div>
+  </div>
+</section>
+
 <section class="page" id="p-calc">
   <div class="gtabs" id="gtTabs">
-    <button data-t="mine">My gold</button><button data-t="send">Send</button><button data-t="money" id="gtMoney">Buying</button><button data-t="coins">Coins</button>
+    <button data-t="mine">Your gold</button><button data-t="send">Send</button><button data-t="money" id="gtMoney">Alerts &amp; prices</button>
   </div>
   <div class="card" data-gt="mine" id="ovEmpty" style="display:none"><h2>Nothing here yet</h2><p class="muted" style="margin:0">Buy through the Buy log, or tap <b>+ Add gold you hold</b> below, and your live totals show here.</p></div>
   <div data-gt="mine" class="bkdue" id="bkDue2" style="display:none"></div>
@@ -646,17 +703,6 @@
   </div>
 
 
-  <div data-gt="money" class="card" id="proCard" style="display:none">
-    <h2>Make more money</h2>
-    <div class="sub">What to pay today</div>
-    <label>Margin you want to keep, %</label>
-    <input id="pmM" type="number" inputmode="decimal" placeholder="e.g. 20">
-    <div id="pmPay"></div>
-    <div id="pmMonths" style="display:none"></div>
-    <p class="muted" style="margin:14px 0 0">Your buying figures month by month, for each of you, are in the <a href="shop/?go=rep" style="color:var(--gold2)">Shop's Reports</a>. Which lots to send first is on the <b>Send</b> tab.</p>
-    <div class="sub" style="margin-top:14px">Lot alerts on your phone</div>
-    <div id="laBox"></div>
-  </div>
 
 
   <div data-gt="mine" class="card">
@@ -689,38 +735,10 @@
   </div>
 
 
-  <div data-gt="coins" class="card" id="coinCard">
-    <h2>Coins: gold and silver</h2>
-    <div class="tabs" id="coinTabs" style="margin-bottom:10px">
-      <button class="on" data-c="look">Look up a coin</button>
-      <button data-c="id">Identify a coin</button>
-      <button data-c="scan">Scan with camera</button>
-    </div>
-    <div id="coinScan" style="display:none">
-      <p class="muted" style="margin-top:0">Photograph a coin, a handful of coins or a whole set in its case. For a set, get the certificate in the shot if there is one. Take them now or upload ones already on your phone. Up to 4 photos, e.g. front and back.</p>
-      <input id="scFile" type="file" accept="image/*" capture="environment" style="display:none">
-      <input id="scPick" type="file" accept="image/*" multiple style="display:none">
-      <div style="display:flex;gap:8px"><button class="btn" id="scTake" style="flex:1">📷 Take a photo</button><button class="btn" id="scUp" style="flex:1">🖼 Upload photos</button></div>
-      <div id="scThumbs" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"></div>
-      <button class="btn" id="scGo" style="display:none">Scan these photos</button>
-      <button class="btn" id="scClear" style="display:none;background:none;border:1px solid var(--line);color:var(--muted)">Start again</button>
-    </div>
-    <div id="coinLook">
-      <label>Coin</label>
-      <select id="coinSel"></select>
-      <label>How many</label>
-      <input id="coinQty" type="number" inputmode="numeric" value="1" min="1">
-    </div>
-    <div id="coinId" style="display:none">
-      <p class="muted" style="margin-top:0">Weigh it on your scales and, if you can, measure across it with callipers. It's matched against the official mint specs for the gold and silver coins you're most likely to see.</p>
-      <div class="grid2">
-        <div><label>Weight (grams)</label><input id="coinW" type="number" inputmode="decimal" step="0.01" placeholder="e.g. 7.98"></div>
-        <div><label>Diameter (mm, optional)</label><input id="coinD" type="number" inputmode="decimal" step="0.01" placeholder="e.g. 22.05"></div>
-      </div>
-      <label>Colour</label>
-      <select id="coinM"><option value="any">Not sure</option><option value="au">Gold coloured</option><option value="ag">Silver coloured</option></select>
-    </div>
-    <div id="coinOut"></div>
+
+  <div data-gt="money" class="card" id="lotCard">
+    <h2>Lot alerts</h2>
+    <div id="laBox"></div>
   </div>
 
   <div data-gt="money" class="card">
@@ -763,9 +781,11 @@
   <button class="on" data-p="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>Advice</button>
   <button data-p="alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 21h4"/></svg>Alerts</button>
   <button data-p="chart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M6 16l4-5 3 3 5-7"/></svg>Chart</button>
-  <button data-p="calc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/></svg>My gold</button>
+  <button data-p="out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0119 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Out today</button>
+  <button data-p="coins"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="6"/><path d="M15.5 9.5a6 6 0 11-6 6"/></svg>Coins</button>
+  <a href="buying-log/" class="navlink" id="blNav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.2"/><path d="M5.5 16.5c.6-1.6 2-2.5 3.5-2.5s2.9.9 3.5 2.5M14 10h4M14 13.5h4"/></svg>Buy log</a>
   <a href="shop/" class="navlink" id="shopNav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9l1.5-5h13L20 9"/><path d="M4 9h16v11H4z"/><path d="M9 20v-6h6v6"/></svg>Shop</a>
-  <button data-p="help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.7-2.5 2-2.5 4M12 17h.01"/></svg>Guide</button>
+  <button data-p="help" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.7-2.5 2-2.5 4M12 17h.01"/></svg>Guide</button>
 </nav>
 
 <script src="sync.js?v=15"></script>
@@ -862,9 +882,9 @@ function renderDealer(){
   const a = meltStock(), pay = (parseFloat($("cP").value) || 95) / 100, held = a.reduce((t, x) => t + x.w, 0);
   let extra;
   if (!monthly){
-    extra = `<p style="margin:10px 0 0">Tell the app roughly how much gold you buy in a month and it will work out exactly how many grams to send to the refiner each week.</p><button class="btn" onclick="go('calc');setTimeout(()=>{const e=document.getElementById('buyCard');if(e)e.scrollIntoView({behavior:'smooth'})},200)">Set up in My gold</button>`;
+    extra = `<p style="margin:10px 0 0">Tell the app roughly how much gold you buy in a month and it will work out exactly how many grams to send to the refiner each week.</p><button class="btn" onclick="location.href='shop/?go=safe'">Set up in the Shop</button>`;
   } else if (!held){
-    extra = `<p style="margin:10px 0 0">Add the gold you're holding in <b>My gold</b> to see how many grams to send this week.</p><button class="btn ghost" onclick="go('calc')">Open My gold</button>`;
+    extra = `<p style="margin:10px 0 0">Add the gold you're holding (Shop, <b>Safe</b>, <b>Your gold</b>) to see how many grams to send this week.</p><a class="btn ghost" href="shop/?go=safe" style="display:block;text-align:center;text-decoration:none">Open your gold in the Shop</a>`;
   } else {
     const target = buyTarget(mode, held, monthly, months), send = Math.max(0, held - target);
     const batch = send >= 1 ? buyBatch(a, send) : [];
@@ -876,7 +896,7 @@ function renderDealer(){
         <tr><td><b>Send to the refiner this week</b></td><td><b>${send >= 1 ? send.toFixed(1) + " g" : "nothing"}</b></td></tr>
       </table>
       ${batch.length ? `<p class="muted" style="margin:6px 0 0">Oldest gold first: ${Object.entries(byCarat).map(([k, w]) => `${w.toFixed(1)}g ${CT[k]}`).join(", ")}${gbpPerGram ? `, about <b>${fmt(pure * gbpPerGram * pay, 0)}</b> ${payAt(pay)}` : ""}.</p>` : ""}
-      <button class="btn ghost" onclick="go('calc');setTimeout(()=>{const e=document.getElementById('buyCard');if(e)e.scrollIntoView({behavior:'smooth'})},200)">See the details in My gold</button>`;
+      <button class="btn ghost" onclick="location.href='shop/?go=safe'">See the details in the Shop</button>`;
   }
   box.innerHTML = `<div class="verdict ${b.cls}" style="margin:0"><div class="call">${b.call}</div><div>${b.why}</div></div>${extra}
     <p class="muted" style="margin:10px 0 0">Your profit is the gap between what you pay and what the refiner pays you. Every gram you hold is a bet on the gold price, so this tells you how much to keep and when to send it off.</p>`;
@@ -1452,7 +1472,7 @@ function gtEmpty(){
   $("ovEmpty").style.display = vis("stockSum") ? "none" : "block";
 }
 function showGt(t){
-  if (!["mine", "send", "money", "coins"].includes(t)) t = "mine";
+  if (!["mine", "send", "money"].includes(t)) t = "mine";
   gtTab = t; store.set("gtTab", t);
   document.querySelectorAll("#gtTabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
   document.querySelectorAll("#p-calc [data-gt]").forEach(el => el.classList.toggle("gtHide", el.dataset.gt !== t));
@@ -1789,6 +1809,7 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
   document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x === b));
   document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "p-" + b.dataset.p));
   if (b.dataset.p === "chart") loadZoneChart();
+  if (b.dataset.p === "out" && window.OutToday) OutToday.render();
   window.scrollTo(0, 0);
 });
 
@@ -1829,6 +1850,16 @@ if (!store.get("seenGuide")) $("welcome").style.display = "block";
 <script src="coins.js?v=1"></script>
 <script src="keep.js?v=1"></script>
 <script src="offer.js?v=3"></script>
+<script src="out.js?v=1"></script>
+<script>
+/* inside the Shop: tell the Shop how tall this is, and redraw when the Shop changes the gold list */
+if (document.documentElement.classList.contains("embed")){
+  const post = () => { try { parent.postMessage({dgGoldH: document.documentElement.scrollHeight}, location.origin); } catch(e){} };
+  new ResizeObserver(post).observe(document.body); setInterval(post, 1500); post();
+  let t = 0; window.addEventListener("storage", () => { clearTimeout(t); t = setTimeout(() => window.dispatchEvent(new CustomEvent("dgsync-applied", {detail: {}})), 400); });
+  document.querySelectorAll('a[href^="shop/"], a[href^="buying-log/"]').forEach(a => a.target = "_top");
+}
+</script>
 <!-- TEAM SETUP SCRIPT START -->
 <style>
   .setup-bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:4px 0 12px}
