@@ -2,7 +2,7 @@
 // Everything is "network first": with signal you always get the newest version and prices,
 // and the copy saved here is only used when there's no signal (or it's too slow).
 // Adam's app (adam/) is left completely alone.
-const CACHE = "gt-offline-v1";
+const CACHE = "gt-offline-v2";
 const CORE = ["./", "index.html", "sync.js?v=17", "coins.js?v=1", "keep.js?v=1", "offer.js?v=3", "out.js?v=2", "manifest.json",
   "icon.png", "logo.png", "favicon.png", "apple-touch-icon.png", "data.json", "news.json", "mastermelt.json", "widget.json",
   "buying-log/", "buying-log/index.html", "buying-log/qrcode.min.js", "shop/", "shop/index.html", "shop/manifest.json",
@@ -32,7 +32,8 @@ self.addEventListener("fetch", e => {
 
 async function networkFirst(req){
   const cache = await caches.open(CACHE);
-  const net = fetch(req).then(res => {
+  // always check with the server for a newer copy, so app updates show on the next open
+  const net = fetch(new Request(req.url, {cache: "no-cache", credentials: "same-origin"})).then(res => {
     if (res && res.ok) cache.put(req, res.clone()).catch(() => {});
     return res;
   });
