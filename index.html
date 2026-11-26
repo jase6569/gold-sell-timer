@@ -673,6 +673,7 @@ try{if(/[?&]embed=gold\b/.test(location.search))document.documentElement.classLi
       <div><label>Gold you buy in a month (grams, all carats)</label><input id="bM" type="number" inputmode="decimal" placeholder="e.g. 400"></div>
       <div><label>Most stock to hold (months of buying)</label><input id="bC" type="number" inputmode="decimal" value="2"></div>
     </div>
+    <p class="muted" id="bAuto" style="margin:6px 0 0"></p>
     <div id="buyPlan" style="margin-top:12px"><p class="muted" style="margin:0">Enter how much you buy in a month to see your plan.</p></div>
   </div>
 
@@ -870,7 +871,18 @@ function buyBatch(a, sendG){
   }
   return out;
 }
-function buySettings(){ try { return JSON.parse(store.get("buyin") || "{}"); } catch(e){ return {}; } }
+function buySettingsRaw(){ try { return JSON.parse(store.get("buyin") || "{}"); } catch(e){ return {}; } }
+/* how much gold you buy in a month, worked out from the Buy log (last 90 days, once there are 4 weeks of buying) */
+function buyAuto(){
+  const t = todayISO(), cut = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10);
+  const all = buys().filter(x => x.d && x.w > 0), recent = all.filter(x => x.d >= cut);
+  if (!all.length) return {ready: false, days: 0, g: 0};
+  const first = all.reduce((a, x) => x.d < a ? x.d : a, t), from = first > cut ? first : cut;
+  const days = Math.max(1, Math.round((new Date(t + "T12:00") - new Date(from + "T12:00")) / 864e5) + 1), g = recent.reduce((a, x) => a + x.w, 0);
+  return {ready: days >= 28 && g > 0, days, g, m: Math.max(10, Math.round(g / days * 30.44 / 10) * 10)};
+}
+function buySettings(){ const r = buySettingsRaw(), a = buyAuto();
+  return Object.assign({}, r, {m: parseFloat(r.m) > 0 ? r.m : (a.ready ? String(a.m) : ""), auto: !(parseFloat(r.m) > 0) && a.ready}); }
 function renderDealer(){
   const box = $("dealerCall"); if (!box || !sig) return;
   const set = buySettings(), monthly = parseFloat(set.m) || 0, months = parseFloat(set.c) > 0 ? parseFloat(set.c) : 2;
@@ -878,7 +890,9 @@ function renderDealer(){
   const a = meltStock(), pay = (parseFloat($("cP").value) || 95) / 100, held = a.reduce((t, x) => t + x.w, 0);
   let extra;
   if (!monthly){
-    extra = `<p style="margin:10px 0 0">Tell the app roughly how much gold you buy in a month and it will work out exactly how many grams to send to the refiner each week.</p><button class="btn" onclick="location.href='shop/?go=safe&gold=send'">Set up in the Shop</button>`;
+    const au = buyAuto();
+    extra = au.days ? `<p style="margin:10px 0 0">The app is working out how much gold you buy from the Buy log: <b>${au.days} day${au.days === 1 ? "" : "s"}</b> of buying so far. After 4 weeks it will tell you exactly how many grams to send each week. Until then, follow the advice above.</p>`
+      : `<p style="margin:10px 0 0">Once you've been buying through the Buy log for 4 weeks, the app works out how much you buy and tells you exactly how many grams to send each week. Until then, follow the advice above.</p><button class="btn ghost" onclick="location.href='shop/?go=safe&gold=send'">Or type a rough figure in the Shop</button>`;
   } else if (!held){
     extra = `<p style="margin:10px 0 0">Add the gold you're holding (Shop, <b>Safe</b>, <b>Your gold</b>) to see how many grams to send this week.</p><a class="btn ghost" href="shop/?go=safe" style="display:block;text-align:center;text-decoration:none">Open your gold in the Shop</a>`;
   } else {
@@ -887,7 +901,7 @@ function renderDealer(){
     const byCarat = {}; batch.forEach(({i, take}) => { const k = a[i].k; byCarat[k] = (byCarat[k] || 0) + take; });
     const pure = batch.reduce((t, {i, take}) => t + take * parseFloat(a[i].k), 0);
     extra = `<table style="margin-top:10px">
-        <tr><td>Gold you hold</td><td>${held.toFixed(1)} g</td></tr>
+        <tr><td>Gold you hold</td><td>${held.toFixed(1)} g</td></tr>${set.auto ? `<tr><td class="muted">You buy about (from the Buy log)</td><td class="muted">${monthly} g a month</td></tr>` : ""}
         <tr><td>Most to keep right now</td><td>${target.toFixed(1)} g</td></tr>
         <tr><td><b>Send to the refiner this week</b></td><td><b>${send >= 1 ? send.toFixed(1) + " g" : "nothing"}</b></td></tr>
       </table>
@@ -1439,7 +1453,15 @@ function renderStock(){
         <div>No need to sell any yet. For reference, if gold reaches the <b>sell zone (${fmt(zSell)}/g)</b>, your gold would be worth about <b>${fmt(pure * zSell * pay, 0)}</b>, which is ${fmt(pure * (zSell - gbpPerGram) * pay, 0)} more than today. At that point, selling a quarter would mean about ${Object.entries(byCarat).map(([k, w]) => `${Math.round(w * 0.25)}g of your ${CT[k]}`).join(", ")}.</div></div>`;
 }
 $("cP").addEventListener("input", renderStock);
-["bM","bC"].forEach(id => $(id).addEventListener("input", () => { store.set("buyin", JSON.stringify({m: $("bM").value, c: $("bC").value})); renderBuy(); }));
+["bM","bC"].forEach(id => $(id).addEventListener("input", () => { store.set("buyin", JSON.stringify({m: $("bM").value, c: $("bC").value})); showBuyAuto(); renderBuy(); try { renderDealer(); } catch(e){} }));
+function showBuyAuto(){
+  const a = buyAuto(), manual = parseFloat($("bM").value) > 0, el = $("bAuto"); if (!el) return;
+  $("bM").placeholder = a.ready ? "about " + a.m : "e.g. 400";
+  el.innerHTML = manual ? (a.ready ? `You've typed your own figure. The Buy log says about <b>${a.m}g</b> a month: clear the box to use that instead.` : "Using the figure you typed.")
+    : a.ready ? `<b>Worked out from the Buy log:</b> about ${a.m}g a month (${a.g.toFixed(0)}g over the last ${a.days} days). It keeps itself up to date; type a number only to override it.`
+    : a.days ? `Working it out from the Buy log: ${a.days} day${a.days === 1 ? "" : "s"} of buying so far (${a.g.toFixed(0)}g). It needs 4 weeks, so for now the advice stays general. You can type a rough figure meanwhile.`
+    : "Leave this empty and it works itself out from the Buy log after 4 weeks of buying. Or type a rough figure now.";
+}
 
 /* =============== make more money (Buy log owners only) =============== */
 const PRO_ON = () => store.get("buyingLog") === "1";
@@ -1816,7 +1838,7 @@ if (location.hash === "#team") location.replace("shop/?go=diary");
 
 /* =============== team sharing: show changes from the other phones =============== */
 window.addEventListener("dgsync-applied", () => {
-  try { const b = buySettings(); $("bM").value = b.m || ""; $("bC").value = b.c || ""; } catch(e){}
+  try { const b = buySettingsRaw(); if (document.activeElement !== $("bM")) $("bM").value = b.m || ""; if (document.activeElement !== $("bC")) $("bC").value = b.c || ""; showBuyAuto(); } catch(e){}
   try { if (store.get("pmM") && document.activeElement !== $("pmM")) $("pmM").value = store.get("pmM"); } catch(e){}
   [applyRefiner, calc, renderStock, () => renderBuy(), renderPro].forEach(safe);
 });
@@ -1824,7 +1846,7 @@ window.addEventListener("dgsync-applied", () => {
 /* =============== start =============== */
 try { const c = JSON.parse(store.get("calc") || "null"); if (c){ $("cG").value = c.g; $("cK").value = c.k; $("cP").value = c.p; } } catch(e){}
 if (store.get("target")) $("aT").value = store.get("target");
-{ const b = buySettings(); if (b.m) $("bM").value = b.m; if (b.c) $("bC").value = b.c; }
+{ const b = buySettingsRaw(); if (b.m) $("bM").value = b.m; if (b.c) $("bC").value = b.c; showBuyAuto(); }
 if (!store.get("seenGuide")) $("welcome").style.display = "block";
 (async () => {
   try { const dj = await fetchJSON("data.json?t=" + Date.now()); daily = dj.daily; dataUpdated = dj.updated; } catch(e){}
