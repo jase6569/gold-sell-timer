@@ -133,6 +133,9 @@
   .wk{overflow-x:auto}.wk table{min-width:760px;font-size:13px}.wk th,.wk td{border-top:1px solid var(--line);padding:6px 4px;text-align:left;vertical-align:top}.wk th{color:var(--muted);font-weight:600}.wk td:last-child{text-align:left}.wk .today{background:rgba(212,168,67,.06)}
   .ent{border-radius:7px;padding:3px 6px;margin:2px 0;cursor:pointer;font-size:12px;background:#24211b;border-left:3px solid #6d6a62}.ent.shop{border-color:var(--up)}.ent.out{border-color:var(--gold)}.ent.visit{border-color:#5aa0e0}.ent.visit.done{opacity:.6}.ent.off,.ent.holiday,.ent.sick{border-color:#888;color:var(--muted)}
   body.lone #sbar{background:#3a1512}
+  table.mk{min-width:640px;font-size:13px}table.mk th{color:var(--muted);font-weight:600;text-align:left;padding:6px 4px;border-top:1px solid var(--line)}table.mk td{padding:6px 4px;text-align:left}table.mk tr.tot td{font-weight:700;border-top:2px solid var(--line)}
+  .hot .hrow{display:grid;grid-template-columns:56px 1fr;gap:4px 10px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}.hot .hrow span{grid-column:2;color:var(--muted);font-size:13px}
+  .hot .hbar{height:10px;background:#24211b;border-radius:6px;overflow:hidden}.hot .hbar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:6px}
   @media (max-width:700px){nav{overflow-x:auto;justify-content:flex-start}nav button{flex:0 0 64px}}
   *{scrollbar-color:#3a352c #12110f;scrollbar-width:thin}
   ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:#12110f}::-webkit-scrollbar-thumb{background:#3a352c;border-radius:10px}
@@ -377,6 +380,7 @@
       <p class="muted" id="rp_head" style="margin:10px 0 0"></p>
     </div>
     <div id="rp_body"></div>
+    <div id="rp_mkt"></div>
     <div class="card">
       <h2>For your accountant</h2>
       <p class="muted" style="margin-top:0">Spreadsheet files (CSV, they open in Excel, Numbers or Google Sheets) for the period chosen above. Stock is as it stands today. No customers' ID or addresses are included.</p>
@@ -424,6 +428,12 @@
       <label>Your offer, as a % of what Mastermelt pays (optional)</label><input id="br_offer" type="number" inputmode="decimal" placeholder="e.g. 75">
       <button class="btn ghost" id="br_save">Save buying rules</button>
     </div>
+    </div>
+    <div class="card">
+      <h2>Marketing: where customers come from</h2>
+      <p class="muted" style="margin-top:0">The choices for "How did they hear about us?" on purchases, sales, visits and customers. One per line, in the order you want them. Shared with the team. The report is under Reports.</p>
+      <textarea id="mk_src" style="min-height:150px"></textarea>
+      <button class="btn ghost" id="mk_save">Save the list</button>
     </div>
     <div class="card">
       <h2>Staff and sign-in</h2>
@@ -505,7 +515,7 @@
   </div>
 </div></div>
 
-<script src="../sync.js?v=16"></script>
+<script src="../sync.js?v=17"></script>
 <script src="../buying-log/qrcode.min.js"></script>
 <script>
 /* ============ Dorset Gold & Jewellery · Shop ============
@@ -718,6 +728,7 @@ function editCustomer(id, then, trade, needId, fromRec){
     <h2 style="margin-top:18px">About them</h2>
     <div class="row"><div><label>Ring size</label><input id="c_ring" value="${esc(c.ringSize)}" placeholder="e.g. N"></div><div><label>Birthday</label><input id="c_bday" type="date" value="${esc(c.birthday)}"></div></div>
     <div class="row"><div><label>Anniversary</label><input id="c_anniv" type="date" value="${esc(c.anniversary)}"></div><div><label>Metal they like</label><select id="c_metal">${["", "Yellow gold", "White gold", "Rose gold", "Platinum", "Silver", "Mixed"].map(o => `<option${(c.likesMetal || "") === o ? " selected" : ""} value="${o}">${o || "Not known"}</option>`).join("")}</select></div></div>
+    ${srcSelect("c_src", c.source || "")}
     <label>Notes (styles they like, who they buy for, anything to remember)</label><textarea id="c_notes">${esc(c.notes)}</textarea>
     <h2 style="margin-top:18px">Keeping in touch</h2>
     <p class="muted" style="margin:0">Only tick these if they've agreed to hear about offers and new stock. You need their agreement before sending marketing messages.</p>
@@ -827,7 +838,7 @@ function editCustomer(id, then, trade, needId, fromRec){
       if (!mk.mkText && !mk.mkEmail){ mk.mkAt = ""; mk.mkBy = ""; }
       Object.assign(nv, mk, {ringSize: $("c_ring").value.trim(), birthday: $("c_bday").value, anniversary: $("c_anniv").value, likesMetal: $("c_metal").value});
       const list = get("customers"), rec = Object.assign({}, c, {name, phone: $("c_phone").value.trim(), pc: $("c_pc").value.trim().toUpperCase(), email: $("c_email").value.trim(), addr: $("c_addr").value.trim(),
-        notes: $("c_notes").value.trim(), trade: isTrade(), dob: $("c_dob").value, photos}, nv);
+        notes: $("c_notes").value.trim(), source: $("c_src").value, trade: isTrade(), dob: $("c_dob").value, photos}, nv);
       if (idChanged && rec.idnum && photos.some(p => p.label === "ID front")){ rec.idBy = who(); rec.idAt = new Date().toISOString(); }
       if (!rec._id){ rec._id = uid(); rec.no = nextNo(list, "C"); rec.added = new Date().toISOString(); rec.addedBy = who(); list.push(rec); } else list[list.findIndex(x => x._id === rec._id)] = rec;
       put("customers", list); closeSheet(); toast("Customer saved"); renderAll(); if (then) then(rec._id);
@@ -1158,6 +1169,12 @@ function newSale(custId, stockId){
   saleForm();
 }
 const stockLine = s => ({desc: s.desc, price: s.price, stockId: s._id, details: [s.carat !== "Other" ? s.carat : "", s.weight ? s.weight + "g" : "", s.size ? "size " + s.size : "", s.hallmark ? "hallmarked " + s.hallmark : "", s.detail].filter(Boolean).join(", ") + (s.no ? ` (${s.no})` : "")});
+function saleSrcGuess(){   // someone we've dealt with before is a returning customer; otherwise what we know about them
+  if (draft.walk && !draft.custId) return "Walk-in";
+  const c = draft.custId ? findCust(draft.custId) : null; if (!c) return "";
+  const before = get("sales").some(x => x.custId === c._id && !x.void) || (c.buys || []).length > 0;
+  return before ? "Returning customer" : (c.source || "");
+}
 function saleForm(){
   const c = draft.custId ? findCust(draft.custId) : null;
   openSheet("New sale", `
@@ -1177,6 +1194,7 @@ function saleForm(){
     <button class="btn ghost" id="sf_px">+ Part exchange (customer trading in old gold)</button>
     <div class="row"><div><label>Discount (£ or %)</label><input id="sf_disc" value="${esc(draft.discount)}" placeholder="e.g. 50 or 10%"></div><div></div></div>
     <label>Notes (sizing, engraving, collection date)</label><input id="sf_notes" value="${esc(draft.notes)}">
+    ${srcSelect("sf_src", draft.source != null ? draft.source : saleSrcGuess())}
     <div class="big" id="sf_total" style="margin-top:14px"></div><div class="muted" id="sf_sub"></div>
     <h2 style="margin-top:14px">Payment now</h2>
     <p class="muted" style="margin:0">Sales of ${gbp(ID_AT, 0)} or more need the customer's ID on file.</p>
@@ -1201,6 +1219,7 @@ function saleForm(){
   $("sf_split").onclick = () => { draft.pays.push({amount: "", method: draft.pays[0].method === "Card" ? "Cash" : "Card"}); saleForm(); };
   $("sf_disc").oninput = () => { draft.discount = $("sf_disc").value; tot(); };
   $("sf_notes").oninput = () => { draft.notes = $("sf_notes").value; };
+  $("sf_src").onchange = () => { draft.source = $("sf_src").value; };
   $("sf_due").onchange = () => { draft.dueBy = $("sf_due").value; };
   $("sf_stockBtn").onclick = () => { $("sf_stockBox").style.display = ""; $("sf_sq").focus(); stockRes(); };
   const stockRes = () => { const q = $("sf_sq").value.trim().toLowerCase();
@@ -1237,7 +1256,7 @@ function saleForm(){
     const sale = {_id: uid(), no: nextNo(list, "S"), at: now, by: who(), custId: draft.custId,
       items: draft.items.map(i => ({desc: i.desc.trim(), price: num(i.price), stockId: i.stockId || "", details: (i.details || "").trim()})),
       discount: disc, discountPct: /%$/.test(String(draft.discount).trim()) ? num(draft.discount) : 0, px: draft.px.map(p => ({buyId: p.buyId, receipt: p.receipt, amount: num(p.amount)})),
-      notes: draft.notes.trim(), payments: pays.map(p => ({at: now, amount: num(p.amount), method: p.method, by: who()})),
+      notes: draft.notes.trim(), source: $("sf_src").value, payments: pays.map(p => ({at: now, amount: num(p.amount), method: p.method, by: who()})),
       dueBy: paid < total - 0.004 ? draft.dueBy : "", collected: $("sf_coll").checked && paid >= total - 0.004 ? now : ""};
     list.push(sale); put("sales", list);
     markStockSold(sale);
@@ -1371,6 +1390,11 @@ function pickSaleForPayment(){
 let blSettings = {};
 const bizName = () => blSettings.biz || "Dorset Gold & Jewellery";
 const shopCfg = () => get("shopcfg").find(x => x._id === "cfg") || {};
+/* where customers come from (marketing): one shared list, set in Settings */
+const SRC_DEFAULT = ["Walk-in", "Facebook", "Google", "Instagram", "Recommended", "Returning customer", "Leaflet", "Other"];
+const sources = () => { const l = shopCfg().sources; return Array.isArray(l) && l.length ? l : SRC_DEFAULT; };
+const srcSelect = (id, val) => `<label>How did they hear about us?</label><select id="${id}"><option value="">Choose…</option>${sources().concat(val && !sources().includes(val) ? [val] : []).map(x => `<option${x === val ? " selected" : ""}>${esc(x)}</option>`).join("")}</select>`;
+const pcArea = pc => { const m = String(pc || "").toUpperCase().trim().match(/^([A-Z]{1,2}\d[A-Z\d]?)/); return m ? m[1] : ""; };
 function receiptLines(s){
   const c = s.custId ? findCust(s.custId) : null, L = [];
   L.push(bizName()); if (blSettings.addr) L.push(blSettings.addr.replace(/\n/g, ", ")); if (blSettings.phone) L.push(blSettings.phone);
@@ -1781,6 +1805,8 @@ function safeCheck(){
 
 /* ============ SETTINGS, LOCK, BACKUP ============ */
 $("cfg_valSave").onclick = () => { const list = get("shopcfg").filter(x => x._id !== "cfg"); list.push(Object.assign({}, shopCfg(), {_id: "cfg", valFee: $("cfg_valFee").value, valQuals: $("cfg_valQuals").value.trim(), valBasis: $("cfg_valBasis").value.trim() || VAL_BASIS, valTerms: $("cfg_valTerms").value.trim() || VAL_TERMS, by: who()})); put("shopcfg", list); toast("Saved"); };
+$("mk_save").onclick = () => { const l = [...new Set($("mk_src").value.split("\n").map(x => x.trim()).filter(Boolean))]; if (!l.length) return toast("Add at least one");
+  const list = get("shopcfg").filter(x => x._id !== "cfg"); list.push(Object.assign({}, shopCfg(), {_id: "cfg", sources: l})); put("shopcfg", list); toast("Saved"); renderAll(); };
 $("cfg_save").onclick = () => { const list = get("shopcfg").filter(x => x._id !== "cfg"); list.push(Object.assign({}, shopCfg(), {_id: "cfg", policy: $("cfg_policy").value.trim(), footer: $("cfg_footer").value.trim(), by: who()})); put("shopcfg", list); toast("Saved"); };
 async function blSettingsSave(patch){
   const db = await new Promise((res, rej) => { const r = indexedDB.open("dj-buylog", 1); r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains("records")) d.createObjectStore("records", {keyPath: "id"}); if (!d.objectStoreNames.contains("kv")) d.createObjectStore("kv"); }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
@@ -1798,6 +1824,7 @@ window.addEventListener("dgsync-applied", e => { if (e.detail && e.detail.settin
   // a purchase added, changed or deleted on another device: reload the Buy log so Buy, Safe, Customers and the till are right without a refresh
   if (e.detail && e.detail.records) loadBuyLogSellers().then(() => { const k = noSafeIds(); blRecs.forEach(r => { if (k.includes(r.id)) r.noSafe = true; }); renderAll(); }); });
 function renderSettings(){
+  if (document.activeElement !== $("mk_src")) $("mk_src").value = sources().join("\n");
   renderStaff(); renderStatus(); fillBizRules(); renderDP().catch(() => {}); $("dp_ai").checked = aiOn();
   const cfg = shopCfg(); if (document.activeElement !== $("cfg_policy")) $("cfg_policy").value = cfg.policy || "";
   [["cfg_valFee", cfg.valFee || ""], ["cfg_valQuals", cfg.valQuals || ""], ["cfg_valBasis", cfg.valBasis || VAL_BASIS], ["cfg_valTerms", cfg.valTerms || VAL_TERMS]].forEach(([k, v]) => { if (document.activeElement !== $(k)) $(k).value = v; }); if (document.activeElement !== $("cfg_footer")) $("cfg_footer").value = cfg.footer || "";
@@ -1960,7 +1987,7 @@ function renderStatus(){
 }
 window.addEventListener("dgsync-status", renderStatus);
 setInterval(renderStatus, 20000);
-const KIND = {sales: "Sale", forsale: "Stock piece", customers: "Customer", safebags: "Safe bag", stock: "My gold lot", buys: "Buying entry", sent: "Refiner batch", cash: "Cash entry", staff: "Staff", till: "Till entry", shopcfg: "Receipt settings", stockchecks: "Stock check", sends: "Refiner send", safechecks: "Safe check", valuations: "Valuation", rota: "Rota entry", clock: "Clocking", visits: "Home visit"};
+const KIND = {sales: "Sale", forsale: "Stock piece", customers: "Customer", safebags: "Safe bag", stock: "My gold lot", buys: "Buying entry", sent: "Refiner batch", cash: "Cash entry", staff: "Staff", till: "Till entry", shopcfg: "Receipt settings", stockchecks: "Stock check", sends: "Refiner send", safechecks: "Safe check", valuations: "Valuation", rota: "Rota entry", clock: "Clocking", adspend: "Ad spend", nosafe: "Not going in the safe", visits: "Home visit"};
 function docLabel(id){
   const [k, ...r] = id.split(":");
   if (k === "a"){ const key = r[0], iid = r.slice(1).join(":"), x = get(key).find(y => y._id === iid), name = KIND[key] || key;
@@ -2022,7 +2049,7 @@ const histBtn = (key, id) => window.DGSync && DGSync.joined && DGSync.joined() ?
    Everything for a chosen period, worked out from the records themselves: sales made, money taken and refunded
    (by method), profit on stock sold, buying, refining and what the refiner paid against what the gold cost,
    the till, valuations, and each person's figures. The export gives the accountant one CSV file per record type. */
-const dISO = d => d.toISOString().slice(0, 10);
+const dISO = d => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);   // the local date (not UTC, which is a day out at midnight in summer)
 function periodRange(){
   const v = $("rp_per").value, n = new Date(), y = n.getFullYear(), m = n.getMonth();
   if (v === "month") return [dISO(new Date(y, m, 1)), today()];
@@ -2086,11 +2113,74 @@ function reportData(P){
 }
 const pl = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const tr = (a, b, strong) => `<tr><td>${strong ? "<b>" + a + "</b>" : a}</td><td>${strong ? "<b>" + b + "</b>" : b}</td></tr>`;
+/* ============ MARKETING: where customers come from, and the hot spots ============ */
+function mktData(P){
+  const NR = "Not recorded", key = x => x || NR, rows = {}, areas = {};
+  const row = k => rows[k] || (rows[k] = {src: k, vBook: 0, vDone: 0, vNo: 0, vOpen: 0, bN: 0, bG: 0, bPaid: 0, bMargin: 0, bMN: 0, sN: 0, sVal: 0, spend: 0});
+  const area = a => areas[a] || (areas[a] = {a, bN: 0, bG: 0, bPaid: 0, sN: 0, sVal: 0, vN: 0});
+  blRecs.filter(r => inP(r.createdAt, P)).forEach(r => { const x = row(key(r.source)), g = buyLines(r).reduce((t, i) => t + num(i.weight), 0);
+    x.bN++; x.bG += g; x.bPaid += num(r.total); if (num(r.meltAtBuy) > 0){ x.bMargin += num(r.meltAtBuy) - num(r.total); x.bMN++; }
+    const a = pcArea((r.seller || {}).pc); if (a){ const y = area(a); y.bN++; y.bG += g; y.bPaid += num(r.total); } });
+  get("sales").filter(s => !s.void && inP(s.at, P)).forEach(s => { const c = s.custId ? findCust(s.custId) : null, x = row(key(s.source || (c && c.source)));
+    x.sN++; x.sVal += saleTotal(s); const a = pcArea(c && (c.pc || c.postcode)); if (a){ const y = area(a); y.sN++; y.sVal += saleTotal(s); } });
+  get("visits").filter(v => v.date && inP(v.date, P) && v.status !== "cancelled").forEach(v => { const x = row(key(v.source));
+    x.vBook++; if (v.status === "done") x.vDone++; else if (v.status === "nosale") x.vNo++; else x.vOpen++;
+    const a = pcArea(v.postcode); if (a) area(a).vN++; });
+  const months = new Set(); for (let d = new Date(P[0] + "T12:00"); dISO(d) <= P[1]; d.setDate(d.getDate() + 1)) months.add(dISO(d).slice(0, 7));
+  get("adspend").filter(e => months.has(e.month)).forEach(e => { row(e.source).spend += num(e.amount); });
+  const list = Object.values(rows).sort((a, b) => (b.bN + b.sN) - (a.bN + a.sN) || b.spend - a.spend);
+  return {list, areas: Object.values(areas).sort((a, b) => (b.bN + b.sN + b.vN) - (a.bN + a.sN + a.vN) || b.bG - a.bG), months: [...months]};
+}
+function renderMarketing(P){
+  const box = $("rp_mkt"); if (!box) return;
+  const D = mktData(P), L = D.list, T = L.reduce((t, x) => { Object.keys(x).forEach(k => { if (typeof x[k] === "number") t[k] = (t[k] || 0) + x[k]; }); return t; }, {});
+  const custs = x => x.bN + x.sN, recorded = L.filter(x => x.src !== "Not recorded").reduce((t, x) => t + custs(x) + x.vBook, 0), all = custs(T) + (T.vBook || 0);
+  const g0 = n => Math.round(n).toLocaleString("en-GB");
+  const tbl = (head, rows) => `<div style="overflow-x:auto"><table class="mk"><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr>${rows}</table></div>`;
+  const maxA = Math.max(1, ...D.areas.map(a => a.bN + a.sN + a.vN));
+  // last 6 months, customers (purchases + sales) by source
+  const m6 = [...Array(6)].map((_, i) => { const n = new Date(), d = new Date(n.getFullYear(), n.getMonth() - 5 + i, 15, 12); return dISO(d).slice(0, 7); });
+  const trend = {}; const tr = (src, m) => { const k = src || "Not recorded"; (trend[k] = trend[k] || {})[m] = (trend[k][m] || 0) + 1; };
+  blRecs.forEach(r => { const m = (r.createdAt || "").slice(0, 7); if (m6.includes(m)) tr(r.source, m); });
+  get("sales").filter(s => !s.void).forEach(s => { const m = (s.at || "").slice(0, 7), c = s.custId ? findCust(s.custId) : null; if (m6.includes(m)) tr(s.source || (c && c.source), m); });
+  const mName = m => new Date(m + "-15").toLocaleDateString("en-GB", {month: "short"});
+  const spendRows = get("adspend").filter(e => D.months.includes(e.month)).sort((a, b) => (a.month + a.source).localeCompare(b.month + b.source));
+  box.innerHTML = `<div class="card">
+    <h2>Marketing: where customers come from</h2>
+    <p class="muted" style="margin-top:0">Purchases (Buy log), sales and home visits in this period, by how they heard about you. Customers = purchases + sales.${all ? ` The source was recorded for <b>${Math.round(recorded / all * 100)}%</b> of them.` : ""}</p>
+    ${L.length ? tbl(["Source", "Visits", "Purchases", "Gold bought", "Paid", "Margin on melt", "Sales", "Ad spend", "Cost per customer"],
+      L.map(x => `<tr><td><b>${esc(x.src)}</b></td><td>${x.vBook || ""}</td><td>${x.bN || ""}</td><td>${x.bG ? x.bG.toFixed(1) + "g" : ""}</td><td>${x.bPaid ? gbp(x.bPaid, 0) : ""}</td>
+        <td>${x.bMN ? gbp(x.bMargin, 0) : ""}</td><td>${x.sN ? `${x.sN} · ${gbp(x.sVal, 0)}` : ""}</td><td>${x.spend ? gbp(x.spend, 0) : ""}</td><td>${x.spend ? (custs(x) ? gbp(x.spend / custs(x), 0) : "no customers yet") : ""}</td></tr>`).join("")
+      + `<tr class="tot"><td>Total</td><td>${T.vBook || ""}</td><td>${T.bN || ""}</td><td>${T.bG ? T.bG.toFixed(1) + "g" : ""}</td><td>${T.bPaid ? gbp(T.bPaid, 0) : ""}</td><td>${T.bMN ? gbp(T.bMargin, 0) : ""}</td><td>${T.sN ? `${T.sN} · ${gbp(T.sVal, 0)}` : ""}</td><td>${T.spend ? gbp(T.spend, 0) : ""}</td><td>${T.spend && custs(T) ? gbp(T.spend / custs(T), 0) : ""}</td></tr>`)
+      : '<p class="muted">Nothing in this period yet.</p>'}
+    <p class="muted">Margin on melt = the gold's melt value on the day you bought it, less what you paid. It's the profit before refining costs.</p>
+    ${L.some(x => x.vBook) ? `<h2 style="margin-top:16px">Home visits: how many turned into a purchase</h2>
+    ${tbl(["Source", "Booked", "Bought", "No sale", "Still to happen", "Turned into a purchase"], L.filter(x => x.vBook).map(x => { const dec = x.vDone + x.vNo;
+      return `<tr><td><b>${esc(x.src)}</b></td><td>${x.vBook}</td><td>${x.vDone}</td><td>${x.vNo}</td><td>${x.vOpen}</td><td>${dec ? Math.round(x.vDone / dec * 100) + "%" : ""}</td></tr>`; }).join(""))}` : ""}
+    <h2 style="margin-top:16px">Hot spots by postcode area</h2>
+    ${D.areas.length ? `<div class="hot">${D.areas.slice(0, 15).map(a => { const n = a.bN + a.sN + a.vN;
+      return `<div class="hrow"><b>${esc(a.a)}</b><div class="hbar"><i style="width:${Math.max(4, n / maxA * 100)}%"></i></div><span>${[a.bN ? `${a.bN} bought${a.bG ? " (" + a.bG.toFixed(0) + "g, " + gbp(a.bPaid, 0) + ")" : ""}` : "", a.sN ? `${a.sN} sale${a.sN > 1 ? "s" : ""} ${gbp(a.sVal, 0)}` : "", a.vN ? `${a.vN} visit${a.vN > 1 ? "s" : ""}` : ""].filter(Boolean).join(" · ")}</span></div>`; }).join("")}</div>
+      <p class="muted">From the postcode on purchases, customers and visits (the area only, like BH14). Use it to choose where to put leaflets, which areas to target on Facebook, and which days to plan visits.</p>` : '<p class="muted">No postcodes in this period yet.</p>'}
+    <h2 style="margin-top:16px">The last 6 months</h2>
+    ${Object.keys(trend).length ? tbl(["Source"].concat(m6.map(mName)), Object.entries(trend).sort((a, b) => Object.values(b[1]).reduce((t, n) => t + n, 0) - Object.values(a[1]).reduce((t, n) => t + n, 0))
+      .map(([k, v]) => `<tr><td><b>${esc(k)}</b></td>${m6.map(m => `<td>${v[m] || ""}</td>`).join("")}</tr>`).join("")) : '<p class="muted">Nothing yet.</p>'}
+    <p class="muted">Customers per month by source, so you can see if a new advert moved anything.</p>
+    <h2 style="margin-top:16px">Ad spend</h2>
+    <p class="muted" style="margin-top:0">Type what you spent on each advert per month, and the table above works out what each customer cost you.</p>
+    <div class="row"><div><label>Month</label><input id="as_m" type="month" value="${today().slice(0, 7)}"></div><div><label>Where</label><select id="as_s">${sources().filter(x => !["Walk-in", "Returning customer", "Recommended"].includes(x)).concat(sources().filter(x => ["Walk-in", "Returning customer", "Recommended"].includes(x))).map(x => `<option>${esc(x)}</option>`).join("")}</select></div></div><label>Spent (£)</label><input id="as_a" type="number" inputmode="decimal" min="0" step="0.01">
+    <button class="btn ghost" id="as_go">Save ad spend</button>
+    ${spendRows.length ? `<table>${spendRows.map(e => `<tr><td>${new Date(e.month + "-15").toLocaleDateString("en-GB", {month: "long", year: "numeric"})} · ${esc(e.source)}</td><td>${gbp(e.amount)} <button class="btn small ghost" style="margin:0;width:auto;padding:4px 8px" onclick="delSpend('${esc(e._id)}')">×</button></td></tr>`).join("")}</table>` : ""}
+  </div>`;
+  $("as_go").onclick = () => { const m = $("as_m").value, src = $("as_s").value, a = Math.round(num($("as_a").value) * 100) / 100; if (!m) return toast("Choose the month"); if (!(a >= 0) || $("as_a").value === "") return toast("Type the amount");
+    const id = m + "|" + src, list = get("adspend").filter(x => x._id !== id); list.push({_id: id, month: m, source: src, amount: a, by: who(), at: new Date().toISOString()}); put("adspend", list); toast("Saved"); renderReports(); };
+}
+function delSpend(id){ if (!confirm("Remove this ad spend?")) return; put("adspend", get("adspend").filter(x => x._id !== id)); renderReports(); }
 function renderReports(){
   if (!$("rp_per")) return;
   $("rp_custom").style.display = $("rp_per").value === "custom" ? "" : "none";
   const P = periodRange(), R = reportData(P), gp = R.stockSold - R.stockCost, refGP = R.refPaid - R.refCost;
   $("rp_head").textContent = `${fmtD(P[0])} to ${fmtD(P[1])}`;
+  try { renderMarketing(P); } catch(e){ console.log(e); }
   $("rp_body").innerHTML = `
   <div class="cols">
   <div class="card"><h2>Sales</h2><table>
@@ -2286,7 +2376,7 @@ async function backup(){
   const pw = await askPassword("Lock the backup", true); if (!pw) return;
   toast("Making the backup…");
   const data = {app: "dgj-shop", version: 3, exportedAt: new Date().toISOString(), sales: get("sales"), forsale: get("forsale"), customers: get("customers"), safebags: get("safebags"), staff: get("staff"), till: get("till"), shopcfg: get("shopcfg"),
-    stockchecks: get("stockchecks"), sends: get("sends"), safechecks: get("safechecks"), valuations: get("valuations"), rota: get("rota"), clock: get("clock"), nosafe: get("nosafe"), photos: {},
+    stockchecks: get("stockchecks"), sends: get("sends"), safechecks: get("safechecks"), valuations: get("valuations"), rota: get("rota"), clock: get("clock"), nosafe: get("nosafe"), adspend: get("adspend"), photos: {},
     // the Buy log (with its photos) and Gold Trader's lists, so this one file covers the whole business
     buylog: await blAll(), blSettings: Object.assign({}, blSettings || {}, {pinHash: ""}), myGold: {stock: get("stock"), buys: get("buys"), sent: get("sent"), visits: get("visits"), cash: get("cash")}};
   for (const c of data.customers.concat(data.forsale, data.valuations.flatMap(v => v.items))) for (const p of (c.photos || [])) if (p.ref && !data.photos[p.ref]) data.photos[p.ref] = await photoSrc(p);
@@ -2311,7 +2401,7 @@ async function restoreFile(file){
   if (j.app === "dgj-shop-locked"){ const pw = await askPassword("Open the backup", false); if (!pw) return;
     try { data = JSON.parse(dec8.decode(await crypto.subtle.decrypt({name: "AES-GCM", iv: fromB64(j.iv)}, await pwKey(pw, fromB64(j.salt)), fromB64(j.data)))); } catch(e){ return toast("Wrong password, or the file is damaged"); } }
   if (data.app !== "dgj-shop") return toast("That isn't a Shop backup. An older Buy log backup (.json) is restored in the Buy log, Settings.");
-  const keys = ["sales", "forsale", "customers", "safebags", "staff", "till", "shopcfg", "stockchecks", "sends", "safechecks", "valuations", "rota", "clock", "nosafe"];
+  const keys = ["sales", "forsale", "customers", "safebags", "staff", "till", "shopcfg", "stockchecks", "sends", "safechecks", "valuations", "rota", "clock", "nosafe", "adspend"];
   const adds = {}; keys.forEach(k => { const cur = get(k), have = new Set(cur.map(x => x._id)), add = (data[k] || []).filter(x => x && x._id && !have.has(x._id)); adds[k] = add; });
   // the Buy log and Gold Trader's lists (in backups made since they were added)
   const haveRec = new Set((await blAll()).map(r => r.id)), recAdd = (data.buylog || []).filter(r => r && r.id && !haveRec.has(r.id));
@@ -2463,7 +2553,9 @@ const hm = iso => new Date(iso).toLocaleTimeString("en-GB", {hour: "2-digit", mi
 const addMins = (t, m) => { const [h, mi] = String(t || "00:00").split(":").map(Number), x = h * 60 + mi + m; return String(Math.floor(x / 60) % 24).padStart(2, "0") + ":" + String(x % 60).padStart(2, "0"); };
 const nowHM = () => new Date().toTimeString().slice(0, 5);
 const pArea = pc => { const m = String(pc || "").toUpperCase().trim().match(/^([A-Z]{1,2}\d[A-Z\d]?)/); return m ? m[1] : ""; };
-function diaryPeople(){ const s = new Set(staffAll().map(x => x.name)); get("rota").forEach(r => r.who && s.add(r.who)); visitsAll().forEach(v => v.who && s.add(v.who)); if (window.DGSync && DGSync.me && DGSync.me()) s.add(DGSync.me()); return [...s].filter(Boolean).sort(); }
+function diaryPeople(){ const s = new Set(staffAll().map(x => x.name)); get("rota").forEach(r => r.who && s.add(r.who)); visitsAll().forEach(v => v.who && s.add(v.who)); if (window.DGSync && DGSync.me && DGSync.me()) s.add(DGSync.me());
+  if (!staffAll().length && window.DGSync && DGSync.people) DGSync.people().forEach(n => s.add(n));   // before staff are added, the team's names
+  return [...s].filter(Boolean).sort(); }
 const visitEnd = v => v.end || addMins(v.time || "09:00", num(v.dur) || 60);
 /* where someone is right now, from their clocking today, falling back to the plan */
 function whereNow(p){
@@ -2620,6 +2712,7 @@ function visitForm(id, preset){
     <label>Address</label><input id="vf_addr" value="${esc(v.address || "")}"><label>Postcode</label><input id="vf_pc" value="${esc(v.postcode || "")}" style="text-transform:uppercase">
     <label>What they've got</label><input id="vf_what" value="${esc(v.what || "")}" placeholder="e.g. box of gold chains, 2 sovereigns, a watch">
     <label>Notes</label><input id="vf_notes" value="${esc(v.notes || "")}" placeholder="e.g. ring the side door">
+    ${srcSelect("vf_src", v.source || "")}
     <button class="btn" id="vf_save">${id ? "Save changes" : "Book it"}</button>`);
   const clash = () => { const w = $("vf_who").value, d = $("vf_date").value, t = $("vf_time").value; if (!w || !d){ $("vf_clash").innerHTML = ""; return; }
     const off = get("rota").find(r => r.who === w && r.date === d && ["off", "holiday", "sick"].includes(r.kind)), other = t && visitsAll().find(x => x._id !== id && x.who === w && x.date === d && x.time && x.status !== "cancelled" && !(visitEnd(x) <= t || addMins(t, num($("vf_dur").value)) <= x.time));
@@ -2627,7 +2720,7 @@ function visitForm(id, preset){
     $("vf_clash").innerHTML = off ? `<div class="alert wn">${esc(w)} is ${{off: "on a day off", holiday: "on holiday", sick: "off sick"}[off.kind]} that day.</div>` : other ? `<div class="alert wn">${esc(w)} already has a visit at ${other.time}.</div>` : shift ? `<p class="muted">${esc(w)} is rota'd in the shop then (${shift.start}–${shift.end}): make sure the shop is covered.</p>` : ""; };
   ["vf_who", "vf_date", "vf_time", "vf_dur"].forEach(k => $(k).onchange = clash); clash();
   $("vf_save").onclick = () => {
-    const nv = {date: $("vf_date").value, time: $("vf_time").value, dur: num($("vf_dur").value), who: $("vf_who").value, name: $("vf_name").value.trim(), phone: $("vf_phone").value.trim(), address: $("vf_addr").value.trim(), postcode: $("vf_pc").value.trim().toUpperCase(), what: $("vf_what").value.trim(), notes: $("vf_notes").value.trim()};
+    const nv = {date: $("vf_date").value, time: $("vf_time").value, dur: num($("vf_dur").value), who: $("vf_who").value, name: $("vf_name").value.trim(), phone: $("vf_phone").value.trim(), address: $("vf_addr").value.trim(), postcode: $("vf_pc").value.trim().toUpperCase(), what: $("vf_what").value.trim(), notes: $("vf_notes").value.trim(), source: $("vf_src").value};
     if (!nv.date || !nv.name) return toast("Add at least the day and the customer's name");
     const list = visitsAll();
     if (!id){ const rec = Object.assign({_id: uid(), status: "booked", added: new Date().toISOString(), addedBy: who()}, nv); list.push(rec); visitAlert(rec, "new"); }
@@ -2748,6 +2841,11 @@ const HELP = [
     <li><b>Refining</b> shows what Mastermelt paid against what that gold cost you in the Buy log.</li>
     <li><b>Each person</b> shows sales, refunds, buys and valuations by whoever was signed in.</li></ul>
     <p><b>Print or save as PDF</b> gives a tidy copy.</p>`},
+  {id: "marketing", page: "rep", t: "Marketing: where customers come from", b: `
+    <p>Every purchase, sale, home visit and new customer has <b>How did they hear about us?</b> Pick one: it takes a second. Someone you've dealt with before is filled in as <b>Returning customer</b> for you, and a purchase started from a visit takes the visit's answer.</p>
+    <p>On <b>Reports</b>, the Marketing card shows for the chosen period, by source: home visits, purchases (grams, paid, margin on melt), sales, ad spend and <b>cost per customer</b>. Then how many visits turned into a purchase, the <b>hot spots</b> by postcode area (BH14, BH12…), and the last 6 months by source.</p>
+    <p><b>Ad spend:</b> type what you spent on each advert per month (Facebook, Google, leaflets…) and it works out what each customer cost. Change the list of choices in <b>Settings</b>, <b>Marketing</b>.</p>
+    <p class="muted">Only the postcode area is used in the report, never names or full addresses.</p>`},
   {id: "accountant", page: "rep", t: "Files for your accountant", b: `<p>On Reports, choose the period (usually last tax year) and tap <b>Download all 7 files</b>: sales, payments and refunds, purchases, refining, stock valuation, till and valuations. They're CSV files, which open in Excel, Numbers or Google Sheets. If the browser asks, allow it to download several files. Customers' ID and addresses aren't included. Email them to your accountant, or save them in a shared folder.</p>`},
   {id: "valuations", page: "sales", t: "Insurance valuations", b: `
     <p>On Sales, tap <b>+ New valuation certificate</b> (or from a customer's record). For each item: description, metal, weight, hallmark, size, stones, condition, photos and the replacement value.</p>

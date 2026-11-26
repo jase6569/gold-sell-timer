@@ -196,6 +196,8 @@
       </div>
       <label>Vehicle reg (if seen)</label>
       <input id="f_vrm" autocomplete="off" style="text-transform:uppercase">
+      <label>How did they hear about us?</label>
+      <select id="f_src"></select>
     </div>
 
     <div class="card o2">
@@ -415,7 +417,7 @@
 <input type="file" id="lotCamIn" accept="image/*" capture="environment" class="hidden">
 <input type="file" id="galleryIn" accept="image/*" multiple class="hidden">
 
-<script src="../sync.js?v=16"></script>
+<script src="../sync.js?v=17"></script>
 <script src="../keep.js?v=1"></script>
 <script src="qrcode.min.js"></script>
 <script>if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../sw.js", {scope: "../"}).catch(() => {}));</script>
@@ -727,6 +729,20 @@ $('#sigClear').onclick = () => { sctx.clearRect(0,0,sig.width,sig.height); sigDi
 window.addEventListener('resize', sizeSig);
 
 /* ---------- save ---------- */
+/* where customers come from: the list is set in the Shop (Settings, Marketing) and shared */
+const SRC_DEFAULT = ['Walk-in', 'Facebook', 'Google', 'Instagram', 'Recommended', 'Returning customer', 'Leaflet', 'Other'];
+function srcList(){ try { const c = JSON.parse(localStorage.getItem('shopcfg') || '[]').find(x => x._id === 'cfg'); if (c && Array.isArray(c.sources) && c.sources.length) return c.sources; } catch(e){} return SRC_DEFAULT; }
+function fillSrc(val){ const el = document.querySelector('#f_src'); if (!el) return; const l = srcList(), cur = val != null ? val : el.value;
+  el.innerHTML = '<option value="">Choose…</option>' + l.concat(cur && !l.includes(cur) ? [cur] : []).map(x => `<option${x === cur ? ' selected' : ''}>${esc(x)}</option>`).join(''); }
+async function srcGuess(){   // a seller we've bought from before is a returning customer
+  const el = document.querySelector('#f_src'); if (!el || el.value) return;
+  const v = q => (document.querySelector(q) || {value: ''}).value.trim();
+  const ph = (v('#f_phone') || '').replace(/\D/g, ''), idn = (v('#f_idnum') || '').toUpperCase(), fn = (v('#f_first') || '').toLowerCase(), ln = (v('#f_last') || '').toLowerCase(), dob = v('#f_dob');
+  if (!ph && !idn && !(fn && ln && dob)) return;
+  const hit = (await allRecords()).some(r => !r.deleted && r.seller && ((ph && String(r.seller.phone || '').replace(/\D/g, '') === ph) || (idn && String(r.seller.idnum || '').toUpperCase() === idn) || (fn && ln && dob && String(r.seller.first || '').toLowerCase() === fn && String(r.seller.last || '').toLowerCase() === ln && r.seller.dob === dob)));
+  if (hit) fillSrc('Returning customer');
+}
+['#f_phone', '#f_idnum', '#f_dob'].forEach(q => { const el = document.querySelector(q); if (el) el.addEventListener('change', srcGuess); });
 function resetForm(){
   $$('#tab-new input:not([type=checkbox]):not([type=file]), #tab-new textarea, #tab-new select').forEach(el => el.value='');
   $$('#tab-new input[type=checkbox]').forEach(el => el.checked=false);
@@ -734,6 +750,7 @@ function resetForm(){
   let teamName = ''; try { teamName = (window.DGSync && DGSync.joined && DGSync.joined() && DGSync.me()) || ''; } catch(e){}   // this phone's name in the team (Gold Trader on a visit)
   $('#f_staff').value = signedIn || teamName || settings.staff||''; $('#f_loc').value = settings.loc||'';
   idPhotos=[]; lotPhotos=[]; items=[blankItem()]; $('#idScanMsg').innerHTML=''; renderIdPhotos(); renderLotPhotos(); renderItems();
+  fillSrc('');
   $('#sigClear').click(); setAlerts(''); $('#payAlerts').innerHTML=''; $('#formErrors').innerHTML='';
   $('#bankRow').classList.add('hidden'); $('#cashRow').classList.add('hidden'); try { cmRule(); priceHelp(); } catch(e){}
 }
@@ -795,6 +812,7 @@ $('#saveBtn').onclick = async () => {
     payment: { method:v('#f_pay'), from: v('#f_pay')==='Cash' ? v('#f_cashfrom') : '', ref:v('#f_payref'), bankName:v('#f_bankname'), bankLast4:v('#f_banklast4') },
     declaration: true,
     signature: sig.toDataURL('image/png'),
+    source: v('#f_src'),
     staff: v('#f_staff'), location: v('#f_loc'), notes: v('#f_notes'), flagged: $('#f_flag').checked,
     stolenCheck: $('#f_cm').checked ? { done: true, ref: v('#f_cmref'), at: now } : null,
     holdUntil: (parseInt(settings.holdDays ?? '14', 10) || 0) ? new Date(Date.now() + (parseInt(settings.holdDays ?? '14', 10)) * 864e5).toISOString().slice(0, 10) : '',
@@ -1077,6 +1095,7 @@ function prefillFromVisit(){
   const parts = String(v.name || '').trim().split(/\s+/), set = (sel, val) => { if (val && !$(sel).value) $(sel).value = val; };
   set('#f_first', parts.slice(0, -1).join(' ') || parts[0]); if (parts.length > 1) set('#f_last', parts[parts.length - 1]);
   set('#f_phone', v.phone); set('#f_addr', v.address); set('#f_pc', (v.postcode || '').toUpperCase());
+  if (v.source) fillSrc(v.source);
   toast('Details filled in from the diary visit. Check them against the ID.');
 }
 // an offer the customer accepted on the offer screen: put its items straight into the form
