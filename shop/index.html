@@ -1563,7 +1563,9 @@ const sendsAll = () => get("sends");
 const sendOf = b => b.sendId && sendsAll().find(s => s._id === b.sendId);
 window.addEventListener("message", e => { if (e.origin === location.origin && e.data && e.data.dgGoldH && $("goldFrame")) $("goldFrame").style.height = (e.data.dgGoldH + 4) + "px"; });
 function renderSafe(){
-  if (page === "safe" && $("goldFrame") && !$("goldFrame").src) $("goldFrame").src = "../?embed=gold";
+  if (page === "safe" && $("goldFrame") && !$("goldFrame").src){ const gt = new URLSearchParams(location.search).get("gold");
+    $("goldFrame").src = "../?embed=gold" + (gt ? "&gt=" + encodeURIComponent(gt) : "");
+    if (gt) setTimeout(() => $("goldFrame").scrollIntoView({behavior: "smooth", block: "start"}), 1500); }
   const all = get("safebags").slice().sort((a, b) => (b.inAt || "").localeCompare(a.inAt || ""));
   const inn = all.filter(b => !b.outAt), out = all.filter(b => b.outAt);
   const by = {}; inn.forEach(b => (b.lines || []).forEach(l => { by[l.carat] = (by[l.carat] || 0) + num(l.g); }));

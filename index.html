@@ -878,7 +878,7 @@ function renderDealer(){
   const a = meltStock(), pay = (parseFloat($("cP").value) || 95) / 100, held = a.reduce((t, x) => t + x.w, 0);
   let extra;
   if (!monthly){
-    extra = `<p style="margin:10px 0 0">Tell the app roughly how much gold you buy in a month and it will work out exactly how many grams to send to the refiner each week.</p><button class="btn" onclick="location.href='shop/?go=safe'">Set up in the Shop</button>`;
+    extra = `<p style="margin:10px 0 0">Tell the app roughly how much gold you buy in a month and it will work out exactly how many grams to send to the refiner each week.</p><button class="btn" onclick="location.href='shop/?go=safe&gold=send'">Set up in the Shop</button>`;
   } else if (!held){
     extra = `<p style="margin:10px 0 0">Add the gold you're holding (Shop, <b>Safe</b>, <b>Your gold</b>) to see how many grams to send this week.</p><a class="btn ghost" href="shop/?go=safe" style="display:block;text-align:center;text-decoration:none">Open your gold in the Shop</a>`;
   } else {
@@ -892,7 +892,7 @@ function renderDealer(){
         <tr><td><b>Send to the refiner this week</b></td><td><b>${send >= 1 ? send.toFixed(1) + " g" : "nothing"}</b></td></tr>
       </table>
       ${batch.length ? `<p class="muted" style="margin:6px 0 0">Oldest gold first: ${Object.entries(byCarat).map(([k, w]) => `${w.toFixed(1)}g ${CT[k]}`).join(", ")}${gbpPerGram ? `, about <b>${fmt(pure * gbpPerGram * pay, 0)}</b> ${payAt(pay)}` : ""}.</p>` : ""}
-      <button class="btn ghost" onclick="location.href='shop/?go=safe'">See the details in the Shop</button>`;
+      <button class="btn ghost" onclick="location.href='shop/?go=safe&gold=send'">See the details in the Shop</button>`;
   }
   box.innerHTML = `<div class="verdict ${b.cls}" style="margin:0"><div class="call">${b.call}</div><div>${b.why}</div></div>${extra}
     <p class="muted" style="margin:10px 0 0">Your profit is the gap between what you pay and what the refiner pays you. Every gram you hold is a bet on the gold price, so this tells you how much to keep and when to send it off.</p>`;
@@ -1475,6 +1475,7 @@ function showGt(t){
   gtEmpty();
 }
 document.querySelectorAll("#gtTabs button").forEach(b => b.onclick = () => { showGt(b.dataset.t); window.scrollTo(0, 0); });
+{ const q = new URLSearchParams(location.search).get("gt"); if (q) gtTab = q; }   // the Shop can open a tab directly
 showGt(gtTab);
 
 /* =============== your week: bought, sent, made, still holding =============== */
