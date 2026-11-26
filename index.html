@@ -224,18 +224,18 @@ try{if(/[?&]embed=gold\b/.test(location.search))document.documentElement.classLi
   async function setup(){
     staff = staffAll(); blHash = staff.length ? "" : await buyLogPin();
     mode = staff.length ? "staff" : blHash ? "buylog" : LS("gtPin") ? "own" : "new";
-    if (mode === "staff"){ const me = LS("dgs:me") || ""; const m = staff.find(x => x.name.toLowerCase() === me.toLowerCase()); pick = staff.length === 1 ? staff[0].name : m ? m.name : ""; }
+    pick = "";   // no names on the lock screen: the PIN alone says who it is
     newPin = ""; draw();
   }
   function draw(){
-    const choosing = mode === "staff" && !pick;
-    q("gtlAsk").textContent = choosing ? "Who's using the app?" : mode === "staff" ? `Hi ${cap(pick)}, enter your PIN`
+    const choosing = false;
+    q("gtlAsk").textContent = mode === "staff" ? "Enter your PIN"
       : mode === "new" ? (newPin ? "Type the same PIN again" : "Choose a PIN for this app") : "Enter your PIN";
     q("gtlSub").textContent = mode === "staff" && !choosing ? "Your Shop PIN" : mode === "buylog" ? "Your Buy log PIN" : mode === "new" && !newPin ? "4 to 8 numbers. You'll need it every time Gold Trader opens." : "";
     q("gtlWho").innerHTML = choosing ? staff.map(x => `<button data-n="${escH(x.name)}">${escH(cap(x.name))}</button>`).join("") : "";
     q("gtlWho").querySelectorAll("button").forEach(b => b.onclick = () => { pick = b.dataset.n; draw(); });
     q("gtlPin").style.display = choosing ? "none" : "";
-    q("gtlBack").style.display = mode === "staff" && pick && staff.length > 1 ? "" : "none";
+    q("gtlBack").style.display = "none";
     q("gtlPad").innerHTML = [1,2,3,4,5,6,7,8,9,"c",0,"b"].map(n => `<button data-d="${n}"${n === "c" || n === "b" ? ' class="k"' : ""}>${n === "c" ? "Clear" : n === "b" ? "⌫" : n}</button>`).join("");
     q("gtlPad").querySelectorAll("button").forEach(b => b.onclick = () => press(b.dataset.d));
     val = ""; dots();
@@ -253,7 +253,7 @@ try{if(/[?&]embed=gold\b/.test(location.search))document.documentElement.classLi
   async function check(){
     const v = val, max = mode === "staff" ? 6 : 8;
     let ok = false;
-    if (mode === "staff"){ const p = staff.find(x => x.name === pick); ok = !!p && await staffHash(p.name, v) === p.pin; }
+    if (mode === "staff"){ for (const p of staff) if (await staffHash(p.name, v) === p.pin){ ok = true; pick = p.name; break; } }
     else if (mode === "buylog") ok = await sha("gl-salt:" + v) === blHash;
     else if (mode === "own") ok = await sha("gt-pin:" + v) === LS("gtPin");
     if (v !== val) return;

@@ -504,7 +504,7 @@
   <div id="lockGold"></div>
   <div class="lkCard">
     <button class="lkBack" id="lockBack" style="display:none">‹ Not you?</button>
-    <h2 id="lockAsk">Who's using the app?</h2>
+    <h2 id="lockAsk">Enter your PIN</h2>
     <div id="lockWho"></div>
     <div id="lockPin" style="display:none">
       <div class="dots" id="lockDots"></div>
@@ -1867,7 +1867,7 @@ function lockNow(){
   const st = staffAll();
   if (!st.length && !pinHash) return toast("Add a person with a PIN first");
   try { sessionStorage.removeItem("shopUser"); } catch(e){} if (window.DGSync && DGSync.setActor) DGSync.setActor("");
-  lockPick = st.length === 1 ? st[0].name : "";
+  lockPick = "";   // no names on the lock screen: the PIN alone says who it is
   drawLock(); $("lock").classList.remove("out", "play"); $("lock").style.display = "flex"; void $("lock").offsetWidth; $("lock").classList.add("play");
 }
 function unlockOut(){ const l = $("lock"); l.classList.add("out"); setTimeout(() => { l.style.display = "none"; l.classList.remove("out", "play"); }, 380); }
@@ -1880,13 +1880,11 @@ function lockTick(){
 }
 function lockDots(){ const n = $("pinIn").value.length; $("lockDots").innerHTML = [...Array(Math.max(4, n))].map((_, i) => `<i class="${i < n ? "f" : ""}"></i>`).join(""); }
 function drawLock(){
-  const st = staffAll(), asking = !st.length || lockPick;
+  const asking = true;
   lockTick();
-  $("lockWho").innerHTML = st.length > 1 && !lockPick ? st.map((x, i) => `<button data-n="${esc(x.name)}" style="animation-delay:${(i * .06).toFixed(2)}s"><i>${esc(cap(x.name).charAt(0))}</i>${esc(cap(x.name))}</button>`).join("") : "";
-  $("lockWho").querySelectorAll("button").forEach(b => b.onclick = () => { lockPick = b.dataset.n; drawLock(); });
-  $("lockWho").style.display = asking ? "none" : "";
-  $("lockBack").style.display = st.length > 1 && lockPick ? "" : "none";
-  $("lockAsk").textContent = st.length ? (lockPick ? `Hi ${cap(lockPick)}, enter your PIN` : "Who's using the app?") : "Enter your PIN";
+  $("lockWho").innerHTML = ""; $("lockWho").style.display = "none";
+  $("lockBack").style.display = "none";
+  $("lockAsk").textContent = "Enter your PIN";
   $("lockPin").style.display = asking ? "" : "none";
   $("lockPad").innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, "c", 0, "b"].map((n, i) => `<button${n === "c" || n === "b" ? ' class="k"' : ""} data-d="${n}" style="animation-delay:${(i * .025).toFixed(3)}s">${n === "c" ? "Clear" : n === "b" ? "⌫" : n}</button>`).join("");
   $("lockPad").querySelectorAll("button").forEach(b => b.onclick = () => { const d = b.dataset.d, el = $("pinIn");
@@ -1904,8 +1902,8 @@ $("pinIn").addEventListener("input", async () => { const v = $("pinIn").value; c
   pinWait = setTimeout(() => { if ($("pinIn").value === v && $("lock").style.display === "flex" && !$("lock").classList.contains("out")){ $("lockMsg").textContent = "Wrong PIN, try again"; $("pinIn").value = ""; lockDots(); lockWrong(); } }, 1600);
   const st = staffAll();
   if (st.length){
-    const p = st.find(x => x.name === lockPick); if (!p) return;
-    if (await staffHash(p.name, v) === p.pin){ try { sessionStorage.setItem("shopUser", p.name); } catch(e){} if (window.DGSync && DGSync.setActor) DGSync.setActor(p.name); clearTimeout(pinWait); unlockOut(); lastActive = Date.now(); renderAll(); }
+    let p = null; for (const x of st) if (await staffHash(x.name, v) === x.pin){ p = x; break; }
+    if (p){ try { sessionStorage.setItem("shopUser", p.name); } catch(e){} if (window.DGSync && DGSync.setActor) DGSync.setActor(p.name); clearTimeout(pinWait); unlockOut(); lastActive = Date.now(); renderAll(); }
     else if (v.length >= 6) { $("lockMsg").textContent = "Wrong PIN, try again"; $("pinIn").value = ""; lockDots(); lockWrong(); }
     return;
   }
@@ -1965,6 +1963,7 @@ function editStaffOk(id){
     if (pin !== $("sp_pin2").value) return toast("The two PINs don't match");
     const list = get("staff");
     if (!x && list.some(y => !y.gone && y.name.toLowerCase() === name.toLowerCase())) return toast("There's already someone with that name");
+    for (const y of list) if (!y.gone && (!x || y._id !== x._id) && await staffHash(y.name, pin) === y.pin) return toast("Someone else already uses that PIN. Pick a different one");
     const hash = await staffHash(name, pin);
     if (x){ const y = list.find(z => z._id === x._id); y.pin = hash; y.mgr = mgr; y.phone = phone; } else list.push({_id: uid(), name, phone, pin: hash, mgr: mgr || !list.some(z => !z.gone && z.mgr), added: new Date().toISOString(), by: who()});
     put("staff", list); closeSheet(); toast(x ? "PIN changed" : `${name} added`); renderAll();
