@@ -505,7 +505,7 @@
   </div>
 </div></div>
 
-<script src="../sync.js?v=15"></script>
+<script src="../sync.js?v=16"></script>
 <script src="../buying-log/qrcode.min.js"></script>
 <script>
 /* ============ Dorset Gold & Jewellery · Shop ============
@@ -1523,11 +1523,12 @@ const holdPill = d => onHold(d) ? `<span class="pill due">On hold until ${fmtD(d
 const bagHold = b => (b.buyIds || []).map(id => (blRecs.find(r => r.id === id) || {}).holdUntil || "").concat(b.holdUntil || "").sort().pop() || "";
 /* warns before melting or selling on anything still in its holding period; true = go ahead */
 function holdOk(dates, what){ const d = dates.filter(onHold).sort().pop(); return !d || confirm(`${what} is on hold until ${fmtD(d)}, in case it turns out to be stolen. Go ahead anyway?`); }
+const noSafeIds = () => JSON.parse(localStorage.getItem("shopNoSafe") || "[]").concat(get("nosafe").map(x => x._id));
 const bagOfBuy = id => get("safebags").find(b => (b.buyIds || []).includes(id));
 const buyLines = r => (r.items || []).filter(i => !i.keep && BL_CARAT[i.purity] && num(i.weight) > 0);
 function renderBuys(){
   const recent = blRecs.slice(0, 40);
-  const wait = blRecs.filter(r => buyLines(r).length && !bagOfBuy(r.id) && !r.noSafe);
+  const nsIds = noSafeIds(), wait = blRecs.filter(r => buyLines(r).length && !bagOfBuy(r.id) && !r.noSafe && !nsIds.includes(r.id));
   const row = r => { const b = bagOfBuy(r.id), g = buyLines(r).reduce((t, i) => t + num(i.weight), 0);
     return `<div class="item" style="cursor:default"><span class="r">${gbp(r.total)}</span><b>${esc(r.receipt)} · ${esc([(r.seller || {}).first, (r.seller || {}).last].filter(Boolean).join(" ") || "Seller")}</b>
       <span class="muted">${fmtDT(r.createdAt)}${(r.payment || {}).method ? " · " + esc(r.payment.method) : ""}${g ? ` · ${g.toFixed(2)}g to melt` : ""}${r.staff ? " · " + esc(r.staff) : ""}</span>
@@ -1537,8 +1538,9 @@ function renderBuys(){
     : '<p class="muted">Nothing waiting. Gold and silver from new buys show here, ready to go into the safe.</p>';
   $("buyDone").innerHTML = recent.length ? recent.map(row).join("") : '<p class="muted">No buys in the Buy log on this device yet.</p>';
 }
-function buyNoSafe(id){ /* kept to sell, or already handled: remember on this phone only, the register is not changed */
+function buyNoSafe(id){ /* kept to sell, or already handled: shared with the team (so Gold Trader stops reminding too); the register is not changed */
   const k = JSON.parse(localStorage.getItem("shopNoSafe") || "[]"); if (!k.includes(id)) k.push(id); localStorage.setItem("shopNoSafe", JSON.stringify(k));
+  const ns = get("nosafe"); if (!ns.some(x => x._id === id)){ ns.push({_id: id, by: who(), at: new Date().toISOString()}); put("nosafe", ns); }
   blRecs.forEach(r => { if (r.id === id) r.noSafe = true; }); renderBuys(); }
 function buyToSafe(ids){
   const recs = blRecs.filter(r => ids.includes(r.id) && !bagOfBuy(r.id)); if (!recs.length) return;
@@ -1792,7 +1794,7 @@ $("br_save").onclick = async () => { const o = $("br_offer").value.trim(); if (o
   await blSettingsSave({holdDays: String(Math.max(0, Math.round(+($("br_hold").value || 14)))), cmAt: $("br_cm").value.trim() || "1000", offerPct: o}); toast("Buying rules saved"); };
 window.addEventListener("dgsync-applied", e => { if (e.detail && e.detail.settings) loadPin();
   // a purchase added, changed or deleted on another device: reload the Buy log so Buy, Safe, Customers and the till are right without a refresh
-  if (e.detail && e.detail.records) loadBuyLogSellers().then(() => { const k = JSON.parse(localStorage.getItem("shopNoSafe") || "[]"); blRecs.forEach(r => { if (k.includes(r.id)) r.noSafe = true; }); renderAll(); }); });
+  if (e.detail && e.detail.records) loadBuyLogSellers().then(() => { const k = noSafeIds(); blRecs.forEach(r => { if (k.includes(r.id)) r.noSafe = true; }); renderAll(); }); });
 function renderSettings(){
   renderStaff(); renderStatus(); fillBizRules(); renderDP().catch(() => {}); $("dp_ai").checked = aiOn();
   const cfg = shopCfg(); if (document.activeElement !== $("cfg_policy")) $("cfg_policy").value = cfg.policy || "";
@@ -2282,7 +2284,7 @@ async function backup(){
   const pw = await askPassword("Lock the backup", true); if (!pw) return;
   toast("Making the backup…");
   const data = {app: "dgj-shop", version: 3, exportedAt: new Date().toISOString(), sales: get("sales"), forsale: get("forsale"), customers: get("customers"), safebags: get("safebags"), staff: get("staff"), till: get("till"), shopcfg: get("shopcfg"),
-    stockchecks: get("stockchecks"), sends: get("sends"), safechecks: get("safechecks"), valuations: get("valuations"), rota: get("rota"), clock: get("clock"), photos: {},
+    stockchecks: get("stockchecks"), sends: get("sends"), safechecks: get("safechecks"), valuations: get("valuations"), rota: get("rota"), clock: get("clock"), nosafe: get("nosafe"), photos: {},
     // the Buy log (with its photos) and Gold Trader's lists, so this one file covers the whole business
     buylog: await blAll(), blSettings: Object.assign({}, blSettings || {}, {pinHash: ""}), myGold: {stock: get("stock"), buys: get("buys"), sent: get("sent"), visits: get("visits"), cash: get("cash")}};
   for (const c of data.customers.concat(data.forsale, data.valuations.flatMap(v => v.items))) for (const p of (c.photos || [])) if (p.ref && !data.photos[p.ref]) data.photos[p.ref] = await photoSrc(p);
@@ -2307,7 +2309,7 @@ async function restoreFile(file){
   if (j.app === "dgj-shop-locked"){ const pw = await askPassword("Open the backup", false); if (!pw) return;
     try { data = JSON.parse(dec8.decode(await crypto.subtle.decrypt({name: "AES-GCM", iv: fromB64(j.iv)}, await pwKey(pw, fromB64(j.salt)), fromB64(j.data)))); } catch(e){ return toast("Wrong password, or the file is damaged"); } }
   if (data.app !== "dgj-shop") return toast("That isn't a Shop backup. An older Buy log backup (.json) is restored in the Buy log, Settings.");
-  const keys = ["sales", "forsale", "customers", "safebags", "staff", "till", "shopcfg", "stockchecks", "sends", "safechecks", "valuations", "rota", "clock"];
+  const keys = ["sales", "forsale", "customers", "safebags", "staff", "till", "shopcfg", "stockchecks", "sends", "safechecks", "valuations", "rota", "clock", "nosafe"];
   const adds = {}; keys.forEach(k => { const cur = get(k), have = new Set(cur.map(x => x._id)), add = (data[k] || []).filter(x => x && x._id && !have.has(x._id)); adds[k] = add; });
   // the Buy log and Gold Trader's lists (in backups made since they were added)
   const haveRec = new Set((await blAll()).map(r => r.id)), recAdd = (data.buylog || []).filter(r => r && r.id && !haveRec.has(r.id));
@@ -2523,7 +2525,11 @@ const staffPhone = p => { const x = staffAll().find(y => y.name === p); return x
 function markBack(p){ const list = get("clock"); list.push({_id: uid(), who: p, at: new Date().toISOString(), kind: "back", by: who(), note: "confirmed safe by " + who()}); put("clock", list); toast(`${p} marked as back`); renderAll(); }
 function clockDo(kind, extra){ const me = who(); if (!me) return toast("Sign in first");
   const list = get("clock"); list.push(Object.assign({_id: uid(), who: me, at: new Date().toISOString(), kind}, extra || {})); put("clock", list);
-  toast({in: "Clocked in", back: "Welcome back", outday: "Clocked out", leave: "Have a safe trip"}[kind]); renderAll(); }
+  toast({in: "Clocked in", back: "Welcome back", outday: "Clocked out", leave: "Have a safe trip"}[kind]); renderAll();
+  if (kind === "back" || kind === "outday"){   // gold bought while out: get it in the safe
+    const ns = noSafeIds(), mine = blRecs.filter(r => (r._who || r.staff) === me && (r.createdAt || "").slice(0, 10) === today() && buyLines(r).length && !bagOfBuy(r.id) && !ns.includes(r.id));
+    if (mine.length) setTimeout(() => { if (confirm(`You bought ${mine.length} lot${mine.length > 1 ? "s" : ""} today (${mine.reduce((t, r) => t + buyLines(r).reduce((a, i) => a + num(i.weight), 0), 0).toFixed(1)}g) that ${mine.length > 1 ? "aren't" : "isn't"} in the safe yet. Put ${mine.length > 1 ? "them" : "it"} in now?`)) go("buy"); }, 300);
+  } }
 function goingOut(){
   const vs = visitsAll().filter(v => v.date === today() && (!v.status || v.status === "booked") && (!v.who || v.who === who())).sort((a, b) => (a.time || "").localeCompare(b.time || ""));
   openSheet("Going out", `${vs.length ? `<h2>To a visit</h2>${vs.map(v => `<div class="item" onclick="goOut('${v._id}')"><b>${esc(v.time || "")} · ${esc(v.name || "")}</b><span class="muted">${esc([v.address, v.postcode].filter(Boolean).join(", "))} · back by about ${visitEnd(v)}</span></div>`).join("")}<h2 style="margin-top:14px">Somewhere else</h2>` : ""}
@@ -2799,9 +2805,9 @@ window.addEventListener("dgsync-applied", () => { renderAll(); let u = ""; try {
 if (!who() && !staffAll().length && !(window.DGSync && DGSync.joined && DGSync.joined())){ /* not in the team: ask once who's using this phone, for "by" on records */
   setTimeout(() => { if (!localStorage.getItem("shopWho")){ const n = prompt("Your first name (shown on the sales and bags you record)"); if (n) localStorage.setItem("shopWho", n.trim()); renderAll(); } }, 800);
 }
-loadBuyLogSellers().then(() => { setTimeout(resumeAfterPx, 300); const k = JSON.parse(localStorage.getItem("shopNoSafe") || "[]"); blRecs.forEach(r => { if (k.includes(r.id)) r.noSafe = true; }); renderAll(); });
+loadBuyLogSellers().then(() => { setTimeout(resumeAfterPx, 300); const k = noSafeIds(); blRecs.forEach(r => { if (k.includes(r.id)) r.noSafe = true; }); renderAll(); });
 window.addEventListener("pageshow", e => { if (e.persisted) loadBuyLogSellers().then(renderAll); });
-document.addEventListener("visibilitychange", () => { if (!document.hidden) loadBuyLogSellers().then(() => { const k = JSON.parse(localStorage.getItem("shopNoSafe") || "[]"); blRecs.forEach(r => { if (k.includes(r.id)) r.noSafe = true; }); renderAll(); }); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) loadBuyLogSellers().then(() => { const k = noSafeIds(); blRecs.forEach(r => { if (k.includes(r.id)) r.noSafe = true; }); renderAll(); }); });
 loadPin();
 if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../sw.js", {scope: "../"}).catch(() => {}));
 </script>

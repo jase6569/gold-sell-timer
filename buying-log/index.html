@@ -415,7 +415,7 @@
 <input type="file" id="lotCamIn" accept="image/*" capture="environment" class="hidden">
 <input type="file" id="galleryIn" accept="image/*" multiple class="hidden">
 
-<script src="../sync.js?v=15"></script>
+<script src="../sync.js?v=16"></script>
 <script src="../keep.js?v=1"></script>
 <script src="qrcode.min.js"></script>
 <script>if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../sw.js", {scope: "../"}).catch(() => {}));</script>
@@ -731,7 +731,8 @@ function resetForm(){
   $$('#tab-new input:not([type=checkbox]):not([type=file]), #tab-new textarea, #tab-new select').forEach(el => el.value='');
   $$('#tab-new input[type=checkbox]').forEach(el => el.checked=false);
   let signedIn = ''; try { signedIn = sessionStorage.getItem('dgs:actor') || ''; } catch(e){}   // signed in to the Shop app as a member of staff
-  $('#f_staff').value = signedIn || settings.staff||''; $('#f_loc').value = settings.loc||'';
+  let teamName = ''; try { teamName = (window.DGSync && DGSync.joined && DGSync.joined() && DGSync.me()) || ''; } catch(e){}   // this phone's name in the team (Gold Trader on a visit)
+  $('#f_staff').value = signedIn || teamName || settings.staff||''; $('#f_loc').value = settings.loc||'';
   idPhotos=[]; lotPhotos=[]; items=[blankItem()]; $('#idScanMsg').innerHTML=''; renderIdPhotos(); renderLotPhotos(); renderItems();
   $('#sigClear').click(); setAlerts(''); $('#payAlerts').innerHTML=''; $('#formErrors').innerHTML='';
   $('#bankRow').classList.add('hidden'); $('#cashRow').classList.add('hidden'); try { cmRule(); priceHelp(); } catch(e){}

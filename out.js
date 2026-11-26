@@ -44,6 +44,19 @@ async function buyLogCash(){   // cash paid to customers from someone's own floa
   } catch(e){ return []; }
 }
 
+/* what I bought today that hasn't gone in the safe yet (the same test as the Shop's Buy page) */
+const MELT = ["9ct (375)", "14ct (585)", "18ct (750)", "22ct (916)", "24ct (999)", "Sterling (925)", "Britannia (958)", "Fine silver (999)", "Platinum (950)", "Palladium (950)"];
+async function notInSafe(){
+  const m = me(), t = localDay(); if (!m) return [];
+  const bagged = new Set(jget("safebags", []).flatMap(b => b.buyIds || [])), skip = new Set(jget("nosafe", []).map(x => x._id));
+  try { const db = await new Promise((res, rej) => { const r = indexedDB.open("dj-buylog", 1); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains("records")) d.createObjectStore("records", {keyPath: "id"}); if (!d.objectStoreNames.contains("kv")) d.createObjectStore("kv"); }; });
+    const recs = await new Promise(res => { const q = db.transaction("records").objectStore("records").getAll(); q.onsuccess = () => res(q.result || []); q.onerror = () => res([]); }); db.close();
+    return recs.filter(r => !r.deleted && (r._who || r.staff) === m && r.createdAt && localDay(new Date(r.createdAt)) === t && !bagged.has(r.id) && !skip.has(r.id)
+      && (r.items || []).some(i => !i.keep && MELT.includes(i.purity) && parseFloat(i.weight) > 0))
+      .map(r => ({receipt: r.receipt, name: [r.seller && r.seller.first, r.seller && r.seller.last].filter(Boolean).join(" "), g: (r.items || []).filter(i => !i.keep && MELT.includes(i.purity)).reduce((a, i) => a + (parseFloat(i.weight) || 0), 0), total: Number(r.total) || 0}));
+  } catch(e){ return []; }
+}
+let justBack = false;
 async function render(){
   const box = $("outBody"); if (!box) return;
   const joined = window.DGSync && DGSync.joined && DGSync.joined(), m = me();
@@ -61,8 +74,15 @@ async function render(){
   const cash = jget("cash", []), paid = await buyLogCash();
   let bal = 0; cash.forEach(c => { const a = Number(c.amount) || 0; if (c.type === "out" && c.who === m) bal += a; if (c.type === "back" && c.who === m) bal -= a; if (c.type === "give"){ if (c.who === m) bal -= a; if (c.to === m) bal += a; } });
   paid.forEach(p => { if (p.who === m) bal -= p.amount; });
+  const unsafe = await notInSafe(), ug = unsafe.reduce((a, x) => a + x.g, 0);
+  const safeCard = unsafe.length ? `<div class="card" id="outSafe" style="border-color:${justBack ? "var(--gold)" : "var(--line)"}${justBack ? ";background:rgba(212,168,67,.08)" : ""}">
+    <h2>${justBack ? "Welcome back: put today's gold in the safe" : "Not in the safe yet"}</h2>
+    <p style="margin:0">You bought <b>${unsafe.length} lot${unsafe.length > 1 ? "s" : ""}</b> today, <b>${ug.toFixed(1)}g</b>${unsafe.length > 1 ? "" : ""}, that ${unsafe.length > 1 ? "aren't" : "isn't"} in the safe yet:</p>
+    <p class="muted" style="margin:6px 0 0">${unsafe.map(x => `${esc(x.receipt)}${x.name ? " · " + esc(x.name) : ""} · ${x.g.toFixed(1)}g`).join("<br>")}</p>
+    <p style="margin:8px 0 0">When you're in: Shop, <b>Buy</b>, then <b>${unsafe.length > 1 ? "Put all in one bag" : "Put in the safe"}</b>.</p>
+    <a class="btn" href="shop/?go=buy" style="display:block;text-align:center;text-decoration:none;margin-top:10px">Open Buy in the Shop</a></div>` : "";
   const stillOpen = $("outBody").querySelector("details[open]") ? [...$("outBody").querySelectorAll("details[open]")].map(d => d.dataset.k) : [];
-  box.innerHTML = `
+  box.innerHTML = (justBack ? safeCard : "") + `
   <div class="card">
     <h2>${esc(m)} · ${new Date().toLocaleDateString("en-GB", {weekday: "long", day: "numeric", month: "long"})}</h2>
     <p style="margin:0 0 8px">${status}</p>
@@ -94,6 +114,7 @@ async function render(){
     </div>
     <p class="muted" style="margin:8px 0 0">To book or move a visit, use the <a href="shop/?go=diary" style="color:var(--gold2)">Shop's Diary</a>.</p>
   </div>
+  ${justBack ? "" : safeCard}
   <div class="card">
     <h2>Cash I'm carrying</h2>
     <div style="display:flex;justify-content:space-between;align-items:baseline"><span>Should be holding</span><b style="font-size:22px${bal < -0.005 ? ";color:var(--down)" : ""}">${money(bal)}</b></div>
@@ -104,8 +125,11 @@ async function render(){
       <div id="ocToRow" style="display:none"><label>Handed to</label><select id="ocTo">${[...new Set(jget("staff", []).filter(s => s && !s.gone).map(s => s.name).concat(["Jase", "Mike"]))].filter(p => p !== m).map(p => `<option>${esc(p)}</option>`).join("")}</select></div>
       <button class="btn" id="ocAdd">Save</button></details>
   </div>`;
-  box.querySelectorAll("[data-ck]").forEach(b => b.onclick = () => {
+  box.querySelectorAll("[data-ck]").forEach(b => b.onclick = async () => {
     const k = b.dataset.ck;
+    if (k !== "back") justBack = false;
+    if (k === "back"){ justBack = true; clock("back"); setTimeout(() => window.scrollTo(0, 0), 50); return; }
+    if (k === "outday"){ const u = await notInSafe(); if (u.length && !confirm(`${u.length} of today's purchases ${u.length > 1 ? "aren't" : "isn't"} in the safe yet (${u.reduce((a, x) => a + x.g, 0).toFixed(1)}g). Clock out anyway?`)) return; }
     if (k === "go"){ const w = prompt("Where are you going? (e.g. bank, Mastermelt)"); if (!w) return; const u = prompt("Back by what time? (e.g. 15:30)", addMins(nowHM(), 60)); if (!u) return; return clock("leave", {where: w.trim(), until: u.trim()}); }
     clock(k);
   });
@@ -116,7 +140,7 @@ async function render(){
     if (act === "offer0") return window.OfferScreen && OfferScreen.open(null);
     if (!v) return;
     if (act === "offer") return window.OfferScreen && OfferScreen.open(v._id);
-    if (act === "leave") return clock("leave", {where: `visit to ${v.name || "customer"}${area(v.postcode) ? " in " + area(v.postcode) : ""}${v.address ? " (" + v.address + ")" : ""}`, until: addMins(visitEnd(v), 20), visitId: v._id});
+    if (act === "leave"){ justBack = false; } if (act === "leave") return clock("leave", {where: `visit to ${v.name || "customer"}${area(v.postcode) ? " in " + area(v.postcode) : ""}${v.address ? " (" + v.address + ")" : ""}`, until: addMins(visitEnd(v), 20), visitId: v._id});
     if (act === "nosale"){ if (!confirm("Mark this visit as no sale?")) return; v.status = "nosale"; jset("visits", list); return render(); }
     if (act === "remind"){ const s = await bizPhone(); v.reminded = new Date().toISOString(); jset("visits", list);
       const body = `Hi ${String(v.name || "").split(" ")[0]}, just confirming your free home valuation with ${s.biz || "Dorset Gold & Jewellery"} on ${new Date(v.date + "T12:00").toLocaleDateString("en-GB", {weekday: "long", day: "numeric", month: "long"})}${v.time ? " at " + v.time : ""}. Please have photo ID ready. Any questions, call us${s.phone ? " on " + s.phone : ""}.`;
