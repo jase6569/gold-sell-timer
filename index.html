@@ -168,6 +168,118 @@ try{if(/[?&]embed=gold\b/.test(location.search))document.documentElement.classLi
   setTimeout(window.hideSplash, 2000);   // shows for two seconds
 })();
 </script>
+<!-- PIN LOCK START: Gold Trader asks for a PIN every time it opens, and again after 5 minutes away.
+     It uses the same staff PINs as the Shop (shared with the team, so a lost phone that's still in the team
+     needs a real person's PIN), then the Buy log PIN, then a PIN set just for this phone. Skipped inside the Shop's Safe page, which has its own lock. -->
+<style>
+  #gtLock{position:fixed;inset:0;z-index:9998;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+  html.embed #gtLock{display:none!important}
+  #gtLock.gone{display:none}
+  #gtLock .lc{width:100%;max-width:340px;text-align:center}
+  #gtLock img{width:84px;height:84px;border-radius:50%}
+  #gtLock h2{margin:12px 0 4px;font-size:20px}
+  #gtLock .who{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  #gtLock .who button,#gtLock .pad button{height:56px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:20px;font-weight:600;cursor:pointer}
+  #gtLock .who button{font-size:17px}
+  #gtLock .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  #gtLock .pad button:active{border-color:var(--gold)}
+  #gtLock .pad button.k{font-size:14px;color:var(--muted)}
+  #gtLock .dots{display:flex;justify-content:center;gap:12px;margin:14px 0 4px}
+  #gtLock .dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--gold);display:block}
+  #gtLock .dots i.f{background:var(--gold2);border-color:var(--gold2)}
+  #gtLock .msg{min-height:20px;color:var(--down);font-size:14px}
+  #gtLock .bk{background:none;border:0;color:var(--muted);font-size:14px;cursor:pointer;margin-top:10px}
+</style>
+<div id="gtLock"><div class="lc">
+  <img src="icon.png" alt="">
+  <h2 id="gtlAsk">Enter your PIN</h2>
+  <div class="muted" id="gtlSub" style="font-size:14px"></div>
+  <div class="who" id="gtlWho"></div>
+  <div id="gtlPin"><div class="dots" id="gtlDots"></div><div class="msg" id="gtlMsg"></div><div class="pad" id="gtlPad"></div></div>
+  <button class="bk" id="gtlBack" style="display:none">‹ Not you?</button>
+</div></div>
+<script>
+(function(){
+  if (document.documentElement.classList.contains("embed")) return;
+  const el = document.getElementById("gtLock"), q = id => document.getElementById(id);
+  const LS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch(e){ return null; } };
+  const SS = (k, v) => { try { if (v === undefined) return sessionStorage.getItem(k); sessionStorage.setItem(k, v); } catch(e){ return null; } };
+  const sha = async s => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))].map(x => x.toString(16).padStart(2, "0")).join("");
+  const staffHash = (n, p) => sha("dgstaff|" + n.trim().toLowerCase() + "|" + p);
+  const cap = n => String(n || "").replace(/^\w/, c => c.toUpperCase());
+  const escH = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const AWAY = 5 * 60000;
+  let mode = "", staff = [], blHash = "", pick = "", newPin = "", away = Date.now();
+
+  const staffAll = () => { try { return (JSON.parse(LS("staff") || "[]") || []).filter(x => x && x.name && x.pin && !x.gone); } catch(e){ return []; } };
+  const buyLogPin = () => new Promise(res => {
+    try {
+      const r = indexedDB.open("dj-buylog", 1);
+      r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains("records")) d.createObjectStore("records", {keyPath: "id"}); if (!d.objectStoreNames.contains("kv")) d.createObjectStore("kv"); };
+      r.onsuccess = () => { try { const g = r.result.transaction("kv").objectStore("kv").get("settings"); g.onsuccess = () => res((g.result || {}).pinHash || ""); g.onerror = () => res(""); } catch(e){ res(""); } };
+      r.onerror = () => res("");
+    } catch(e){ res(""); }
+  });
+
+  async function setup(){
+    staff = staffAll(); blHash = staff.length ? "" : await buyLogPin();
+    mode = staff.length ? "staff" : blHash ? "buylog" : LS("gtPin") ? "own" : "new";
+    if (mode === "staff"){ const me = LS("dgs:me") || ""; const m = staff.find(x => x.name.toLowerCase() === me.toLowerCase()); pick = staff.length === 1 ? staff[0].name : m ? m.name : ""; }
+    newPin = ""; draw();
+  }
+  function draw(){
+    const choosing = mode === "staff" && !pick;
+    q("gtlAsk").textContent = choosing ? "Who's using the app?" : mode === "staff" ? `Hi ${cap(pick)}, enter your PIN`
+      : mode === "new" ? (newPin ? "Type the same PIN again" : "Choose a PIN for this app") : "Enter your PIN";
+    q("gtlSub").textContent = mode === "staff" && !choosing ? "Your Shop PIN" : mode === "buylog" ? "Your Buy log PIN" : mode === "new" && !newPin ? "4 to 8 numbers. You'll need it every time Gold Trader opens." : "";
+    q("gtlWho").innerHTML = choosing ? staff.map(x => `<button data-n="${escH(x.name)}">${escH(cap(x.name))}</button>`).join("") : "";
+    q("gtlWho").querySelectorAll("button").forEach(b => b.onclick = () => { pick = b.dataset.n; draw(); });
+    q("gtlPin").style.display = choosing ? "none" : "";
+    q("gtlBack").style.display = mode === "staff" && pick && staff.length > 1 ? "" : "none";
+    q("gtlPad").innerHTML = [1,2,3,4,5,6,7,8,9,"c",0,"b"].map(n => `<button data-d="${n}"${n === "c" || n === "b" ? ' class="k"' : ""}>${n === "c" ? "Clear" : n === "b" ? "⌫" : n}</button>`).join("");
+    q("gtlPad").querySelectorAll("button").forEach(b => b.onclick = () => press(b.dataset.d));
+    val = ""; dots();
+  }
+  let val = "", wait = 0;
+  const dots = () => { q("gtlDots").innerHTML = [...Array(Math.max(4, val.length))].map((_, i) => `<i class="${i < val.length ? "f" : ""}"></i>`).join(""); };
+  const wrong = t => { q("gtlMsg").textContent = t || "Wrong PIN, try again"; val = ""; dots(); if (navigator.vibrate) navigator.vibrate(120); };
+  function press(d){
+    clearTimeout(wait); q("gtlMsg").textContent = "";
+    val = d === "c" ? "" : d === "b" ? val.slice(0, -1) : (val + d).slice(0, 8); dots();
+    if (val.length < 4) return;
+    if (mode === "new"){ wait = setTimeout(choose, 1400); return; }   // let them finish typing a longer PIN
+    check();
+  }
+  async function check(){
+    const v = val, max = mode === "staff" ? 6 : 8;
+    let ok = false;
+    if (mode === "staff"){ const p = staff.find(x => x.name === pick); ok = !!p && await staffHash(p.name, v) === p.pin; }
+    else if (mode === "buylog") ok = await sha("gl-salt:" + v) === blHash;
+    else if (mode === "own") ok = await sha("gt-pin:" + v) === LS("gtPin");
+    if (v !== val) return;
+    if (ok) return open();
+    if (v.length >= max) wrong(); else wait = setTimeout(() => { if (val === v) wrong(); }, 1600);
+  }
+  async function choose(){
+    if (!newPin){ newPin = val; draw(); return; }
+    if (val !== newPin){ newPin = ""; draw(); wrong("Those didn't match. Choose your PIN again"); return; }
+    LS("gtPin", await sha("gt-pin:" + val)); open();
+  }
+  function open(){ SS("gtOpen", "1"); away = Date.now(); el.classList.add("gone"); }
+  function lock(){ SS("gtOpen", "0"); el.classList.remove("gone"); setup(); }
+  q("gtlBack").onclick = () => { pick = ""; draw(); };
+  document.addEventListener("keydown", e => { if (el.classList.contains("gone")) return; if (/^\d$/.test(e.key)) press(e.key); else if (e.key === "Backspace") press("b"); });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden){ away = Date.now(); return; }
+    if (el.classList.contains("gone") && Date.now() - away > AWAY) lock();
+  });
+  // new staff PINs arriving from the team take over straight away
+  window.addEventListener("dgsync-applied", () => { if (!el.classList.contains("gone") && !staff.length && staffAll().length) setup(); });
+  if (SS("gtOpen") === "1") el.classList.add("gone");   // the app reloading itself for an update doesn't ask again
+  else setup();
+})();
+</script>
+<!-- PIN LOCK END -->
 <header>
   <img src="logo.png" alt="Dorset Gold &amp; Jewellery">
   <div>
