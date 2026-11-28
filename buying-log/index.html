@@ -150,7 +150,7 @@
   <img src="../logo.png" alt="Dorset Gold &amp; Jewellery" style="width:140px;height:140px;border-radius:50%">
   <h2 style="margin:14px 0 0">Gold Buying Log</h2>
   <div id="lockMsg" style="color:#cfc4a4;font-size:14px;margin-top:6px">Enter PIN</div>
-  <input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off">
+  <input id="pinIn" type="text" inputmode="numeric" maxlength="8" autocomplete="off" data-lpignore="true" style="-webkit-text-security:disc;text-security:disc">
   <button class="btn gold" id="pinGo" style="min-width:160px">Unlock</button>
 </div>
 
@@ -381,7 +381,7 @@
     <div class="card">
       <h2>PIN lock</h2>
       <p class="muted" id="pinState"></p>
-      <label>New PIN (4 to 8 digits)</label><input id="s_pin" type="password" inputmode="numeric" maxlength="8" autocomplete="off">
+      <label>New PIN (4 to 8 digits)</label><input id="s_pin" type="text" inputmode="numeric" maxlength="8" autocomplete="off" data-lpignore="true" style="-webkit-text-security:disc;text-security:disc">
       <div class="actions">
         <button class="btn navy" id="setPin">Set PIN</button>
         <button class="btn red" id="clearPin">Remove PIN</button>

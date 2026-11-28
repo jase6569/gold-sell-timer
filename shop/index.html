@@ -508,7 +508,7 @@
     <div id="lockWho"></div>
     <div id="lockPin" style="display:none">
       <div class="dots" id="lockDots"></div>
-      <input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off">
+      <input id="pinIn" type="text" readonly tabindex="-1" autocomplete="off" data-lpignore="true" data-1p-ignore aria-hidden="true">
       <div id="lockMsg"></div>
       <div class="pad" id="lockPad"></div>
     </div>
@@ -1890,11 +1890,18 @@ function drawLock(){
   $("lockPad").querySelectorAll("button").forEach(b => b.onclick = () => { const d = b.dataset.d, el = $("pinIn");
     el.value = d === "c" ? "" : d === "b" ? el.value.slice(0, -1) : (el.value + d).slice(0, 8); $("lockMsg").textContent = ""; lockDots(); el.dispatchEvent(new Event("input")); });
   $("pinIn").value = ""; $("lockMsg").textContent = ""; lockDots();
-  setTimeout(() => { if (asking && !matchMedia("(pointer:coarse)").matches) $("pinIn").focus(); }, 60);   // computers can type the PIN; phones use the keypad
 }
 $("lockBack").onclick = () => { lockPick = ""; drawLock(); };
 $("pinIn").addEventListener("input", lockDots);
-$("lock").addEventListener("click", e => { if ($("lockPin").style.display !== "none" && !e.target.closest("button") && !matchMedia("(pointer:coarse)").matches) $("pinIn").focus(); });
+document.addEventListener("keydown", e => {   // typing the PIN on a computer keyboard
+  if ($("lock").style.display !== "flex" || $("lockPin").style.display === "none" || e.ctrlKey || e.metaKey || e.altKey) return;
+  const el = $("pinIn");
+  if (/^[0-9]$/.test(e.key)) el.value = (el.value + e.key).slice(0, 8);
+  else if (e.key === "Backspace") el.value = el.value.slice(0, -1);
+  else if (e.key === "Escape") el.value = "";
+  else return;
+  e.preventDefault(); $("lockMsg").textContent = ""; el.dispatchEvent(new Event("input"));
+});
 setInterval(() => { if ($("lock").style.display === "flex") lockTick(); }, 30000);
 let pinWait = null;
 $("pinIn").addEventListener("input", async () => { const v = $("pinIn").value; clearTimeout(pinWait); if (v.length < 4) return;
@@ -1934,7 +1941,7 @@ function withManager(what, fn){
   const mgrs = staffAll().filter(x => x.mgr);
   openSheet("A manager needs to approve this", `<p class="muted" style="margin-top:0">${esc(what)}</p>
     <label>Manager</label><select id="mg_who">${mgrs.map(m => `<option>${esc(m.name)}</option>`).join("")}</select>
-    <label>Their PIN</label><input id="mg_pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off"><button class="btn" id="mg_go">Approve</button>`);
+    <label>Their PIN</label><input id="mg_pin" type="text" inputmode="numeric" maxlength="6" autocomplete="off" data-lpignore="true" style="-webkit-text-security:disc;text-security:disc"><button class="btn" id="mg_go">Approve</button>`);
   setTimeout(() => $("mg_pin").focus(), 50);
   $("mg_go").onclick = async () => { const m = mgrs.find(x => x.name === $("mg_who").value);
     if (m && await staffHash(m.name, $("mg_pin").value) === m.pin){ approvedBy = m.name; closeSheet(); fn(); } else { toast("Wrong PIN"); $("mg_pin").value = ""; } };
@@ -1948,8 +1955,8 @@ function editStaffOk(id){
   openSheet(x ? x.name : "Add a person", `
     ${x ? "" : `<label>First name</label><input id="sp_name" autocomplete="off">`}
     <label>Mobile number (for the safety call on home visits)</label><input id="sp_phone" type="tel" value="${esc(x && x.phone || "")}">
-    <label>${x ? "New PIN" : "PIN"} (4 to 6 digits)</label><input id="sp_pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password">
-    <label>Type it again</label><input id="sp_pin2" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password">
+    <label>${x ? "New PIN" : "PIN"} (4 to 6 digits)</label><input id="sp_pin" type="text" inputmode="numeric" maxlength="6" autocomplete="off" data-lpignore="true" style="-webkit-text-security:disc;text-security:disc">
+    <label>Type it again</label><input id="sp_pin2" type="text" inputmode="numeric" maxlength="6" autocomplete="off" data-lpignore="true" style="-webkit-text-security:disc;text-security:disc">
     <label style="display:flex;align-items:center;gap:8px;color:var(--text);margin-top:12px"><input id="sp_mgr" type="checkbox" style="width:auto"${x && x.mgr ? " checked" : ""}> Manager (approves refunds, cancellations and deletions)</label>
     <p class="muted" style="margin:4px 0 0">${x ? "Leave the PIN boxes empty to only change their number or whether they're a manager." : ""}</p>
     <button class="btn" id="sp_save">${x ? "Save" : "Add"}</button>
