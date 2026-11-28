@@ -58,7 +58,7 @@
   <div class="title"><h2>Today's gold prices</h2><span>what we pay per gram</span></div>
   <div id="body" class="wait">Getting today's prices…</div>
   <div class="msg" id="msg" style="display:none"></div>
-  <footer><span id="upd"></span><span>Prices change with the gold market. Ask us for a free valuation.</span></footer>
+  <footer><span id="upd"></span><span>Ask us for a free valuation.</span></footer>
 </div>
 <button id="setBtn" aria-label="Price board settings">⚙</button>
 <div id="panel"><div class="box">
@@ -121,7 +121,11 @@ function draw(){
   $("body").innerHTML = p.map(x => `<div class="p"><div class="k">${x.label}<small>${x.note}</small></div><div class="v">${money(x.v, dp)}<small>/g</small></div></div>`).join("")
     + coins.map(([n, g]) => `<div class="p coin"><div class="k">${n}<small>at today's gold value</small></div><div class="v">${money(down(p22 * g, 1), 0)}</div></div>`).join("");
   $("msg").style.display = c.msg ? "" : "none"; $("msg").textContent = c.msg;
-  const src = (get("refiner", "mastermelt") === "mastermelt" && mmFresh()) ? `Updated ${new Date(mm.checked || mm.date).toLocaleString("en-GB", {weekday: "short", hour: "2-digit", minute: "2-digit"})}` : liveAt ? `Updated ${liveAt.toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"})}` : "";
+  const hhmm = d => d.toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"}), wk = [0, 6].includes(new Date().getDay());
+  let src = "";
+  if (get("refiner", "mastermelt") === "mastermelt" && mmFresh()){ const ck = new Date(mm.checked || mm.date), nx = new Date(ck.getTime() + 36e5);
+    src = `Prices checked ${hhmm(ck)}${nx > Date.now() ? ` · next check ${hhmm(nx)}` : ""}${wk ? " · the gold market is closed at weekends, so prices stay the same until Monday" : ""}`; }
+  else if (liveAt) src = `Prices checked ${hhmm(liveAt)}${wk ? " · the gold market is closed at weekends" : ""}`;
   const stale = !mmFresh() && (!liveAt || Date.now() - liveAt > 6 * 36e5);
   $("upd").innerHTML = stale ? `<span class="stale">${src || "Prices may be out of date"} · no internet connection</span>` : src;
   if ($("panel").style.display === "flex") drawPanel();
