@@ -25,8 +25,6 @@ TOPIC = os.environ.get("NTFY_TOPIC", "").strip()  # private, stored as a GitHub 
 APP = "https://jase6569.github.io/gold-sell-timer/"
 # extra private channels that get the same alerts, each opening its own branded app
 EXTRA = [(os.environ.get("NTFY_TOPIC_MIKE", "").strip(), "https://jase6569.github.io/dorset-gold-trader/")]
-# Adam has his own app and his own alert channel
-ADAM = (os.environ.get("NTFY_TOPIC_ADAM", "").strip(), "https://jase6569.github.io/gold-sell-timer/adam/")
 OZ = 31.1034768
 STATE = "state.json"
 
@@ -71,7 +69,7 @@ def weekly_closes(daily):
 
 def send(title, body, priority="default", tags="moneybag"):
     seen = set()
-    for topic, app in [(TOPIC, APP)] + [e for e in EXTRA + [ADAM] if e[0]]:
+    for topic, app in [(TOPIC, APP)] + [e for e in EXTRA if e[0]]:
         if topic in seen:
             continue
         seen.add(topic)
@@ -363,7 +361,7 @@ def main():
     # a newly added channel gets a one-off "alerts are on" message (only a scrambled id is saved)
     first_time = "channels" not in state
     known = state.setdefault("channels", [])
-    for topic, app in [(TOPIC, APP)] + [e for e in EXTRA + [ADAM] if e[0]]:
+    for topic, app in [(TOPIC, APP)] + [e for e in EXTRA if e[0]]:
         cid = hashlib.sha256(("chan|" + topic).encode()).hexdigest()[:10]
         if cid in known:
             continue
@@ -375,7 +373,7 @@ def main():
                 print("welcome failed", e)
         known.append(cid)
 
-    # lot alerts: Jase's go to their own channel (so Adam doesn't get them), Mike's to his usual channel
+    # lot alerts: Jase's go to their own channel, Mike's to his usual channel
     for code, to_topic, app in [(TOPIC, None, APP)] + [(e[0], e[0], e[1]) for e in EXTRA if e[0]]:
         try:
             run_lot_alerts(code, to_topic or lot_keys(code)["lots"], app, t, daily, state, now)

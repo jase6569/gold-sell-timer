@@ -1,7 +1,7 @@
 // Gold Trader offline support: lets the team app and Buy log open with no signal.
 // Everything is "network first": with signal you always get the newest version and prices,
 // and the copy saved here is only used when there's no signal (or it's too slow).
-// Adam's app (adam/) is left completely alone.
+// adam/ is a closed app's placeholder page: never cached.
 const CACHE = "gt-offline-v2";
 const CORE = ["./", "index.html", "sync.js?v=18", "coins.js?v=1", "keep.js?v=1", "offer.js?v=3", "out.js?v=2", "manifest.json",
   "icon.png", "logo.png", "favicon.png", "apple-touch-icon.png", "data.json", "news.json", "mastermelt.json", "widget.json",
@@ -20,7 +20,7 @@ self.addEventListener("fetch", e => {
   const req = e.request, url = new URL(req.url);
   if (req.method !== "GET") return;                                   // saving, syncing and scanning go straight through
   if (url.origin === self.location.origin){
-    if (url.pathname.includes("/adam/")) return;                      // Adam's app: untouched
+    if (url.pathname.includes("/adam/")) return;                      // closed app's placeholder: never cached
     if (!url.pathname.startsWith(new URL("./", self.location).pathname)) return;
     if (/\.apk$/.test(url.pathname)) return;
     e.respondWith(networkFirst(req));

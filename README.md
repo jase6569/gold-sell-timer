@@ -87,7 +87,7 @@ git pull
 
 ## Google reviews (Buy log)
 
-The Buy log can ask customers for a Google review. Requests always go out as **Dorset Gold & Jewellery** (`REV_BIZ` in `buying-log/index.html`), whatever business name is on the receipts. Adam's app has no Buy log, so he never sees it. `buying-log/qrcode.min.js` (MIT licence) draws the QR code.
+The Buy log can ask customers for a Google review. Requests always go out as **Dorset Gold & Jewellery** (`REV_BIZ` in `buying-log/index.html`), whatever business name is on the receipts. `buying-log/qrcode.min.js` (MIT licence) draws the QR code.
 
 * **Settings, Google reviews:** paste Dorset Gold & Jewellery's Google review link and edit the message.
 * **Each record:** Show QR code (for the customer to scan at the visit), Ask by text, WhatsApp or email, then "They've left a review". Every step goes in the audit trail.
@@ -96,4 +96,6 @@ The Buy log can ask customers for a Google review. Requests always go out as **D
 
 ## Branding
 
-This app is branded Dorset Gold & Jewellery (renamed from Dorset Jewellers in November 2026). The Buy log database keeps its old internal name (`dj-buylog`) so no records are lost, and older receipts keep their DJ- numbers. New receipts start DG-. Adam's app in `adam/` keeps the Dorset Jewellers look with its own copies of the logo and icons. The Android widget still shows the old logo until it's rebuilt.
+This app is branded Dorset Gold & Jewellery (renamed from Dorset Jewellers in November 2026). The Buy log database keeps its old internal name (`dj-buylog`) so no records are lost, and older receipts keep their DJ- numbers. New receipts start DG-. The Android widget still shows the old logo until it's rebuilt.
+
+Adam's separate app (`adam/`) was closed on 28 November 2026: the address now shows "This app is no longer available", and his alert channel was removed from the hourly alerts.
