@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Today's gold prices · Dorset Gold &amp; Jewellery</title>
+<meta name="theme-color" content="#0f0e0c">
+<link rel="icon" href="../favicon.png">
+<style>
+  :root{--bg:#0f0e0c;--card:#1a1814;--line:#2e2a22;--text:#f4efe4;--muted:#a69f90;--gold:#d4a843;--gold2:#f0cb6a}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;cursor:none}
+  body{background:radial-gradient(ellipse at 50% -10%,rgba(212,168,67,.18),transparent 60%),var(--bg)}
+  .wrap{position:absolute;inset:0;display:flex;flex-direction:column;padding:3.2vh 4vw 2.6vh;animation:drift 120s ease-in-out infinite alternate}
+  @keyframes drift{from{transform:translate(0,0)}to{transform:translate(.6vw,.6vh)}}   /* a slow nudge so the TV doesn't burn the picture in */
+  header{display:flex;align-items:center;gap:2.2vw}
+  header img{width:10vh;height:10vh;border-radius:50%;box-shadow:0 0 0 .35vh rgba(240,203,106,.4),0 1vh 4vh rgba(212,168,67,.3)}
+  header h1{margin:0;font-size:5vh;line-height:1.1;font-weight:800}header h1 span{color:var(--gold)}
+  header .sub{color:var(--muted);font-size:2.4vh;margin-top:.4vh}
+  header .clock{margin-left:auto;text-align:right}header .clock b{display:block;font-size:4.6vh}header .clock span{color:var(--muted);font-size:2.2vh}
+  .title{margin:3.2vh 0 1.4vh;display:flex;align-items:baseline;gap:1.6vw}
+  .title h2{margin:0;font-size:6.4vh;font-weight:800;color:var(--gold2);letter-spacing:.02em}
+  .title span{color:var(--muted);font-size:2.6vh}
+  .grid{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:1.8vh 2vw;align-content:start}
+  .p{background:var(--card);border:1px solid var(--line);border-radius:2vh;padding:2vh 2.4vw;display:flex;align-items:center;justify-content:space-between}
+  .p .k{font-size:5vh;font-weight:800}.p .k small{display:block;font-size:2.1vh;color:var(--muted);font-weight:500;margin-top:.3vh}
+  .p .v{font-size:7vh;font-weight:800;color:var(--gold2);font-variant-numeric:tabular-nums}.p .v small{font-size:2.6vh;color:var(--muted);font-weight:600;margin-left:.4vw}
+  .p.coin .v{font-size:5.6vh}
+  .msg{margin-top:2vh;text-align:center;font-size:3.4vh;font-weight:700;color:var(--text);background:linear-gradient(90deg,transparent,rgba(212,168,67,.18),transparent);padding:1.4vh 0;border-radius:1vh}
+  footer{display:flex;justify-content:space-between;color:var(--muted);font-size:1.9vh;margin-top:1.6vh}
+  .stale{color:#f0a35c}
+  .wait{flex:1;display:flex;align-items:center;justify-content:center;font-size:4vh;color:var(--muted)}
+  /* settings: opened with the button in the corner (or S on a keyboard / OK on a TV remote) */
+  #setBtn{position:fixed;right:1.2vw;bottom:1.2vh;width:5vh;height:5vh;border-radius:50%;border:1px solid transparent;background:transparent;color:transparent;font-size:2.6vh;cursor:pointer}
+  #setBtn:focus,#setBtn:hover{border-color:var(--line);color:var(--muted);background:var(--card)}
+  body.show-cursor{cursor:default}
+  #panel{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;cursor:default;z-index:5}
+  #panel .box{background:var(--card);border:1px solid var(--line);border-radius:2vh;padding:3vh 3vw;width:min(92vw,720px);font-size:18px}
+  #panel h3{margin:0 0 14px;color:var(--gold2);font-size:22px}
+  #panel label{display:block;color:var(--muted);margin:14px 0 6px;font-size:15px}
+  #panel .mrow{display:flex;align-items:center;gap:12px}
+  #panel .mrow b{font-size:34px;min-width:110px;text-align:center}
+  #panel button,#panel select,#panel input{font:inherit;font-size:18px;padding:12px 16px;border-radius:12px;border:1px solid var(--line);background:#14130f;color:var(--text)}
+  #panel button:focus,#panel select:focus,#panel input:focus{outline:3px solid var(--gold);outline-offset:2px}
+  #panel .go{background:var(--gold);color:#1a1408;font-weight:800;border:0;width:100%;margin-top:18px}
+  #panel input[type=text]{width:100%}
+  #panel .note{color:var(--muted);font-size:14px;margin-top:10px}
+  #panel table{width:100%;border-collapse:collapse;font-size:16px;margin-top:8px}#panel td{padding:4px 0;border-top:1px solid var(--line)}#panel td:last-child{text-align:right}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="../icon.png" alt="">
+    <div><h1>Dorset Gold <span>&amp; Jewellery</span></h1><div class="sub">We buy gold, silver and coins · cash paid today</div></div>
+    <div class="clock"><b id="time"></b><span id="date"></span></div>
+  </header>
+  <div class="title"><h2>Today's gold prices</h2><span>what we pay per gram</span></div>
+  <div id="body" class="wait">Getting today's prices…</div>
+  <div class="msg" id="msg" style="display:none"></div>
+  <footer><span id="upd"></span><span>Prices change with the gold market. Ask us for a free valuation.</span></footer>
+</div>
+<button id="setBtn" aria-label="Price board settings">⚙</button>
+<div id="panel"><div class="box">
+  <h3>Price board settings</h3>
+  <label>Margin you keep (% off the refiner's price)</label>
+  <div class="mrow"><button id="mDown" aria-label="Lower the margin">−</button><b id="mVal">20%</b><button id="mUp" aria-label="Raise the margin">+</button></div>
+  <label>Round prices down to</label>
+  <select id="rnd"><option value="0.1">the nearest 10p</option><option value="0.5">the nearest 50p</option><option value="1">the nearest £1</option></select>
+  <label>Show sovereigns</label>
+  <select id="cns"><option value="1">Yes</option><option value="0">No</option></select>
+  <label>Message along the bottom (leave empty for none)</label>
+  <input id="msgIn" type="text" maxlength="80" placeholder="e.g. Free valuations, no appointment needed">
+  <table id="prev"></table>
+  <button class="go" id="done">Done</button>
+  <p class="note">The margin is shared with the Shop (Settings, Price board) on any device in the team. Without the team, it's kept on this screen.</p>
+</div></div>
+<script src="../sync.js?v=18"></script>
+<script>
+"use strict";
+/* The shop's TV price board. Prices are worked out the same way as Gold Trader's "What to pay today":
+   the refiner's price for each carat (Mastermelt's daily prices, or the live gold price at your own refiner %),
+   less the margin set here. Settings are shared with the team when this screen has joined it. */
+const $ = id => document.getElementById(id);
+const get = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch(e){ return d; } };
+const set = (k, v) => { try { localStorage.setItem(k, v); } catch(e){} };
+const CT = [["9ct", 0.375, "most common in UK jewellery"], ["14ct", 0.585, "often European or American"], ["18ct", 0.75, "rings and fine jewellery"], ["22ct", 0.916, "wedding bands, Indian gold"], ["24ct", 0.999, "pure gold"]];
+const OZ = 31.1035;
+let mm = null, live = 0, liveAt = null;
+function cfg(){ let c = {}; try { c = JSON.parse(get("board", "{}")) || {}; } catch(e){}
+  const m = parseFloat(c.m); return {m: isFinite(m) ? Math.min(60, Math.max(0, m)) : (parseFloat(get("pmM", "20")) || 20), round: parseFloat(c.round) || 0.1, coins: c.coins !== false, msg: c.msg || ""}; }
+function saveCfg(c){ set("board", JSON.stringify(c)); }
+async function fetchJSON(u){ const r = await fetch(u, {cache: "no-store"}); if (!r.ok) throw new Error(r.status); return r.json(); }
+async function load(){
+  try { mm = await fetchJSON("../mastermelt.json?t=" + Date.now()); set("boardMM", JSON.stringify(mm)); } catch(e){ try { mm = JSON.parse(get("boardMM", "null")); } catch(e2){} }
+  try { const [xau, fx] = await Promise.all([fetchJSON("https://api.gold-api.com/price/XAU").then(d => d.price),
+      fetchJSON("https://open.er-api.com/v6/latest/GBP").then(d => d.rates.USD).catch(() => fetchJSON("https://api.frankfurter.app/latest?from=GBP&to=USD").then(d => d.rates.USD))]);
+    if (xau > 0 && fx > 0){ live = xau / fx / OZ; liveAt = new Date(); set("gGbp", String(live)); set("gGbpAt", liveAt.toISOString()); } }
+  catch(e){ live = parseFloat(get("gGbp", "0")) || 0; liveAt = get("gGbpAt") ? new Date(get("gGbpAt")) : null; }
+  draw();
+}
+const mmFresh = () => !!(mm && mm.ok !== false && mm.pure_g && (Date.now() - new Date(mm.date + "T12:00:00")) / 864e5 < 5);
+function refinerG(label, fine){   // what the refiner pays per gram of this carat
+  if ((get("refiner", "mastermelt") === "mastermelt") && mmFresh() && mm.prices && mm.prices[label]) return mm.prices[label];
+  if (!live) return 0;
+  return live * fine * ((parseFloat(get("ownPct", "95")) || 95) / 100);
+}
+const down = (v, step) => Math.floor(v / step + 1e-9) * step;
+const money = (v, dp) => "£" + v.toLocaleString("en-GB", {minimumFractionDigits: dp, maximumFractionDigits: dp});
+function prices(c){
+  const k = 1 - c.m / 100;
+  return CT.map(([label, fine, note]) => ({label, note, v: down(refinerG(label, fine) * k, c.round)}));
+}
+function draw(){
+  const c = cfg(), p = prices(c);
+  if (!p.some(x => x.v > 0)){ $("body").className = "wait"; $("body").textContent = "Waiting for today's prices…"; return; }
+  const dp = c.round >= 1 ? 0 : 2;
+  const p22 = p.find(x => x.label === "22ct").v;
+  const coins = c.coins && p22 ? [["Full sovereign", 7.98805], ["Half sovereign", 3.99403]] : [];
+  $("body").className = "grid";
+  $("body").innerHTML = p.map(x => `<div class="p"><div class="k">${x.label}<small>${x.note}</small></div><div class="v">${money(x.v, dp)}<small>/g</small></div></div>`).join("")
+    + coins.map(([n, g]) => `<div class="p coin"><div class="k">${n}<small>at today's gold value</small></div><div class="v">${money(down(p22 * g, 1), 0)}</div></div>`).join("");
+  $("msg").style.display = c.msg ? "" : "none"; $("msg").textContent = c.msg;
+  const src = (get("refiner", "mastermelt") === "mastermelt" && mmFresh()) ? `Updated ${new Date(mm.checked || mm.date).toLocaleString("en-GB", {weekday: "short", hour: "2-digit", minute: "2-digit"})}` : liveAt ? `Updated ${liveAt.toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"})}` : "";
+  const stale = !mmFresh() && (!liveAt || Date.now() - liveAt > 6 * 36e5);
+  $("upd").innerHTML = stale ? `<span class="stale">${src || "Prices may be out of date"} · no internet connection</span>` : src;
+  if ($("panel").style.display === "flex") drawPanel();
+}
+function tick(){ const d = new Date(); $("time").textContent = d.toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"}); $("date").textContent = d.toLocaleDateString("en-GB", {weekday: "long", day: "numeric", month: "long"}); }
+
+/* settings panel */
+function drawPanel(){ const c = cfg(); $("mVal").textContent = c.m + "%"; $("rnd").value = String(c.round); $("cns").value = c.coins ? "1" : "0"; if (document.activeElement !== $("msgIn")) $("msgIn").value = c.msg;
+  $("prev").innerHTML = prices(c).map(x => `<tr><td>${x.label}</td><td>refiner ${money(refinerG(x.label, CT.find(y => y[0] === x.label)[1]), 2)}/g · you pay <b>${money(x.v, 2)}/g</b></td></tr>`).join(""); }
+function upd(ch){ const c = Object.assign(cfg(), ch); c.m = Math.round(Math.min(60, Math.max(0, c.m)) * 2) / 2; saveCfg(c); draw(); drawPanel(); }
+function openPanel(){ $("panel").style.display = "flex"; document.body.classList.add("show-cursor"); drawPanel(); setTimeout(() => $("mUp").focus(), 30); }
+function closePanel(){ $("panel").style.display = "none"; document.body.classList.remove("show-cursor"); $("setBtn").blur(); }
+$("setBtn").onclick = openPanel;
+$("mUp").onclick = () => upd({m: cfg().m + 0.5});
+$("mDown").onclick = () => upd({m: cfg().m - 0.5});
+$("rnd").onchange = () => upd({round: parseFloat($("rnd").value)});
+$("cns").onchange = () => upd({coins: $("cns").value === "1"});
+$("msgIn").oninput = () => upd({msg: $("msgIn").value.trim()});
+$("done").onclick = closePanel;
+document.addEventListener("keydown", e => {
+  if ($("panel").style.display === "flex"){ if (e.key === "Escape" || e.key === "Backspace" && document.activeElement !== $("msgIn")) closePanel(); return; }
+  if (["s", "S", "Enter", "ContextMenu"].includes(e.key) || e.keyCode === 23) { e.preventDefault(); openPanel(); }   // 23 = OK/centre on many TV remotes
+});
+let mv = 0; document.addEventListener("mousemove", () => { document.body.classList.add("show-cursor"); clearTimeout(mv); mv = setTimeout(() => { if ($("panel").style.display !== "flex") document.body.classList.remove("show-cursor"); }, 3000); });
+window.addEventListener("storage", () => draw());           // changed in the Shop on this device
+window.addEventListener("dgsync-applied", () => draw());    // changed on another device in the team
+tick(); setInterval(tick, 10000);
+load(); setInterval(load, 10 * 60000);
+// keep the screen awake where the browser allows it
+async function wake(){ try { if ("wakeLock" in navigator) await navigator.wakeLock.request("screen"); } catch(e){} }
+wake(); document.addEventListener("visibilitychange", () => { if (!document.hidden) wake(); });
+</script>
+</body>
+</html>

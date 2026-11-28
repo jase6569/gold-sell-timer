@@ -14,7 +14,7 @@ const SYNC_URL = "https://dg-sync.maximus6569.workers.dev";   // the team sync W
 
 const LS = window.localStorage, P = "dgs:";
 const ARRAYS = ["stock", "buys", "sent", "visits", "cash", "sales", "customers", "safebags", "forsale", "staff", "till", "shopcfg", "stockchecks", "sends", "safechecks", "valuations", "rota", "clock", "nosafe", "adspend"];         // lists in localStorage, synced item by item
-const SCALARS = ["refiner", "ownPct", "pmM", "buyin"];               // shared settings: refiner price, margin, buying-in
+const SCALARS = ["refiner", "ownPct", "pmM", "buyin", "board"];   // "board": the TV price board's margin and message               // shared settings: refiner price, margin, buying-in
 const BL_SHARED = ["biz", "addr", "phone", "prefix", "retain", "revLink", "revMsg", "icoDone", "icoNum", "dpEmail", "offerPct", "holdDays", "cmAt", "aiId"];   // Buy log settings everyone shares
 const BL_DB = "dj-buylog";
 const enc = new TextEncoder(), dec = new TextDecoder();

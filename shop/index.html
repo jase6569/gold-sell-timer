@@ -430,6 +430,17 @@
     </div>
     </div>
     <div class="card">
+      <h2>Price board for the TV</h2>
+      <p class="muted" style="margin-top:0">A full-screen board of what you pay per gram today, for a TV in the shop. Prices are the refiner's price less the margin here, so they move with Mastermelt and the gold price by themselves.</p>
+      <div class="row"><div><label>Margin you keep (%)</label><input id="pb_m" type="number" inputmode="decimal" min="0" max="60" step="0.5"></div>
+        <div><label>Round down to</label><select id="pb_r"><option value="0.1">10p</option><option value="0.5">50p</option><option value="1">£1</option></select></div></div>
+      <label>Message along the bottom (optional)</label><input id="pb_msg" maxlength="80" placeholder="e.g. Free valuations, no appointment needed">
+      <label class="chk" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="pb_c" style="width:auto"> Show sovereigns</label>
+      <div id="pb_prev" style="margin-top:8px"></div>
+      <a class="btn" href="../board/" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none">Open the price board</a>
+      <p class="muted">On the TV: open this board full screen (F11 on a laptop). Changes here show on the TV straight away if it's this device, or within a minute on another team device.</p>
+    </div>
+    <div class="card">
       <h2>Marketing: where customers come from</h2>
       <p class="muted" style="margin-top:0">The choices for "How did they hear about us?" on purchases, sales, visits and customers. One per line, in the order you want them. Shared with the team. The report is under Reports.</p>
       <textarea id="mk_src" style="min-height:150px"></textarea>
@@ -515,7 +526,7 @@
   </div>
 </div></div>
 
-<script src="../sync.js?v=17"></script>
+<script src="../sync.js?v=18"></script>
 <script src="../buying-log/qrcode.min.js"></script>
 <script>
 /* ============ Dorset Gold & Jewellery · Shop ============
@@ -1823,7 +1834,21 @@ $("br_save").onclick = async () => { const o = $("br_offer").value.trim(); if (o
 window.addEventListener("dgsync-applied", e => { if (e.detail && e.detail.settings) loadPin();
   // a purchase added, changed or deleted on another device: reload the Buy log so Buy, Safe, Customers and the till are right without a refresh
   if (e.detail && e.detail.records) loadBuyLogSellers().then(() => { const k = noSafeIds(); blRecs.forEach(r => { if (k.includes(r.id)) r.noSafe = true; }); renderAll(); }); });
+function boardCfg(){ let c = {}; try { c = JSON.parse(localStorage.getItem("board") || "{}") || {}; } catch(e){} const m = parseFloat(c.m);
+  return {m: isFinite(m) ? m : (parseFloat(localStorage.getItem("pmM") || "20") || 20), round: parseFloat(c.round) || 0.1, coins: c.coins !== false, msg: c.msg || ""}; }
+function renderBoardSet(){
+  const c = boardCfg(), a = document.activeElement;
+  if (a !== $("pb_m")) $("pb_m").value = c.m; if (a !== $("pb_msg")) $("pb_msg").value = c.msg; $("pb_r").value = String(c.round); $("pb_c").checked = c.coins;
+  let mmj = null; try { mmj = JSON.parse(localStorage.getItem("boardMM") || "null"); } catch(e){}
+  const pr = mmj && mmj.prices ? Object.entries(mmj.prices) : [];
+  $("pb_prev").innerHTML = pr.length ? `<table>${pr.map(([k, v]) => `<tr><td>${k}</td><td class="muted">refiner ${gbp(v)}/g</td><td><b>${gbp(Math.floor(v * (1 - c.m / 100) / c.round + 1e-9) * c.round)}/g</b></td></tr>`).join("")}</table>` : "";
+}
+["pb_m", "pb_r", "pb_c", "pb_msg"].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener(id === "pb_msg" || id === "pb_m" ? "input" : "change", () => {
+  const m = parseFloat($("pb_m").value); const c = Object.assign(boardCfg(), {round: parseFloat($("pb_r").value) || 0.1, coins: $("pb_c").checked, msg: $("pb_msg").value.trim()});
+  if (isFinite(m) && m >= 0 && m <= 60) c.m = m; localStorage.setItem("board", JSON.stringify(c)); renderBoardSet(); }); });
+fetch("../mastermelt.json?t=" + Date.now()).then(r => r.json()).then(j => { localStorage.setItem("boardMM", JSON.stringify(j)); try { renderBoardSet(); } catch(e){} }).catch(() => {});
 function renderSettings(){
+  renderBoardSet();
   if (document.activeElement !== $("mk_src")) $("mk_src").value = sources().join("\n");
   renderStaff(); renderStatus(); fillBizRules(); renderDP().catch(() => {}); $("dp_ai").checked = aiOn();
   const cfg = shopCfg(); if (document.activeElement !== $("cfg_policy")) $("cfg_policy").value = cfg.policy || "";
@@ -2847,6 +2872,10 @@ const HELP = [
     <li><b>Refining</b> shows what Mastermelt paid against what that gold cost you in the Buy log.</li>
     <li><b>Each person</b> shows sales, refunds, buys and valuations by whoever was signed in.</li></ul>
     <p><b>Print or save as PDF</b> gives a tidy copy.</p>`},
+  {id: "board", page: "set", t: "The TV price board", b: `
+    <p>A full-screen board for a TV in the shop showing <b>what you pay per gram today</b> for 9ct to 24ct, plus sovereigns. Open it from <b>Settings</b>, <b>Price board for the TV</b>, <b>Open the price board</b>, or go to jase6569.github.io/gold-sell-timer/board/.</p>
+    <p>Prices are the refiner's price (Mastermelt's daily prices, or your own %) less <b>your margin</b>, rounded down. Change the margin, rounding, sovereigns and the message in Settings; on the TV itself, press <b>S</b> on a keyboard or <b>OK</b> on the remote (or the faint gear in the bottom corner).</p>
+    <p><b>Getting it on the TV:</b> a laptop plugged in with HDMI (press F11 for full screen), or a Fire TV Stick or Chromecast once the shop has Wi-Fi. The board keeps the last prices if the internet drops, and says so at the bottom.</p>`},
   {id: "marketing", page: "rep", t: "Marketing: where customers come from", b: `
     <p>Every purchase, sale, home visit and new customer has <b>How did they hear about us?</b> Pick one: it takes a second. Someone you've dealt with before is filled in as <b>Returning customer</b> for you, and a purchase started from a visit takes the visit's answer.</p>
     <p>On <b>Reports</b>, the Marketing card shows for the chosen period, by source: home visits, purchases (grams, paid, margin on melt), sales, ad spend and <b>cost per customer</b>. Then how many visits turned into a purchase, the <b>hot spots</b> by postcode area (BH14, BH12…), and the last 6 months by source.</p>
